@@ -8,7 +8,6 @@ tests
 *.log
 .env
 .env.*
-**/services.sh
 **/id_rsa*
 **/id_ed25519*
 **/*.key
