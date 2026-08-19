@@ -1,3 +1,3 @@
-from app.domain.audit.models import AuditEvent, AuditEventType
+from app.domain.audit.models import ActorType, AuditEvent, AuditEventType
 
-__all__ = ["AuditEvent", "AuditEventType"]
+__all__ = ["ActorType", "AuditEvent", "AuditEventType"]
