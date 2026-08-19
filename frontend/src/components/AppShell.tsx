@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   UserRound,
   Wrench,
-  PlugZap,
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
@@ -30,7 +29,6 @@ const primaryNav = [
   ["/tasks", "任务中心", ClipboardList],
   ["/audits", "操作审计", FileClock],
   ["/access", "权限管理", ShieldCheck],
-  ["/operations-integration", "运维接入配置", PlugZap],
   ["/settings", "系统配置", Settings],
 ] as const;
 
@@ -59,8 +57,7 @@ export function AppShell({
   const currentEnvironment = environments.find((item) => item.id === environmentId);
   const isProduction = currentEnvironment?.environment_level === "PRODUCTION";
   const isIntegration = security.environment_mode === "integration-test";
-  const isScript = /ScriptExecutor|LocalServices|local_services/i.test(security.executor);
-  const writeSummary = `start：${capabilities.start.label} · stop：${capabilities.stop.label}`;
+  const writeSummary = `restart：${capabilities.restart.label}`;
   useEffect(() => {
     if (location.hash) {
       window.requestAnimationFrame(() =>
@@ -88,15 +85,12 @@ export function AppShell({
         </div>
         <p className="nav-label">运行管理</p>
         <nav aria-label="运行管理">
-          {primaryNav.map(([to, label, Icon]) =>
-            to === "/operations-integration" &&
-            !security.permissions.includes("config.read") ? null : (
-              <NavLink key={to} to={to} end={to === "/"}>
-                <Icon size={17} aria-hidden="true" />
-                <span>{label}</span>
-              </NavLink>
-            ),
-          )}
+          {primaryNav.map(([to, label, Icon]) => (
+            <NavLink key={to} to={to} end={to === "/"}>
+              <Icon size={17} aria-hidden="true" />
+              <span>{label}</span>
+            </NavLink>
+          ))}
         </nav>
         <p className="nav-label nav-label--future">规划能力</p>
         <div className="future-nav">
@@ -112,7 +106,7 @@ export function AppShell({
           <ShieldCheck size={17} aria-hidden="true" />
           <div>
             <strong>
-              {isScript ? "Linux 本地脚本" : isIntegration ? "隔离测试执行" : "安全模拟模式"}
+              {isIntegration ? "受控 Ansible 执行" : "安全模拟模式"}
             </strong>
             <small>
               {security.executor} · {writeSummary}
@@ -130,19 +124,11 @@ export function AppShell({
               <ShieldCheck size={17} aria-hidden="true" />
             </span>
             <strong>
-              {isScript
-                ? "Linux 控制节点 · 本地 services.sh"
-                : isIntegration
-                  ? "隔离测试环境 · 真实 Ansible 执行"
-                  : "模拟执行环境"}
+              {isIntegration ? "隔离测试环境 · 受控 Ansible 执行" : "模拟执行环境"}
             </strong>
             <b>{security.executor}</b>
             <span>
-              {isScript
-                ? "浏览器 → API → Worker → services.sh"
-                : isIntegration
-                  ? "仅限配置白名单"
-                  : writeSummary}
+              {isIntegration ? "Structured Action → Policy → Ansible → Verify" : writeSummary}
             </span>
           </div>
           <div className="global-bar__tools">
@@ -170,12 +156,10 @@ export function AppShell({
             </span>
             <span
               className="top-status-chip is-safe"
-              title={`${capabilities.start.reason} ${capabilities.stop.reason}`}
+              title={capabilities.restart.reason}
             >
               <ShieldCheck size={14} aria-hidden="true" />
-              {capabilities.start.label === capabilities.stop.label
-                ? capabilities.start.label
-                : "动态操作策略"}
+              {capabilities.restart.label}
             </span>
             <ThemeSwitcher />
             <span

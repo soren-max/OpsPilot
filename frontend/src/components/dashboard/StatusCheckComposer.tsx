@@ -15,7 +15,7 @@ import { queryKeys } from "../../query/queryKeys";
 import type { Host, SecurityContext } from "../../types";
 import type { OperationCapabilities } from "../../services/operationCapabilities";
 
-type SupportedAction = "status" | "start" | "stop";
+type SupportedAction = "status" | "restart";
 
 export function StatusCheckComposer({
   environmentId,
@@ -60,7 +60,7 @@ export function StatusCheckComposer({
         environmentId,
         serviceId,
         hostIds,
-        action as "start" | "stop",
+        action as "restart",
       );
       if (security.approval.allow_self_approval && security.approval.can_approve) {
         const approved = await tasksApi.approveOperationRequest(approval.id);
@@ -86,7 +86,7 @@ export function StatusCheckComposer({
     const requestedService = searchParams.get("service");
     if (
       requestedAction &&
-      ["status", "start", "stop"].includes(requestedAction) &&
+      ["status", "restart"].includes(requestedAction) &&
       capabilities[requestedAction as SupportedAction].canInitiate
     ) {
       setAction(requestedAction as SupportedAction);
@@ -140,11 +140,8 @@ export function StatusCheckComposer({
             <option value="status" disabled={!capabilities.status.canInitiate}>
               状态检查
             </option>
-            <option value="start" disabled={!capabilities.start.canInitiate}>
-              启动服务（{capabilities.start.label}）
-            </option>
-            <option value="stop" disabled={!capabilities.stop.canInitiate}>
-              停止服务（{capabilities.stop.label}）
+            <option value="restart" disabled={!capabilities.restart.canInitiate}>
+              重启服务（{capabilities.restart.label}）
             </option>
           </select>
         </label>
@@ -198,25 +195,20 @@ export function StatusCheckComposer({
             }
             onClick={submit}
             className={`button ${
-              action === "stop"
-                ? "button--danger"
-                : action === "start"
-                  ? "button--warning"
-                  : "button--primary"
+              action === "restart" ? "button--warning" : "button--primary"
             }`}
           >
             {create.isPending
               ? "正在创建任务…"
               : actionCapability.requiresApproval
                 ? "核对并提交审批"
-                : `核对并${action === "status" ? "执行检查" : action === "start" ? "启动" : "停止"}`}
+                : `核对并${action === "status" ? "执行检查" : "重启"}`}
           </button>
         </div>
         <div className="operation-policy-note" role="note">
           <strong>后端有效操作能力</strong>
           <CapabilityReason capability={capabilities.status} />
-          <CapabilityReason capability={capabilities.start} />
-          <CapabilityReason capability={capabilities.stop} />
+          <CapabilityReason capability={capabilities.restart} />
           <span>后端安全门不可由手工 API 请求绕过，并记录拒绝审计。</span>
         </div>
         {create.error && (

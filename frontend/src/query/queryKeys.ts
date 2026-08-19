@@ -19,6 +19,4 @@ export const queryKeys = {
   taskLogs: (taskId: string | undefined) => ["task-logs", taskId] as const,
   audits: ["audits"] as const,
   statusSnapshots: (environmentId: string) => ["status-snapshots", environmentId] as const,
-  integration: (environmentId: string) => ["operations-integration", environmentId] as const,
-  credentials: ["operations-integration", "credentials"] as const,
 };

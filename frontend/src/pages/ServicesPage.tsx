@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Play, SearchCheck, Square, Wrench } from "lucide-react";
+import { RotateCw, SearchCheck, Wrench } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { auditsApi, catalogApi, tasksApi } from "../api";
@@ -36,7 +36,7 @@ export function ServicesPage({
   environmentLevel: "DEVELOPMENT" | "TEST" | "PRODUCTION";
   capabilities: OperationCapabilities;
 }) {
-  const { status: statusCapability, start: startCapability, stop: stopCapability } = capabilities;
+  const { status: statusCapability, restart: restartCapability } = capabilities;
   const [params, setParams] = useSearchParams();
   const [selected, setSelected] = useState<Service | null>(null);
   const search = params.get("search") ?? "";
@@ -134,18 +134,9 @@ export function ServicesPage({
                 <SearchCheck size={16} /> 状态检查
               </Link>
             </PermissionGate>
-            <PermissionGate capability={startCapability} blockedLabel="启动">
-              <Link className="button button--secondary" to="/?action=start#quick-status-check">
-                <Play size={16} /> 启动{startCapability.requiresApproval ? " · 需审批" : ""}
-              </Link>
-            </PermissionGate>
-            <PermissionGate
-              capability={stopCapability}
-              blockedLabel="停止"
-              className="button button--danger"
-            >
-              <Link className="button button--danger" to="/?action=stop#quick-status-check">
-                <Square size={16} /> 停止{stopCapability.requiresApproval ? " · 需审批" : ""}
+            <PermissionGate capability={restartCapability} blockedLabel="重启">
+              <Link className="button button--secondary" to="/?action=restart#quick-status-check">
+                <RotateCw size={16} /> 重启{restartCapability.requiresApproval ? " · 需审批" : ""}
               </Link>
             </PermissionGate>
           </ToolbarActions>
@@ -204,8 +195,7 @@ export function ServicesPage({
         <div id="services-write-policy" className="operation-policy-strip" role="note">
           <strong>后端有效操作能力</strong>
           <CapabilityReason capability={statusCapability} />
-          <CapabilityReason capability={startCapability} />
-          <CapabilityReason capability={stopCapability} />
+          <CapabilityReason capability={restartCapability} />
         </div>
         {services.isLoading || (host !== "ALL" && hostServices.isLoading) ? (
           <LoadingState variant="table" />
@@ -296,23 +286,13 @@ export function ServicesPage({
                           </Link>
                         </PermissionGate>
                         <PermissionGate
-                          capability={startCapability}
-                          blockedLabel="start"
+                          capability={restartCapability}
+                          blockedLabel="restart"
                           showReason={false}
                           className="row-action"
                         >
-                          <Link to={`/?action=start&service=${service.id}#quick-status-check`}>
-                            start
-                          </Link>
-                        </PermissionGate>
-                        <PermissionGate
-                          capability={stopCapability}
-                          blockedLabel="stop"
-                          showReason={false}
-                          className="row-action"
-                        >
-                          <Link to={`/?action=stop&service=${service.id}#quick-status-check`}>
-                            stop
+                          <Link to={`/?action=restart&service=${service.id}#quick-status-check`}>
+                            restart
                           </Link>
                         </PermissionGate>
                         <button className="row-action" onClick={() => setSelected(service)}>
@@ -473,31 +453,19 @@ function ServiceDrawer({
                 <SearchCheck size={16} /> 状态检查
               </Link>
             </PermissionGate>
-            <PermissionGate capability={capabilities.start} blockedLabel="启动">
+            <PermissionGate capability={capabilities.restart} blockedLabel="重启">
               <Link
                 className="button button--secondary"
-                to={`/?action=start&service=${service.id}#quick-status-check`}
+                to={`/?action=restart&service=${service.id}#quick-status-check`}
               >
-                <Play size={15} /> 启动{capabilities.start.requiresApproval ? " · 需审批" : ""}
-              </Link>
-            </PermissionGate>
-            <PermissionGate
-              capability={capabilities.stop}
-              blockedLabel="停止"
-              className="button button--danger"
-            >
-              <Link
-                className="button button--danger"
-                to={`/?action=stop&service=${service.id}#quick-status-check`}
-              >
-                <Square size={15} /> 停止{capabilities.stop.requiresApproval ? " · 需审批" : ""}
+                <RotateCw size={15} /> 重启
+                {capabilities.restart.requiresApproval ? " · 需审批" : ""}
               </Link>
             </PermissionGate>
             <div className="operation-policy-note" role="note">
               <strong>后端有效操作能力</strong>
               <CapabilityReason capability={capabilities.status} />
-              <CapabilityReason capability={capabilities.start} />
-              <CapabilityReason capability={capabilities.stop} />
+              <CapabilityReason capability={capabilities.restart} />
             </div>
           </section>
         </div>

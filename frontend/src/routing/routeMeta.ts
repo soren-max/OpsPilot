@@ -10,7 +10,6 @@ export const routeMeta: RouteMeta[] = [
   { path: "/tasks", label: "任务中心" },
   { path: "/audits", label: "操作审计" },
   { path: "/access", label: "权限管理" },
-  { path: "/operations-integration", label: "运维接入配置" },
   { path: "/settings", label: "系统配置" },
 ];
 

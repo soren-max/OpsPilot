@@ -70,7 +70,7 @@ export function OperationConfirmDialog({
   onClose,
 }: {
   open: boolean;
-  action: "status" | "start" | "stop";
+  action: "status" | "restart";
   environment: string;
   service: string;
   targetCount: number;
@@ -91,7 +91,7 @@ export function OperationConfirmDialog({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose, open, pending]);
   if (!open) return null;
-  const actionLabel = action === "status" ? "状态检查" : action === "start" ? "启动" : "停止";
+  const actionLabel = action === "status" ? "状态检查" : "重启";
   return (
     <div className="confirm-dialog-backdrop" role="presentation">
       <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
@@ -135,7 +135,7 @@ export function OperationConfirmDialog({
             取消
           </button>
           <button
-            className={`button ${action === "stop" ? "button--danger" : "button--primary"}`}
+            className="button button--primary"
             onClick={onConfirm}
             disabled={pending || !capability.canInitiate}
           >

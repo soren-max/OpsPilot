@@ -88,16 +88,15 @@ test("shell owns one viewport-bound, keyboard-scrollable main content region", a
   assert.doesNotMatch(shell, /onWheel|addEventListener\([^)]*["']wheel/);
 });
 
-test("integration execution remains explicit while write controls are policy driven", async () => {
+test("portable execution remains explicit while remediation is policy driven", async () => {
   const composer = await source("../src/components/dashboard/StatusCheckComposer.tsx");
   const policy = await source("../src/services/operationCapabilities.ts");
   const capabilityUi = await source("../src/components/ops/Capability.tsx");
   const shell = await source("../src/components/AppShell.tsx");
   const styles = await source("../src/reference-console.css");
 
-  assert.match(shell, /Linux 控制节点 · 本地 services\.sh/);
-  assert.match(composer, /capabilities\.start\.canInitiate/);
-  assert.match(composer, /capabilities\.stop\.canInitiate/);
+  assert.match(shell, /Structured Action → Policy → Ansible → Verify/);
+  assert.match(composer, /capabilities\.restart\.canInitiate/);
   assert.match(policy, /ENVIRONMENT_POLICY_DENIED/);
   assert.match(policy, /APPROVAL_REQUIRED/);
   assert.match(capabilityUi, /role="dialog"/);
@@ -112,12 +111,10 @@ test("settings and routing metadata are present", async () => {
 
   assert.match(app, /path="\/settings"/);
   assert.match(routes, /系统配置/);
-  assert.match(settings, /敏感配置/);
+  assert.match(settings, /Operator-owned 配置/);
   assert.match(settings, /只读视图/);
   assert.match(app, /systemApi\.ready/);
-  assert.match(settings, /services\.preflight/);
-  assert.match(settings, /preflight\.\$\{name\}/);
-  assert.match(settings, /check\.reason/);
+  assert.match(settings, /execution_backend\.available/);
 });
 
 test("dashboard exposes readiness and policy facts without synthetic trends", async () => {
@@ -125,17 +122,17 @@ test("dashboard exposes readiness and policy facts without synthetic trends", as
 
   for (const label of [
     "API",
-    "Worker",
+    "Application",
     "Readiness",
     "Environment level",
-    "Executor",
-    "Command profile",
+    "Execution Backend",
+    "Action Boundary",
     "Write policy",
     "Production policy",
   ]) {
     assert.match(dashboard, new RegExp(label));
   }
-  assert.match(dashboard, /readiness\.services\.profile_name/);
+  assert.match(dashboard, /readiness\?\.execution_backend\.backend/);
   assert.doesNotMatch(dashboard, /sparkline|trend|Math\.random/);
 });
 
@@ -144,14 +141,12 @@ test("service and asset pages preserve controlled operations operations", async 
   const hosts = await source("../src/pages/HostsPage.tsx");
   const assets = await source("../src/services/assetService.ts");
 
-  assert.match(services, /capabilities\.start/);
-  assert.match(services, /capabilities\.stop/);
+  assert.match(services, /capabilities\.restart/);
   assert.match(services, /后端有效操作能力/);
   assert.match(services, /catalogApi\.hostServices/);
   assert.match(services, /按主机筛选服务/);
   assert.match(services, /环境：\{environmentName\}/);
-  assert.match(services, /to=\{`\/\?action=start/);
-  assert.match(services, /to=\{`\/\?action=stop/);
+  assert.match(services, /to=\{`\/\?action=restart/);
   assert.match(hosts, /assetService\.list/);
   assert.match(hosts, /搜索资产名称或 IP/);
   assert.match(hosts, /按环境筛选/);
@@ -193,17 +188,16 @@ test("RBAC and configuration remain factual and read-only", async () => {
   for (const label of ["当前用户", "实际角色", "实际权限", "只读权限矩阵"]) {
     assert.match(access, new RegExp(label));
   }
-  for (const action of ["status", "start", "stop", "config"]) {
+  for (const action of ["status", "restart", "config"]) {
     assert.match(access, new RegExp(`action: "${action}"`));
   }
-  assert.match(access, /capabilities\.start/);
-  assert.match(access, /capabilities\.stop/);
+  assert.match(access, /capabilities\.restart/);
   assert.match(access, /operation\.create/);
   assert.match(access, /service\.status/);
   assert.match(access, /不可授权/);
   assert.match(settings, /服务端校验 · 不下发/);
-  assert.match(settings, /ssh\.private_key/);
-  assert.match(settings, /services\.script_path/);
+  assert.match(settings, /operator\.inventory/);
+  assert.match(settings, /application\.playbook_mapping/);
   assert.doesNotMatch(composer, /security\.allowed_hosts\.includes/);
   assert.doesNotMatch(composer, /security\.allowed_services\.includes/);
 });
