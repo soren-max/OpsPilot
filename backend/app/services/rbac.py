@@ -26,6 +26,11 @@ DEFAULT_PERMISSION_DEFINITIONS: dict[str, str] = {
     "config.read": "Read operations integration configuration",
     "config.write": "Create and update operations integration configuration",
     "config.test": "Run read-only operations integration tests",
+    "incident.read": "Read incidents and timelines",
+    "incident.write": "Create incidents, evidence, hypotheses, and diagnoses",
+    "incident.resolve": "Resolve investigated incidents",
+    "incident.close": "Close resolved incidents",
+    "incident.knowledge.read": "Read resolved incident knowledge projections",
 }
 
 

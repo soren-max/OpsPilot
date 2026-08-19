@@ -5,7 +5,8 @@ import re
 from typing import Any
 
 SECRET_ASSIGNMENT = re.compile(
-    r"(?i)\b(password|passwd|token|secret|private[_-]?key)\s*[:=]\s*([^\s,;]+)"
+    r"(?i)\b(password|passwd|token|secret|credential|authorization|private[_-]?key)"
+    r"\s*[:=]\s*([^\s,;]+)"
 )
 COMMAND_ASSIGNMENT = re.compile(r"(?i)\b(command|argv|args)\s*[:=]\s*([^\n]+)")
 IPV4 = re.compile(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])")
