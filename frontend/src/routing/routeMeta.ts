@@ -7,6 +7,7 @@ export const routeMeta: RouteMeta[] = [
   { path: "/", label: "运维总览" },
   { path: "/services", label: "服务管理" },
   { path: "/hosts", label: "主机管理" },
+  { path: "/incidents", label: "事件中心" },
   { path: "/tasks", label: "任务中心" },
   { path: "/audits", label: "操作审计" },
   { path: "/access", label: "权限管理" },

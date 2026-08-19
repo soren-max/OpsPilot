@@ -18,5 +18,8 @@ export const queryKeys = {
   task: (taskId: string | null) => ["task", taskId] as const,
   taskLogs: (taskId: string | undefined) => ["task-logs", taskId] as const,
   audits: ["audits"] as const,
+  incidents: (environment: string) => ["incidents", environment] as const,
+  incident: (incidentId: string | undefined) => ["incident", incidentId] as const,
+  incidentTimeline: (incidentId: string | undefined) => ["incident-timeline", incidentId] as const,
   statusSnapshots: (environmentId: string) => ["status-snapshots", environmentId] as const,
 };
