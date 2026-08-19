@@ -1,41 +1,46 @@
 # Architecture
 
-## Status
+## Operating model
 
-Milestone 1A implements the Action Safety Core. The incident workflow and capability adapters
-are planned and are not represented as completed features.
+OpsPilot separates three lifecycles with different authority and failure semantics.
 
 ```text
-Future Incident Workflow
-          |
-          v
-    ActionRequest
-          |
-          v
- ActionPolicyEngine ----> blocked / approval required
-          |
-          v
-   ActionService
-          |
-          v
- ActionExecutor port
-       /      \
-      v        v
-    Mock     Ansible
+Observe                         Remediate                         Change
+   |                                |                                |
+   v                                v                                v
+Read-only capabilities       Structured Action              Governed Workflow
+metrics / logs / ticket      -> deterministic Policy        -> Harness / GitOps
+status / health              -> human approval              (planned)
+                              -> Ansible
+                              -> verification
 ```
 
-## Boundaries
+Observation is automatic and read-only. Metrics, logs, tickets, status, and health return
+evidence without mutation authority.
 
-- `app/domain/actions` owns strict action, risk, result, and executor contracts.
-- `app/application` orchestrates policy and an injected executor.
-- `app/adapters` translates validated actions into infrastructure-specific calls.
-- `ansible/playbooks` contains the only playbooks addressable by the new Ansible adapter.
-- Legacy operation, SSH, and service-script code remains deprecated for regression migration.
+Remediation is bounded recovery such as restart or reload. The API constructs a strict
+`ActionRequest`; `ActionPolicyEngine` authorizes it, HITL approves state changes, `ActionService`
+orchestrates preview/execute/verify, and an injected Mock or Ansible adapter runs only an
+application-owned mapping.
 
-The dependency direction is Domain → Application → Port ← Adapter. Domain and application code
-do not import SSH, Ansible, subprocess, or legacy wrappers.
+Change includes deploy, rollback, configuration, and IaC. These require rollout, promotion, and
+rollback lifecycles, so they remain outside remediation. A future governed backend may integrate
+Harness and GitOps; neither is implemented in M1B.
 
-## Explicit State, Not Hidden Reasoning
+## Portable boundary
 
-Future workflows will store evidence, hypotheses, decision summaries, proposed actions, and risk
-reasons. OpsPilot will not record or depend on a model's hidden chain-of-thought.
+- `app/domain` has no transport or infrastructure credential concepts.
+- `app/application` depends only on the `ActionExecutor` port.
+- API clients cannot select executor, inventory, playbook, process, shell, or argument vector.
+- Logical Targets contain identity, environment, description, enabled state, labels, and service
+  deployments. Connection data belongs to operator-owned Ansible inventory.
+- Playbook mapping is application code; dependency injection selects Mock or Ansible.
+- There is no global executor factory.
+
+Ansible may internally use SSH according to operator-owned inventory. That is an implementation
+detail, not part of the OpsPilot application, Agent, API, or ActionRequest contract.
+
+## Explicit state, not hidden reasoning
+
+Future workflows store evidence, hypotheses, decision summaries, proposed actions, and risk
+reasons. OpsPilot neither records nor depends on a model's hidden chain-of-thought.

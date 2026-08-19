@@ -10,10 +10,11 @@ reproduction steps, and impact without including live secrets or personal data.
 
 OpsPilot does not accept arbitrary shell actions. Infrastructure changes must be represented by
 strict structured actions, assessed by deterministic policy, approved when required, and sent
-to an allowlisted adapter. LLM output is never an authorization decision.
+to a dependency-injected controlled adapter. LLM output is never an authorization decision.
 
-The legacy SSH integration is deprecated and scheduled for removal in Milestone 1B. It is not
-used by the new Action Safety Core.
+M1B removed application-level SSH, credential management, and service-script execution. Any SSH
+used by operator-owned Ansible inventory is an adapter implementation detail and is not exposed
+through the Agent, API, application service, or ActionRequest contract.
 
 ## Supported Versions
 

@@ -57,11 +57,12 @@ See [Safety Model](docs/safety-model.md).
 
 - **Implemented:** strict structured actions, deterministic risk policy, dependency-injected
   executor port, Mock adapter, fixed-mapping Ansible adapter, backend/frontend regression base.
-- **Partial:** legacy operation approval and audit components retained for migration.
+- **Implemented:** portable operation runtime, logical Targets, controlled readiness metadata,
+  and removal of application-level transport configuration.
 - **Planned:** LangGraph, LLM integration, metrics, logs, tickets, MCP, RAG, and incident lab.
 
-Legacy SSH and `services.sh` integration code is deprecated and isolated from the new domain.
-Its removal is Milestone 1B.
+The legacy SSH and service-script runtime has been removed in M1B. Ansible may use SSH internally
+according to operator-owned inventory, but that is not part of the Agent/API contract.
 
 ## Quick Start
 
