@@ -1,0 +1,48 @@
+services:
+  backend:
+    image: opspilot-backend-integration:v0.1.0
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.integration
+    environment:
+      OPSPILOT_ENVIRONMENT_MODE: integration-test
+      OPSPILOT_EXECUTOR_TYPE: ansible
+      OPSPILOT_WRITE_OPERATIONS_ENABLED: "true"
+      OPSPILOT_PRODUCTION_OPERATIONS_ENABLED: "false"
+      OPSPILOT_DRY_RUN_ONLY: "false"
+      OPSPILOT_EXECUTION_ACKNOWLEDGED: "true"
+      OPSPILOT_ALLOWED_ENVIRONMENTS: integration-test
+      OPSPILOT_ALLOWED_HOSTS: test-lab,test-unreachable
+      OPSPILOT_ALLOWED_SERVICES: demo-service
+      OPSPILOT_ALLOWED_ACTIONS: status,start,stop
+      OPSPILOT_ANSIBLE_BINARY_PATH: /opt/venv/bin/ansible-playbook
+      OPSPILOT_ANSIBLE_INVENTORY_PATH: /opt/opspilot/ansible/inventories/test-lab.ini
+      OPSPILOT_ANSIBLE_PLAYBOOK_DIRECTORY: /opt/opspilot/ansible/playbooks
+      OPSPILOT_ANSIBLE_WORKING_DIRECTORY: /opt/opspilot
+      OPSPILOT_SERVICES_SCRIPT_PATH: /opt/opspilot/test-assets/services.sh
+      OPSPILOT_TEST_RUNTIME_DIRECTORY: /opt/opspilot/runtime
+      OPSPILOT_EXECUTION_TIMEOUT_SECONDS: "10"
+
+  worker:
+    image: opspilot-backend-integration:v0.1.0
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.integration
+    environment:
+      OPSPILOT_ENVIRONMENT_MODE: integration-test
+      OPSPILOT_EXECUTOR_TYPE: ansible
+      OPSPILOT_WRITE_OPERATIONS_ENABLED: "true"
+      OPSPILOT_PRODUCTION_OPERATIONS_ENABLED: "false"
+      OPSPILOT_DRY_RUN_ONLY: "false"
+      OPSPILOT_EXECUTION_ACKNOWLEDGED: "true"
+      OPSPILOT_ALLOWED_ENVIRONMENTS: integration-test
+      OPSPILOT_ALLOWED_HOSTS: test-lab,test-unreachable
+      OPSPILOT_ALLOWED_SERVICES: demo-service
+      OPSPILOT_ALLOWED_ACTIONS: status,start,stop
+      OPSPILOT_ANSIBLE_BINARY_PATH: /opt/venv/bin/ansible-playbook
+      OPSPILOT_ANSIBLE_INVENTORY_PATH: /opt/opspilot/ansible/inventories/test-lab.ini
+      OPSPILOT_ANSIBLE_PLAYBOOK_DIRECTORY: /opt/opspilot/ansible/playbooks
+      OPSPILOT_ANSIBLE_WORKING_DIRECTORY: /opt/opspilot
+      OPSPILOT_SERVICES_SCRIPT_PATH: /opt/opspilot/test-assets/services.sh
+      OPSPILOT_TEST_RUNTIME_DIRECTORY: /opt/opspilot/runtime
+      OPSPILOT_EXECUTION_TIMEOUT_SECONDS: "10"

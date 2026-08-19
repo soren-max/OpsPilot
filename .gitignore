@@ -203,6 +203,13 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# OpsPilot local state
+*.db
+*.db-journal
+frontend/node_modules/
+frontend/dist/
+.DS_Store
+
 # Ruff stuff:
 .ruff_cache/
 

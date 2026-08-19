@@ -1,0 +1,29 @@
+environment:
+  name: test
+  mode: integration-test
+  description: Future isolated test adapter; dry-run unless explicitly acknowledged
+
+executor:
+  type: ansible
+  timeout: 30
+  retry: 0
+
+ansible:
+  inventory_path: ${TEST_INVENTORY_PATH}
+  playbook_path: ${TEST_PLAYBOOK_PATH}
+  working_directory: ${TEST_WORKING_DIRECTORY}
+  binary_path: ${TEST_ANSIBLE_BINARY}
+
+ssh:
+  enabled: false
+  host: ${TEST_SSH_HOST}
+  port: 22
+  user: ${TEST_SSH_USER}
+
+services:
+  script_path: ${TEST_SERVICES_SCRIPT_PATH}
+
+security:
+  write_enabled: false
+  production_enabled: false
+  dry_run_only: true

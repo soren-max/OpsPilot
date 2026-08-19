@@ -1,0 +1,166 @@
+name: opspilot
+
+x-backend-environment: &backend-environment
+  OPSPILOT_ENVIRONMENT_CONFIG_PATH: /etc/opspilot/application.yml
+  OPSPILOT_DATABASE_URL: sqlite:////var/lib/opspilot/opspilot_ops.db
+  OPSPILOT_SERVER_HOST: 0.0.0.0
+  OPSPILOT_SERVER_PORT: "8000"
+  OPSPILOT_CORS_ORIGINS: ${OPSPILOT_CORS_ORIGINS:-http://localhost:8080}
+  OPSPILOT_SECRET_KEY: ${OPSPILOT_SECRET_KEY:?Set OPSPILOT_SECRET_KEY in .env}
+  OPSPILOT_PRODUCTION_OPERATIONS_ENABLED: "false"
+  OPSPILOT_WRITE_OPERATIONS_ENABLED: "false"
+  OPSPILOT_ALLOWED_ACTIONS: status
+  OPSPILOT_APPROVAL_REQUIRED_FOR_WRITE: "true"
+  DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME:-admin}
+  DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?Set DEFAULT_ADMIN_PASSWORD in .env}
+
+services:
+  backend:
+    image: opspilot-backend:${OPSPILOT_IMAGE_TAG:-v0.1.0}
+    build:
+      context: ./backend
+      target: runtime
+    environment:
+      <<: *backend-environment
+      OPSPILOT_LOG_FILE: /var/log/opspilot/api.log
+      DEFAULT_ADMIN_ENABLED: ${DEFAULT_ADMIN_ENABLED:-true}
+    volumes:
+      - ${OPSPILOT_CONFIG_FILE:?Set OPSPILOT_CONFIG_FILE to the reviewed production config}:/etc/opspilot/application.yml:ro
+      - ${OPSPILOT_SERVICES_DIR:?Set OPSPILOT_SERVICES_DIR to the reviewed services directory}:/opt/opspilot-services:ro
+      - ${OPSPILOT_DATABASE_DIR:-./runtime-data/database}:/var/lib/opspilot
+      - ${OPSPILOT_API_LOG_DIR:-./runtime-data/logs/api}:/var/log/opspilot
+    command:
+      - sh
+      - -c
+      - python -m app.db.wait_for_database && python -m alembic upgrade head && exec python -m app.server
+    ports:
+      - "${OPSPILOT_API_BIND:-127.0.0.1}:${OPSPILOT_API_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import json,sys,urllib.request; data=json.load(urllib.request.urlopen('http://localhost:8000/health')); sys.exit(data['data']['status'] != 'ok')
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  worker:
+    image: opspilot-backend:${OPSPILOT_IMAGE_TAG:-v0.1.0}
+    build:
+      context: ./backend
+      target: runtime
+    environment:
+      <<: *backend-environment
+      OPSPILOT_LOG_FILE: /var/log/opspilot/worker.log
+      OPSPILOT_WORKER_POLL_SECONDS: ${OPSPILOT_WORKER_POLL_SECONDS:-1}
+      DEFAULT_ADMIN_ENABLED: "false"
+    volumes:
+      - ${OPSPILOT_CONFIG_FILE:?Set OPSPILOT_CONFIG_FILE to the reviewed production config}:/etc/opspilot/application.yml:ro
+      - ${OPSPILOT_SERVICES_DIR:?Set OPSPILOT_SERVICES_DIR to the reviewed services directory}:/opt/opspilot-services:ro
+      - ${OPSPILOT_DATABASE_DIR:-./runtime-data/database}:/var/lib/opspilot
+      - ${OPSPILOT_WORKER_LOG_DIR:-./runtime-data/logs/worker}:/var/log/opspilot
+    command:
+      - sh
+      - -c
+      - python -m app.db.wait_for_database && python -m alembic upgrade head && exec python -m app.worker
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: opspilot-frontend:${OPSPILOT_IMAGE_TAG:-v0.1.0}
+    build:
+      context: ./frontend
+      target: runtime
+    ports:
+      - "${OPSPILOT_WEB_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backend-dev:
+    profiles: ["dev"]
+    image: opspilot-backend-dev:${OPSPILOT_IMAGE_TAG:-v0.1.0}
+    build:
+      context: ./backend
+      target: development
+    environment:
+      <<: *backend-environment
+      OPSPILOT_LOG_FILE: /var/log/opspilot/api-dev.log
+      OPSPILOT_WRITE_OPERATIONS_ENABLED: ${OPSPILOT_DEV_WRITE_OPERATIONS_ENABLED:-true}
+      OPSPILOT_ALLOWED_ACTIONS: ${OPSPILOT_DEV_ALLOWED_ACTIONS:-status,start,stop}
+      DEFAULT_ADMIN_ENABLED: ${DEFAULT_ADMIN_ENABLED:-true}
+    volumes:
+      - ${OPSPILOT_DEV_CONFIG_FILE:-./config/application.dev.yml}:/etc/opspilot/application.yml:ro
+      - ${OPSPILOT_DEV_SERVICES_DIR:-./test-assets}:/opt/opspilot-services:ro
+      - ${OPSPILOT_DATABASE_DIR:-./runtime-data/database}:/var/lib/opspilot
+      - ${OPSPILOT_API_LOG_DIR:-./runtime-data/logs/api}:/var/log/opspilot
+      - ./backend:/app
+    command:
+      - sh
+      - -c
+      - python -m app.db.wait_for_database && python -m alembic upgrade head && exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "${OPSPILOT_API_BIND:-127.0.0.1}:${OPSPILOT_API_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import json,sys,urllib.request; data=json.load(urllib.request.urlopen('http://localhost:8000/health')); sys.exit(data['data']['status'] != 'ok')
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  worker-dev:
+    profiles: ["dev"]
+    image: opspilot-backend-dev:${OPSPILOT_IMAGE_TAG:-v0.1.0}
+    build:
+      context: ./backend
+      target: development
+    environment:
+      <<: *backend-environment
+      OPSPILOT_LOG_FILE: /var/log/opspilot/worker-dev.log
+      OPSPILOT_WORKER_POLL_SECONDS: ${OPSPILOT_WORKER_POLL_SECONDS:-1}
+      OPSPILOT_WRITE_OPERATIONS_ENABLED: ${OPSPILOT_DEV_WRITE_OPERATIONS_ENABLED:-true}
+      OPSPILOT_ALLOWED_ACTIONS: ${OPSPILOT_DEV_ALLOWED_ACTIONS:-status,start,stop}
+      DEFAULT_ADMIN_ENABLED: "false"
+    volumes:
+      - ${OPSPILOT_DEV_CONFIG_FILE:-./config/application.dev.yml}:/etc/opspilot/application.yml:ro
+      - ${OPSPILOT_DEV_SERVICES_DIR:-./test-assets}:/opt/opspilot-services:ro
+      - ${OPSPILOT_DATABASE_DIR:-./runtime-data/database}:/var/lib/opspilot
+      - ${OPSPILOT_WORKER_LOG_DIR:-./runtime-data/logs/worker}:/var/log/opspilot
+      - ./backend:/app
+    command:
+      - sh
+      - -c
+      - python -m app.db.wait_for_database && python -m alembic upgrade head && exec python -m app.worker
+    depends_on:
+      backend-dev:
+        condition: service_healthy
+
+  frontend-dev:
+    profiles: ["dev"]
+    image: opspilot-frontend-dev:${OPSPILOT_IMAGE_TAG:-v0.1.0}
+    build:
+      context: ./frontend
+      target: development
+    environment:
+      OPSPILOT_API_PROXY_TARGET: http://backend-dev:8000
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "${OPSPILOT_DEV_WEB_PORT:-5173}:5173"
+    depends_on:
+      backend-dev:
+        condition: service_healthy
+
+volumes:
+  frontend_node_modules:

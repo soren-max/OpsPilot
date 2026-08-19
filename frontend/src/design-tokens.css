@@ -1,0 +1,225 @@
+/* OpsPilot semantic tokens. See /DESIGN.md. */
+:root {
+  color-scheme: light;
+
+  /* Core product palette */
+  --opspilot-bg: #f4f4f4;
+  --opspilot-surface: #ffffff;
+  --opspilot-surface-subtle: #f8f8f8;
+  --opspilot-surface-hover: #edf5ff;
+  --opspilot-border: #e0e0e0;
+  --opspilot-border-strong: #8d8d8d;
+  --opspilot-text: #161616;
+  --opspilot-text-secondary: #525252;
+  --opspilot-text-disabled: #8d8d8d;
+  --opspilot-primary: #0f62fe;
+  --opspilot-primary-hover: #0050e6;
+  --opspilot-primary-active: #002d9c;
+  --opspilot-primary-soft: #edf5ff;
+  --opspilot-on-primary: #ffffff;
+  --opspilot-success: #198038;
+  --opspilot-success-soft: #defbe6;
+  --opspilot-warning: #8e6a00;
+  --opspilot-warning-soft: #fcf4d6;
+  --opspilot-danger: #da1e28;
+  --opspilot-danger-soft: #fff1f1;
+  --opspilot-info: #0043ce;
+  --opspilot-info-soft: #edf5ff;
+  --opspilot-unknown: #6f6f6f;
+  --opspilot-unknown-soft: #e8e8e8;
+
+  /* Typography */
+  --opspilot-font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --opspilot-font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+
+  /* 4px grid */
+  --opspilot-space-1: 4px;
+  --opspilot-space-2: 8px;
+  --opspilot-space-3: 12px;
+  --opspilot-space-4: 16px;
+  --opspilot-space-5: 20px;
+  --opspilot-space-6: 24px;
+  --opspilot-space-8: 32px;
+  --opspilot-space-10: 40px;
+
+  /* Shape and depth */
+  --opspilot-radius-xs: 2px;
+  --opspilot-radius-sm: 4px;
+  --opspilot-radius-md: 6px;
+  --opspilot-radius-pill: 999px;
+  --opspilot-shadow-overlay: 0 8px 24px rgb(0 0 0 / 18%);
+  --opspilot-overlay-scrim: rgb(22 22 22 / 52%);
+  --opspilot-motion-fast: 120ms ease-out;
+  --opspilot-motion-standard: 160ms ease-out;
+
+  /* Responsive layout contracts */
+  --opspilot-page-config-max: 1360px;
+  --opspilot-page-dashboard-max: 1760px;
+  --opspilot-page-data-max: 1960px;
+  --opspilot-content-gutter: clamp(16px, 1.7vw, 32px);
+  --opspilot-filter-search-max: 360px;
+  --opspilot-drawer-max: 820px;
+  --opspilot-task-drawer-max: 960px;
+
+  /* Technical output */
+  --opspilot-terminal: #161616;
+  --opspilot-terminal-bar: #262626;
+  --opspilot-terminal-border: #525252;
+  --opspilot-terminal-text: #f4f4f4;
+  --opspilot-terminal-muted: #c6c6c6;
+  --opspilot-terminal-error: #ff8389;
+
+  /* Current component layer */
+  --ds-space-1: var(--opspilot-space-1);
+  --ds-space-2: var(--opspilot-space-2);
+  --ds-space-3: var(--opspilot-space-3);
+  --ds-space-4: var(--opspilot-space-4);
+  --ds-space-5: var(--opspilot-space-5);
+  --ds-space-6: var(--opspilot-space-6);
+  --ds-space-8: var(--opspilot-space-8);
+  --ds-space-10: var(--opspilot-space-10);
+  --ds-radius-control: var(--opspilot-radius-sm);
+  --ds-radius-card: var(--opspilot-radius-sm);
+  --ds-radius-panel: var(--opspilot-radius-md);
+  --ds-radius-pill: var(--opspilot-radius-pill);
+  --ds-motion-fast: var(--opspilot-motion-fast);
+  --ds-motion-standard: var(--opspilot-motion-standard);
+  --ds-color-canvas: var(--opspilot-bg);
+  --ds-color-sidebar: var(--opspilot-surface);
+  --ds-color-surface: var(--opspilot-surface);
+  --ds-color-surface-strong: var(--opspilot-surface);
+  --ds-color-surface-muted: var(--opspilot-surface-subtle);
+  --ds-color-border-glass: var(--opspilot-border);
+  --ds-color-border-subtle: var(--opspilot-border);
+  --ds-color-text: var(--opspilot-text);
+  --ds-color-text-secondary: var(--opspilot-text-secondary);
+  --ds-color-text-muted: var(--opspilot-text-disabled);
+  --ds-color-primary: var(--opspilot-primary);
+  --ds-color-primary-hover: var(--opspilot-primary-hover);
+  --ds-color-primary-soft: var(--opspilot-primary-soft);
+  --ds-color-success: var(--opspilot-success);
+  --ds-color-success-soft: var(--opspilot-success-soft);
+  --ds-color-warning: var(--opspilot-warning);
+  --ds-color-warning-soft: var(--opspilot-warning-soft);
+  --ds-color-danger: var(--opspilot-danger);
+  --ds-color-danger-soft: var(--opspilot-danger-soft);
+  --ds-color-info: var(--opspilot-info);
+  --ds-color-info-soft: var(--opspilot-info-soft);
+  --ds-color-running: var(--opspilot-info);
+  --ds-color-running-soft: var(--opspilot-info-soft);
+  --ds-color-pending: var(--opspilot-warning);
+  --ds-color-pending-soft: var(--opspilot-warning-soft);
+  --ds-color-offline: var(--opspilot-text-secondary);
+  --ds-color-offline-soft: var(--opspilot-unknown-soft);
+  --ds-color-unknown: var(--opspilot-unknown);
+  --ds-color-unknown-soft: var(--opspilot-unknown-soft);
+  --ds-shadow-soft: none;
+  --ds-shadow-hover: none;
+  --ds-shadow-inset: none;
+  --ds-shadow-overlay: var(--opspilot-shadow-overlay);
+  --ds-glass-background: var(--opspilot-surface);
+  --ds-glass-background-strong: var(--opspilot-surface);
+  --ds-glass-border: 1px solid var(--opspilot-border);
+  --ds-glass-blur: none;
+  --ds-font-mono: var(--opspilot-font-mono);
+
+  /* Temporary aliases for frozen legacy selectors; no independent values. */
+  --page-bg: var(--opspilot-bg);
+  --canvas: var(--opspilot-bg);
+  --sidebar-bg: var(--opspilot-surface);
+  --sidebar: var(--opspilot-surface);
+  --sidebar-hover: var(--opspilot-surface-subtle);
+  --sidebar-active: var(--opspilot-primary-soft);
+  --header-bg: var(--opspilot-surface);
+  --surface-bg: var(--opspilot-surface);
+  --surface-bg-strong: var(--opspilot-surface);
+  --surface-elevated: var(--opspilot-surface);
+  --surface-hover: var(--opspilot-surface-hover);
+  --surface: var(--opspilot-surface);
+  --surface-strong: var(--opspilot-surface);
+  --surface-soft: var(--opspilot-surface-subtle);
+  --line: var(--opspilot-border);
+  --line-strong: var(--opspilot-border-strong);
+  --border-subtle: var(--opspilot-border);
+  --border-strong: var(--opspilot-border-strong);
+  --text-primary: var(--opspilot-text);
+  --text: var(--opspilot-text);
+  --text-secondary: var(--opspilot-text-secondary);
+  --text-muted: var(--opspilot-text-disabled);
+  --muted: var(--opspilot-text-disabled);
+  --primary: var(--opspilot-primary);
+  --primary-strong: var(--opspilot-primary-hover);
+  --primary-hover: var(--opspilot-primary-hover);
+  --primary-active: var(--opspilot-primary-active);
+  --primary-soft: var(--opspilot-primary-soft);
+  --success: var(--opspilot-success);
+  --success-soft: var(--opspilot-success-soft);
+  --warning: var(--opspilot-warning);
+  --warning-soft: var(--opspilot-warning-soft);
+  --danger: var(--opspilot-danger);
+  --danger-soft: var(--opspilot-danger-soft);
+  --info: var(--opspilot-info);
+  --info-soft: var(--opspilot-info-soft);
+  --neutral: var(--opspilot-unknown);
+  --neutral-soft: var(--opspilot-unknown-soft);
+  --code-bg: var(--opspilot-surface-subtle);
+  --terminal: var(--opspilot-terminal);
+  --terminal-bar: var(--opspilot-terminal-bar);
+  --terminal-border: var(--opspilot-terminal-border);
+  --terminal-text: var(--opspilot-terminal-text);
+  --terminal-muted: var(--opspilot-terminal-muted);
+  --terminal-error: var(--opspilot-terminal-error);
+  --shadow: none;
+  --shadow-soft: none;
+  --shadow-hover: none;
+  --shadow-inset: none;
+  --shadow-panel: none;
+  --shadow-overlay: var(--opspilot-shadow-overlay);
+  --glass-background: var(--opspilot-surface);
+  --glass-background-strong: var(--opspilot-surface);
+  --glass-background-card: var(--opspilot-surface);
+  --glass-border: var(--opspilot-border);
+  --glass-border-dark: var(--opspilot-border);
+  --glass-blur: none;
+  --nav-active-bg: var(--opspilot-primary-soft);
+  --nav-active-text: var(--opspilot-primary);
+  --nav-indicator: var(--opspilot-primary);
+  --nav-icon: var(--opspilot-text-secondary);
+  --nav-hover-bg: var(--opspilot-surface-subtle);
+  --sidebar-text: var(--opspilot-text-secondary);
+  --sidebar-text-secondary: var(--opspilot-text-secondary);
+  --sidebar-text-muted: var(--opspilot-text-disabled);
+  --sidebar-accent: var(--opspilot-primary);
+  --focus-ring: var(--opspilot-primary);
+  --radius: var(--opspilot-radius-sm);
+  --radius-sm: var(--opspilot-radius-xs);
+  --motion-fast: var(--opspilot-motion-fast);
+}
+
+/* Dark is an optional operator preference, not a separate visual language. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --opspilot-bg: #161616;
+  --opspilot-surface: #262626;
+  --opspilot-surface-subtle: #393939;
+  --opspilot-surface-hover: #353535;
+  --opspilot-border: #525252;
+  --opspilot-border-strong: #8d8d8d;
+  --opspilot-text: #f4f4f4;
+  --opspilot-text-secondary: #c6c6c6;
+  --opspilot-text-disabled: #8d8d8d;
+  --opspilot-primary: #78a9ff;
+  --opspilot-primary-hover: #a6c8ff;
+  --opspilot-primary-active: #4589ff;
+  --opspilot-primary-soft: #002d9c;
+  --opspilot-success: #42be65;
+  --opspilot-success-soft: #044317;
+  --opspilot-warning: #f1c21b;
+  --opspilot-warning-soft: #684e00;
+  --opspilot-danger: #ff8389;
+  --opspilot-danger-soft: #750e13;
+  --opspilot-info: #78a9ff;
+  --opspilot-info-soft: #002d9c;
+  --opspilot-unknown: #c6c6c6;
+  --opspilot-unknown-soft: #393939;
+}
