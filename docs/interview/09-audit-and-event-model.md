@@ -22,6 +22,5 @@ patterns. Tool responses and Evidence metadata are never dumped wholesale into A
 
 ## Why model AGENT and TOOL actor types before they execute?
 
-Actor type is a stable audit vocabulary, not proof that an Agent exists. M1C emits only real HUMAN
-events; the reserved values avoid changing historical schemas when M2 introduces orchestrated
-actors.
+Actor type is a stable audit vocabulary. M1C introduced HUMAN events; M2 now emits real SYSTEM
+workflow lifecycle and node events with stable correlation IDs and safe scalar metadata.

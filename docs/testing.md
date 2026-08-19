@@ -13,8 +13,9 @@ deprecated migration baseline.
 
 ## Workflow Tests
 
-Planned for the LangGraph milestone. They will verify state transitions, interrupts, checkpoint
-resume behavior, and evidence-before-action routing.
+M2 tests graph topology, JSON state, node routing, deterministic happy/blocked/waiting/failure
+paths, idempotent replay, WorkflowRun persistence, audit trace, RBAC API behavior, and migration
+round trips. M4 will add durable approval interrupt/resume tests against a persistent checkpointer.
 
 ## Security Tests
 

@@ -5,7 +5,7 @@
 | M1A Action Safety Core | Done | Structured actions, deterministic policy, controlled adapters |
 | M1B Portable Execution Boundary | Done | Runtime migration and legacy transport removal |
 | M1C Incident Domain + AuditEvent | Implemented | Durable incident, evidence, audit timeline, and knowledge projection |
-| M2 LangGraph Incident Workflow | Planned | Explicit incident state machine |
+| M2 LangGraph Incident Workflow | Implemented | Explicit incident state machine |
 | M3 Observability & Ticket Capabilities | Planned | Narrow read-only evidence ports |
 | M4 Durable HITL + Checkpoint | Planned | Identity-bound approval and resumable state |
 | M5 Local Incident Lab | Planned | Reproducible incident scenarios |

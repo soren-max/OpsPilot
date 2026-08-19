@@ -1,6 +1,6 @@
 # Agent Workflow
 
-Status: **Planned**
+Status: **Implemented in M2**
 
 ## Concept
 
@@ -10,8 +10,8 @@ prompt.
 ## Where in OpsPilot
 
 M1C provides durable Incident, Evidence, Hypothesis, Diagnosis, lifecycle, and AuditEvent
-boundaries. A separate LangGraph workflow state and orchestration implementation remain planned
-for M2; workflow node names will not replace stable Incident business status.
+boundaries. M2 adds a LangGraph workflow that composes those application capabilities while
+keeping workflow node names separate from stable Incident business status.
 
 ## Why
 

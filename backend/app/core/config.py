@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     stale_task_seconds: int = Field(default=300, ge=10, le=86_400)
     lock_ttl_seconds: int = Field(default=900, ge=30, le=86_400)
     worker_poll_seconds: float = Field(default=1.0, ge=0.1, le=60)
+    workflow_checkpoint_backend: str = "memory"
     login_failure_limit: int = Field(default=5, ge=2, le=20)
     login_failure_window_seconds: int = Field(default=300, ge=10, le=3600)
     login_lockout_seconds: int = Field(default=300, ge=10, le=3600)
@@ -67,6 +68,11 @@ class Settings(BaseSettings):
             raise ValueError("OPSPILOT_EXECUTOR must be mock or ansible")
         if self.partial_failure_policy not in {"NONE", "BEST_EFFORT"}:
             raise ValueError("OPSPILOT_PARTIAL_FAILURE_POLICY must be NONE or BEST_EFFORT")
+        if self.workflow_checkpoint_backend != "memory":
+            raise ValueError(
+                "M2 supports the memory workflow checkpointer only; "
+                "durable Postgres is planned for M4"
+            )
         if self.production_operations_enabled and not self.write_operations_enabled:
             raise ValueError(
                 "OPSPILOT_PRODUCTION_OPERATIONS_ENABLED requires write operations"

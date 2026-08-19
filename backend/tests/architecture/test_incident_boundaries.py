@@ -1,13 +1,13 @@
 import ast
 from pathlib import Path
 
-DOMAIN = Path(__file__).parents[2] / "app" / "domain" / "incidents"
-FORBIDDEN = {"sqlalchemy", "fastapi", "subprocess", "ansible", "langgraph"}
+DOMAIN = Path(__file__).parents[2] / "app" / "domain"
+FORBIDDEN = {"sqlalchemy", "fastapi", "subprocess", "ansible", "langgraph", "langchain"}
 
 
 def test_incident_domain_has_no_framework_or_execution_dependencies() -> None:
     violations: list[str] = []
-    for source in DOMAIN.glob("*.py"):
+    for source in DOMAIN.rglob("*.py"):
         tree = ast.parse(source.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             module = ""

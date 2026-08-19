@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import auth, catalog, incidents, operations, system
+from app.api.routes import auth, catalog, incidents, operations, system, workflows
 from app.bootstrap.seed_users import seed_default_admin
 from app.core.config import get_settings
 from app.core.errors import AppError, ForbiddenError
@@ -160,6 +160,8 @@ app.include_router(system.router, include_in_schema=False)
 app.include_router(catalog.router, prefix="/api/v1")
 app.include_router(operations.router, prefix="/api/v1")
 app.include_router(incidents.router, prefix="/api/v1")
+app.include_router(workflows.incident_router, prefix="/api/v1")
+app.include_router(workflows.workflow_router, prefix="/api/v1")
 
 
 # The offline package places the already-built Vite application beside backend/.

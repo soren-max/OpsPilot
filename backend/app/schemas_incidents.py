@@ -120,6 +120,7 @@ class TimelineKind(StrEnum):
     ACTION = "ACTION"
     APPROVAL = "APPROVAL"
     VERIFICATION = "VERIFICATION"
+    WORKFLOW = "WORKFLOW"
 
 
 class TimelineItem(BaseModel):
