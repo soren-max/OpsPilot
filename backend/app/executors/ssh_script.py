@@ -25,7 +25,7 @@ class SshScriptExecutorConfig:
 
 
 class SshScriptExecutor(BaseExecutor):
-    """Dry-run adapter contract. It uses fixtures and never creates an SSH connection."""
+    """Deprecated dry-run fixture adapter; it never creates an SSH connection."""
 
     executor_type = "ssh_script"
 

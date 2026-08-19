@@ -6,7 +6,7 @@ from app.core.enums import OperationAction, TargetStatus
 from app.executors.base import ExecutionRequest
 from app.executors.factory import build_executor
 from app.executors.local_script import LocalScriptExecutor, LocalScriptExecutorConfig
-from app.executors.lodershell import LoderShellExecutor
+from app.executors.remote_status import RemoteStatusExecutor
 from app.executors.ssh_script import SshScriptExecutor, SshScriptExecutorConfig
 from app.executors.transports import FakeTransport, TransportResult
 from app.parsers import LegacyServicesOutputParser, StructuredJsonParser
@@ -63,11 +63,11 @@ def test_local_script_requires_approved_path_and_ssh_rejects_non_dry_run() -> No
         SshScriptExecutor(SshScriptExecutorConfig(dry_run_only=False))
 
 
-def test_lodershell_extension_is_read_only_and_fail_closed() -> None:
-    executor = LoderShellExecutor()
+def test_remote_status_extension_is_read_only_and_fail_closed() -> None:
+    executor = RemoteStatusExecutor()
     unavailable = executor.execute(request())
     assert unavailable.status is TargetStatus.FAILED
-    assert unavailable.executor_type == "lodershell"
+    assert unavailable.executor_type == "remote_status"
 
     start_request = ExecutionRequest(
         action=OperationAction.START,

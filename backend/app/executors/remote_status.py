@@ -5,8 +5,8 @@ from app.core.enums import OperationAction, TargetStatus
 from app.executors.base import BaseExecutor, ExecutionRequest, ExecutionResult
 
 
-class LoderShellConnector(Protocol):
-    """Site plugin boundary; implementations must call a reviewed API, not arbitrary shell."""
+class RemoteStatusConnector(Protocol):
+    """Generic read-only connector boundary for a reviewed remote status API."""
 
     def status(
         self,
@@ -19,12 +19,12 @@ class LoderShellConnector(Protocol):
     ) -> ExecutionResult: ...
 
 
-class LoderShellExecutor(BaseExecutor):
-    """Read-only extension point for a future site-approved LoderShell connector."""
+class RemoteStatusExecutor(BaseExecutor):
+    """Read-only extension point that fails closed when no connector is configured."""
 
-    executor_type = "lodershell"
+    executor_type = "remote_status"
 
-    def __init__(self, connector: LoderShellConnector | None = None) -> None:
+    def __init__(self, connector: RemoteStatusConnector | None = None) -> None:
         self.connector = connector
 
     def _execute(self, request: ExecutionRequest) -> ExecutionResult:
@@ -32,7 +32,7 @@ class LoderShellExecutor(BaseExecutor):
             return ExecutionResult(
                 status=TargetStatus.FAILED,
                 output=None,
-                error_message="LoderShellExecutor only permits status",
+                error_message="RemoteStatusExecutor only permits status",
                 duration_ms=0,
                 exit_code=126,
             )
@@ -40,7 +40,7 @@ class LoderShellExecutor(BaseExecutor):
             return ExecutionResult(
                 status=TargetStatus.FAILED,
                 output=None,
-                error_message="LoderShell connector is not configured",
+                error_message="Remote status connector is not configured",
                 duration_ms=0,
                 exit_code=126,
             )
