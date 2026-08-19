@@ -58,6 +58,10 @@ AUDIT_METADATA_ALLOWLIST = frozenset(
         "expected_version",
         "new_version",
         "reference",
+        "workflow_id",
+        "node",
+        "duration_ms",
+        "result_status",
     }
 )
 
@@ -358,7 +362,11 @@ class IncidentService:
         items = [
             TimelineItem(
                 id=event.event_id,
-                kind=TimelineKind.INCIDENT,
+                kind=(
+                    TimelineKind.WORKFLOW
+                    if event.event_type.value.startswith("WORKFLOW_")
+                    else TimelineKind.INCIDENT
+                ),
                 event_type=event.event_type.value,
                 occurred_at=event.occurred_at,
                 summary=event.payload_summary,

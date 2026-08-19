@@ -183,13 +183,7 @@ export interface OperationRequest {
 }
 
 export type IncidentStatus =
-  | "OPEN"
-  | "INVESTIGATING"
-  | "MITIGATING"
-  | "VERIFYING"
-  | "RESOLVED"
-  | "CLOSED"
-  | "FAILED";
+  "OPEN" | "INVESTIGATING" | "MITIGATING" | "VERIFYING" | "RESOLVED" | "CLOSED" | "FAILED";
 
 export interface IncidentEvidence {
   id: string;
@@ -261,10 +255,29 @@ export interface TimelineItem {
     | "DIAGNOSIS"
     | "ACTION"
     | "APPROVAL"
-    | "VERIFICATION";
+    | "VERIFICATION"
+    | "WORKFLOW";
   event_type: string;
   occurred_at: string;
   summary: string;
   reference_id: string | null;
   metadata: Record<string, unknown>;
+}
+
+export type WorkflowRunStatus =
+  "PENDING" | "RUNNING" | "WAITING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+
+export interface WorkflowRun {
+  id: string;
+  incident_id: string;
+  graph_name: string;
+  graph_version: string;
+  status: WorkflowRunStatus;
+  started_by: string;
+  current_node: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  last_checkpoint_at: string | null;
+  last_error: string | null;
+  created_at: string;
 }

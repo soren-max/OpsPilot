@@ -26,7 +26,7 @@ whether anything can run.
 
 ```mermaid
 flowchart TD
-  User[User / Alert] --> Workflow[Incident Workflow - Planned]
+  User[User / Alert] --> Workflow[LangGraph Incident Workflow - Implemented]
   Workflow --> Capabilities[Capabilities - Planned]
   Capabilities --> Action[Structured Action - Implemented]
   Action --> Policy[Deterministic Policy - Implemented]
@@ -59,7 +59,13 @@ See [Safety Model](docs/safety-model.md).
   executor port, Mock adapter, fixed-mapping Ansible adapter, backend/frontend regression base.
 - **Implemented:** portable operation runtime, logical Targets, controlled readiness metadata,
   and removal of application-level transport configuration.
-- **Planned:** LangGraph, LLM integration, metrics, logs, tickets, MCP, RAG, and incident lab.
+- **Implemented:** M2 LangGraph incident workflow, serializable reference state, conditional
+  routing, WorkflowRun metadata, deterministic investigation, audit trace, and API/UI progress.
+- **Planned:** LLM integration, metrics, logs, tickets, durable HITL, MCP, RAG, and incident lab.
+
+M2 uses a pluggable checkpoint port with an in-memory development/test implementation. Stable
+LangGraph threads use `thread_id = workflow_id`, but process restarts lose memory checkpoints.
+Production-grade Postgres checkpoint persistence and authenticated approval/resume belong to M4.
 
 The legacy SSH and service-script runtime has been removed in M1B. Ansible may use SSH internally
 according to operator-owned inventory, but that is not part of the Agent/API contract.

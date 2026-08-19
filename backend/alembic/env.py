@@ -7,6 +7,7 @@ from app.core.config import get_settings
 from app.db.base import Base
 from app import models  # noqa: F401
 from app.repositories import incident_models  # noqa: F401
+from app.repositories import workflow_models  # noqa: F401
 
 config = context.config
 # ConfigParser treats percent-encoded credentials as interpolation tokens. Escape

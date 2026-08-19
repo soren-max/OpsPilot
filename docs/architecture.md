@@ -20,8 +20,9 @@ Alert / User
 ```
 
 Incident, Evidence, Hypothesis, Diagnosis, append-only AuditEvent, timeline, optimistic locking,
-and the resolved-incident knowledge projection are implemented in M1C. LLM reasoning,
-LangGraph orchestration, runtime retrieval/RAG, and multi-agent behavior remain planned.
+and the resolved-incident knowledge projection are implemented in M1C. M2 adds LangGraph
+orchestration over those application capabilities. LLM reasoning, runtime retrieval/RAG, and
+multi-agent behavior remain planned.
 
 ```text
 Observe                         Remediate                         Change
@@ -61,10 +62,16 @@ detail, not part of the OpsPilot application, Agent, API, or ActionRequest contr
 
 ## Explicit state, not hidden reasoning
 
-Future workflows store evidence, hypotheses, decision summaries, proposed actions, and risk
-reasons. OpsPilot neither records nor depends on a model's hidden chain-of-thought.
+The M2 workflow stores identifiers, status, decision summaries, proposed action types, and risk
+results. It does not put ORM objects, sessions, executors, raw logs, or hidden chain-of-thought in
+checkpoint state. Nodes call application capabilities and return minimal serializable updates.
 
 Incident status is stable business state, not a future LangGraph node name. Every state change
 passes through the explicit lifecycle table and a version compare-and-set. Its AuditEvent is
 inserted in the same transaction. Incident/action association lives in the application layer, so
 the reusable Action domain contains no Incident ORM or foreign key.
+
+The Incident database is the domain source of truth. LangGraph checkpoints only record execution
+position and workflow-local references. `WorkflowRun` is durable OpsPilot metadata and uses a
+stable graph thread identifier equal to its workflow ID. M2's in-memory checkpointer is limited to
+development and tests; durable checkpoint and approval resume are deferred to M4.

@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.adapters.ansible import AnsibleActionExecutor, SubprocessAnsibleRunner
 from app.adapters.mock import MockActionExecutor
 from app.application import ActionService
+from app.application.workflow_service import WorkflowService
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.session import SessionLocal
@@ -44,6 +45,8 @@ def main() -> None:
         )
     while running:
         with SessionLocal() as db:
+            if WorkflowService(db).run_next():
+                continue
             targets = frozenset(db.scalars(select(Host.name).where(Host.enabled.is_(True))))
             service = ActionService(ActionPolicyEngine(targets), executor)
             handled = WorkerService(db, service, settings).run_once()

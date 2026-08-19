@@ -94,6 +94,10 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
     queryKey: queryKeys.incidentTimeline(incidentId),
     queryFn: () => incidentsApi.timeline(incidentId),
   });
+  const workflows = useQuery({
+    queryKey: queryKeys.incidentWorkflows(incidentId),
+    queryFn: () => incidentsApi.workflows(incidentId),
+  });
   if (incident.isLoading) return <LoadingState label="正在加载 Incident" />;
   if (incident.error)
     return <ErrorState error={incident.error} onRetry={() => void incident.refetch()} />;
@@ -114,19 +118,27 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
           <dl className="incident-facts">
             <div>
               <dt>状态</dt>
-              <dd><StatusBadge status={item.status} /></dd>
+              <dd>
+                <StatusBadge status={item.status} />
+              </dd>
             </div>
             <div>
               <dt>严重度</dt>
-              <dd><span className={severityClass(item.severity)}>{item.severity}</span></dd>
+              <dd>
+                <span className={severityClass(item.severity)}>{item.severity}</span>
+              </dd>
             </div>
             <div>
               <dt>服务 / 环境</dt>
-              <dd>{item.service} / {item.environment}</dd>
+              <dd>
+                {item.service} / {item.environment}
+              </dd>
             </div>
             <div>
               <dt>来源 / 版本</dt>
-              <dd>{item.source} / v{item.version}</dd>
+              <dd>
+                {item.source} / v{item.version}
+              </dd>
             </div>
           </dl>
         </PageSection>
@@ -148,7 +160,9 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
           <div className="incident-card-list">
             {item.evidence.map((value) => (
               <article key={value.id} className="incident-card">
-                <span>{value.evidence_type} · {value.source}</span>
+                <span>
+                  {value.evidence_type} · {value.source}
+                </span>
                 <strong>{value.summary}</strong>
                 <a href={value.source_reference}>{value.source_reference}</a>
               </article>
@@ -158,13 +172,59 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
           <EmptyState title="暂无证据" message="Evidence API 写入后会显示在这里。" />
         )}
       </PageSection>
+      <PageSection
+        title="Workflow"
+        description="LangGraph 编排进度；Incident 数据库仍是业务事实来源。"
+      >
+        {workflows.isLoading ? (
+          <LoadingState variant="table" />
+        ) : workflows.error ? (
+          <ErrorState error={workflows.error} onRetry={() => void workflows.refetch()} />
+        ) : !workflows.data?.length ? (
+          <EmptyState title="暂无工作流" message="通过 Workflow API 启动后会显示在这里。" />
+        ) : (
+          <DataTable ariaLabel="Incident 工作流列表">
+            <thead>
+              <tr>
+                <th>状态</th>
+                <th>当前节点</th>
+                <th>启动时间</th>
+                <th>耗时</th>
+                <th>最后错误</th>
+              </tr>
+            </thead>
+            <tbody>
+              {workflows.data.map((workflow) => {
+                const started = workflow.started_at ? new Date(workflow.started_at) : null;
+                const finished = workflow.finished_at ? new Date(workflow.finished_at) : null;
+                const duration = started
+                  ? Math.max(0, (finished ?? new Date()).getTime() - started.getTime())
+                  : null;
+                return (
+                  <tr key={workflow.id}>
+                    <td>
+                      <StatusBadge status={workflow.status} />
+                    </td>
+                    <td className="mono">{workflow.current_node ?? "queued"}</td>
+                    <td>{workflow.started_at ? formatDate(workflow.started_at) : "尚未启动"}</td>
+                    <td>{duration === null ? "—" : `${Math.round(duration / 1000)}s`}</td>
+                    <td>{workflow.last_error ?? "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </DataTable>
+        )}
+      </PageSection>
       <div className="incident-overview-grid">
         <PageSection title="Hypotheses">
           {item.hypotheses.length ? (
             item.hypotheses.map((value) => (
               <article key={value.id} className="incident-card">
                 <strong>{value.statement}</strong>
-                <small>{value.status} · {Math.round(value.confidence * 100)}%</small>
+                <small>
+                  {value.status} · {Math.round(value.confidence * 100)}%
+                </small>
               </article>
             ))
           ) : (
@@ -188,7 +248,10 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
           )}
         </PageSection>
       </div>
-      <PageSection title="Timeline" description="Incident、证据、诊断和治理动作按发生时间统一排序。">
+      <PageSection
+        title="Timeline"
+        description="Incident、证据、诊断和治理动作按发生时间统一排序。"
+      >
         {timeline.isLoading ? (
           <LoadingState variant="table" />
         ) : timeline.error ? (

@@ -31,6 +31,9 @@ DEFAULT_PERMISSION_DEFINITIONS: dict[str, str] = {
     "incident.resolve": "Resolve investigated incidents",
     "incident.close": "Close resolved incidents",
     "incident.knowledge.read": "Read resolved incident knowledge projections",
+    "workflow.read": "Read incident workflow progress and trace",
+    "workflow.start": "Start incident workflows",
+    "workflow.cancel": "Cancel queued or paused incident workflows",
 }
 
 
