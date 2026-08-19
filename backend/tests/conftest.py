@@ -14,10 +14,6 @@ os.environ["OPSPILOT_DATABASE_URL"] = "sqlite:///./test.db"
 os.environ["OPSPILOT_SECRET_KEY"] = "test-only-secret-key-not-for-deployment"
 os.environ["DEFAULT_ADMIN_PASSWORD"] = "admin123-test-only"
 os.environ["DEFAULT_ADMIN_ENABLED"] = "true"
-os.environ["OPSPILOT_ALLOWED_ENVIRONMENTS"] = "test-mock"
-os.environ["OPSPILOT_ALLOWED_HOSTS"] = "mock-host-ok,mock-host-fail,mock-host-timeout"
-os.environ["OPSPILOT_ALLOWED_SERVICES"] = "mock-service,other-service"
-
 from app.bootstrap.seed_users import seed_default_admin
 from app.core.config import Settings, get_settings
 from app.core.enums import EnvironmentLevel

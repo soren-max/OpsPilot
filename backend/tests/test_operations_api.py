@@ -45,6 +45,23 @@ def test_operations_runtime_routes_structured_status_through_action_core(
     assert task["targets"][0]["verification_status"] == "SUCCEEDED"
 
 
+def test_structured_status_task_is_idempotent(client: TestClient) -> None:
+    headers = {"Idempotency-Key": "portable-status-0001"}
+    first = client.post("/api/v1/operations", json=payload(), headers=headers)
+    replay = client.post("/api/v1/operations", json=payload(), headers=headers)
+
+    assert first.status_code == replay.status_code == 202
+    assert first.json()["data"]["task_id"] == replay.json()["data"]["task_id"]
+
+    changed = client.post(
+        "/api/v1/operations",
+        json=payload(host_ids=["10000000-0000-0000-0000-000000000002"]),
+        headers=headers,
+    )
+    assert changed.status_code == 409
+    assert changed.json()["error"]["code"] == "IDEMPOTENCY_KEY_REUSED"
+
+
 def test_operation_api_rejects_transport_and_arbitrary_execution_fields(
     client: TestClient,
 ) -> None:
