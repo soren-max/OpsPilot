@@ -61,10 +61,3 @@ class ApprovalStatus(StrEnum):
     REJECTED = "REJECTED"
     CANCELLED = "CANCELLED"
     TASK_CREATED = "TASK_CREATED"
-
-
-class IntegrationConfigStatus(StrEnum):
-    DRAFT = "DRAFT"
-    VALIDATED = "VALIDATED"
-    READY = "READY"
-    DISABLED = "DISABLED"
