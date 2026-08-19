@@ -4,6 +4,25 @@
 
 OpsPilot separates three lifecycles with different authority and failure semantics.
 
+M1C adds the durable incident path around those execution lifecycles:
+
+```text
+Alert / User
+     |
+     v
+  Incident -> Evidence -> Hypothesis -> Diagnosis -> Action Proposal
+                                                   |
+                                                   v
+                 Knowledge Projection <- Resolve <- Verification
+                                                   ^
+                                                   |
+                            Policy -> Approval -> Execution
+```
+
+Incident, Evidence, Hypothesis, Diagnosis, append-only AuditEvent, timeline, optimistic locking,
+and the resolved-incident knowledge projection are implemented in M1C. LLM reasoning,
+LangGraph orchestration, runtime retrieval/RAG, and multi-agent behavior remain planned.
+
 ```text
 Observe                         Remediate                         Change
    |                                |                                |
@@ -44,3 +63,8 @@ detail, not part of the OpsPilot application, Agent, API, or ActionRequest contr
 
 Future workflows store evidence, hypotheses, decision summaries, proposed actions, and risk
 reasons. OpsPilot neither records nor depends on a model's hidden chain-of-thought.
+
+Incident status is stable business state, not a future LangGraph node name. Every state change
+passes through the explicit lifecycle table and a version compare-and-set. Its AuditEvent is
+inserted in the same transaction. Incident/action association lives in the application layer, so
+the reusable Action domain contains no Incident ORM or foreign key.

@@ -9,7 +9,9 @@ prompt.
 
 ## Where in OpsPilot
 
-`IncidentState` is a minimal boundary; LangGraph implementation is planned for M2.
+M1C provides durable Incident, Evidence, Hypothesis, Diagnosis, lifecycle, and AuditEvent
+boundaries. A separate LangGraph workflow state and orchestration implementation remain planned
+for M2; workflow node names will not replace stable Incident business status.
 
 ## Why
 
