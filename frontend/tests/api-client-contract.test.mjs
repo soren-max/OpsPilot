@@ -15,7 +15,7 @@ test("API client safely handles empty and non-JSON responses", () => {
 });
 
 test("API domains are split behind a compatibility facade", () => {
-  for (const domain of ["auth", "catalog", "tasks", "audits", "system"]) {
+  for (const domain of ["auth", "catalog", "tasks", "audits", "system", "incidents"]) {
     assert.match(facade, new RegExp(`api/${domain}`));
   }
   assert.match(facade, /Compatibility facade/);
