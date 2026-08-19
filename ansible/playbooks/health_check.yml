@@ -1,0 +1,11 @@
+---
+- name: Run local health check on target
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Query target-local health endpoint
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ health_port }}{{ health_path }}"
+        method: GET
+        status_code: "{{ expected_status }}"
+        return_content: false

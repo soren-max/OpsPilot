@@ -1,0 +1,16 @@
+---
+- name: Read service state
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Require the requested service to be running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services[service_name + '.service'] is defined
+          - ansible_facts.services[service_name + '.service'].state == 'running'
+        fail_msg: Requested service is not running
+        success_msg: Requested service is running

@@ -1,0 +1,38 @@
+services:
+  mysql:
+    image: mysql:${MYSQL_IMAGE_TAG:-8.4}
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in .env}
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+    volumes:
+      - opspilot_mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - MYSQL_PWD="$${MYSQL_PASSWORD}" mysqladmin ping --silent -h 127.0.0.1 -u "$${MYSQL_USER}"
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  backend:
+    environment:
+      DATABASE_URL: ${OPSPILOT_MYSQL_DATABASE_URL:?Set OPSPILOT_MYSQL_DATABASE_URL in .env}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  worker:
+    environment:
+      DATABASE_URL: ${OPSPILOT_MYSQL_DATABASE_URL:?Set OPSPILOT_MYSQL_DATABASE_URL in .env}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+
+volumes:
+  opspilot_mysql_data:

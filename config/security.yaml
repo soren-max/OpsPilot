@@ -1,0 +1,5 @@
+write_operations_enabled: false
+production_operations_enabled: false
+dry_run_only: true
+default_admin_enabled: true
+default_admin_credentials: environment_only

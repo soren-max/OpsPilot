@@ -1,0 +1,46 @@
+# v0.1.0 bootstrap for the Admin Operations Integration configuration center.
+# This file deliberately contains no deployment environment, host, service, SSH target,
+# command profile, parser, or runtime allowlist contract.
+environment:
+  name: opspilot-control-plane
+  mode: integration-test
+  description: Status-only dynamic operations integration
+
+executor:
+  type: local_services
+  timeout: 60
+  retry: 0
+  concurrency: 4
+  partial_failure_policy: NONE
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+
+database:
+  url: "sqlite:////var/lib/opspilot/opspilot_ops.db"
+
+services:
+  # Local, reviewed wrapper mounted into API/worker containers; not the remote services.sh.
+  script_path: /opt/opspilot-services/ssh-wrapper.sh
+  working_directory: /opt/opspilot-services
+  command_profile: pending-confirmation
+  output_parser: raw_output
+  allowed_actions: [status]
+
+security:
+  write_enabled: false
+  production_enabled: false
+  dry_run_only: false
+  execution_acknowledged: true
+
+approval:
+  required_for_write: true
+  allow_self_approval: false
+  minimum_approvers: 1
+
+allowlist:
+  environments: []
+  hosts: []
+  services: []
+  actions: [status]

@@ -1,0 +1,11 @@
+node_modules
+dist
+*.log
+.env
+.env.*
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+**/*.crt
+**/*.cer

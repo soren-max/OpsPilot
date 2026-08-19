@@ -1,0 +1,59 @@
+# Executable development example. Point the two path variables at this checkout's
+# backend/tests/fixtures directory; test-fixture-v2 rejects every other script.
+environment:
+  name: public-fixture
+  mode: integration-test
+  description: Local development with repository-only real subprocess fixtures
+
+executor:
+  type: local_services
+  timeout: 3
+  retry: 1
+  concurrency: 4
+  partial_failure_policy: BEST_EFFORT
+
+server:
+  host: "127.0.0.1"
+  port: 8000
+
+database:
+  url: "sqlite:///./opspilot_ops.db"
+
+security:
+  write_operations_enabled: true
+  production_operations_enabled: false
+  dry_run_only: false
+  execution_acknowledged: true
+
+approval:
+  required_for_write: true
+  allow_self_approval: true
+  minimum_approvers: 1
+
+services:
+  script_path: ${OPSPILOT_TEST_FIXTURE_SCRIPT_PATH}
+  working_directory: ${OPSPILOT_TEST_FIXTURE_WORKING_DIRECTORY}
+  command_profile: test-fixture-v2
+  output_parser: fixture-json
+  allowed_actions: [status, start, stop]
+
+command_profiles:
+  test-fixture-v2:
+    capabilities: [status, start, stop]
+    parser: fixture-json
+    actions:
+      status: {argv: [status, "{environment}", "{host}", "{service}"]}
+      start: {argv: [start, "{environment}", "{host}", "{service}"]}
+      stop: {argv: [stop, "{environment}", "{host}", "{service}"]}
+
+output_parsers:
+  fixture-json:
+    type: json
+    exit_code_map: {4: unreachable, 7: failed}
+    default_state: unknown
+
+allowlist:
+  environments: [public-fixture]
+  hosts: [fixture-host, fixture-host-fail]
+  services: [running, stopped, failed, unreachable, timeout, stateful]
+  actions: [status, start, stop]
