@@ -34,6 +34,9 @@ const ServicesPage = lazy(() =>
 const TasksPage = lazy(() =>
   import("./pages/TasksPage").then((module) => ({ default: module.TasksPage })),
 );
+const IncidentsPage = lazy(() =>
+  import("./pages/IncidentsPage").then((module) => ({ default: module.IncidentsPage })),
+);
 const SettingsPage = lazy(() =>
   import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })),
 );
@@ -141,6 +144,10 @@ function ProtectedApp() {
               onEnvironmentChange={selectEnvironment}
             />
           }
+        />
+        <Route
+          path="/incidents/:incidentId?"
+          element={<IncidentsPage environment={currentEnvironment?.code ?? environmentName} />}
         />
         <Route
           path="/tasks"

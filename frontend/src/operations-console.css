@@ -1028,6 +1028,22 @@
   font-family: var(--opspilot-font-mono);
 }
 
+.incident-id { display: block; margin-top: 4px; color: var(--opspilot-text-secondary); }
+.incident-severity { display: inline-flex; padding: 3px 8px; border-radius: 999px; background: var(--opspilot-surface-subtle); font-size: 12px; font-weight: 700; }
+.incident-severity--critical { color: var(--opspilot-danger); }
+.incident-severity--high { color: var(--opspilot-warning); }
+.incident-overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--opspilot-space-4); }
+.incident-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--opspilot-space-4); margin: 0; }
+.incident-facts dt { color: var(--opspilot-text-secondary); font-size: 12px; }
+.incident-facts dd { margin: 5px 0 0; }
+.incident-card-list { display: grid; gap: var(--opspilot-space-3); }
+.incident-card { display: flex; flex-direction: column; gap: 6px; padding: var(--opspilot-space-3); border: 1px solid var(--opspilot-border); background: var(--opspilot-surface-subtle); color: inherit; text-decoration: none; }
+.incident-card span, .incident-card small { color: var(--opspilot-text-secondary); }
+.incident-timeline { display: grid; margin: 0; padding: 0; list-style: none; }
+.incident-timeline li { display: grid; grid-template-columns: 20px 150px 100px minmax(0, 1fr); gap: var(--opspilot-space-3); align-items: center; padding: var(--opspilot-space-3) 0; border-bottom: 1px solid var(--opspilot-border); }
+.incident-timeline time, .incident-timeline span { color: var(--opspilot-text-secondary); font-size: 12px; }
+@media (max-width: 760px) { .incident-overview-grid, .incident-facts { grid-template-columns: 1fr; } .incident-timeline li { grid-template-columns: 20px 1fr; } }
+
 @media (max-width: 700px) {
   .failure-evidence {
     grid-template-columns: minmax(0, 1fr);

@@ -181,3 +181,90 @@ export interface OperationRequest {
   reason: string | null;
   created_at: string;
 }
+
+export type IncidentStatus =
+  | "OPEN"
+  | "INVESTIGATING"
+  | "MITIGATING"
+  | "VERIFYING"
+  | "RESOLVED"
+  | "CLOSED"
+  | "FAILED";
+
+export interface IncidentEvidence {
+  id: string;
+  evidence_type: string;
+  source: string;
+  source_reference: string;
+  summary: string;
+  excerpt: string | null;
+  observed_at: string;
+}
+
+export interface IncidentHypothesis {
+  id: string;
+  statement: string;
+  confidence: number;
+  status: string;
+  created_at: string;
+}
+
+export interface IncidentDiagnosis {
+  id: string;
+  root_cause: string;
+  contributing_factors: string[];
+  confidence: number;
+  created_at: string;
+}
+
+export interface IncidentAction {
+  task_id: string;
+  action_fingerprint: string;
+  created_at: string;
+}
+
+export interface Incident {
+  id: string;
+  title: string;
+  summary: string;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  status: IncidentStatus;
+  environment: string;
+  service: string;
+  source: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  resolved_at: string | null;
+  closed_at: string | null;
+  tags: string[];
+  version: number;
+  evidence: IncidentEvidence[];
+  hypotheses: IncidentHypothesis[];
+  diagnoses: IncidentDiagnosis[];
+  actions: IncidentAction[];
+}
+
+export interface IncidentPage {
+  items: Incident[];
+  offset: number;
+  limit: number;
+  count: number;
+}
+
+export interface TimelineItem {
+  id: string;
+  kind:
+    | "INCIDENT"
+    | "EVIDENCE"
+    | "HYPOTHESIS"
+    | "DIAGNOSIS"
+    | "ACTION"
+    | "APPROVAL"
+    | "VERIFICATION";
+  event_type: string;
+  occurred_at: string;
+  summary: string;
+  reference_id: string | null;
+  metadata: Record<string, unknown>;
+}
