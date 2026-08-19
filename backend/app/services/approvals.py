@@ -10,13 +10,12 @@ from app.db.base import utc_now
 from app.models import ApprovalRecord, OperationRequest, User
 from app.schemas import OperationCreate, OperationRequestCreate
 from app.services.audit import write_audit
-from app.services.operations import OperationService, configured_legacy_capabilities
+from app.services.operations import OperationService
 from app.services.rbac import get_user_access, require_permission
 from app.services.reliability import request_fingerprint, validate_idempotency_key
 
 WRITE_PERMISSIONS = {
-    OperationAction.START: "service.start",
-    OperationAction.STOP: "service.stop",
+    OperationAction.RESTART: "service.start",
 }
 
 
@@ -67,7 +66,7 @@ class ApprovalService:
             return existing
         permission = WRITE_PERMISSIONS.get(action)
         if permission is None:
-            rejection = ValidationError("Approval requests support only start and stop")
+            rejection = ValidationError("Approval requests support restart remediation only")
             self._audit_rejection(actor, action, rejection.code, rejection.message, request_id)
             self.db.commit()
             raise rejection
@@ -301,12 +300,10 @@ class ApprovalService:
     def _validate_write_gate(self, action: OperationAction) -> None:
         if not self.settings.write_operations_enabled:
             raise ForbiddenError("WRITE_OPERATION_DISABLED", "Write operations are disabled")
-        if action.value not in self.settings.allowed_action_set:
-            raise ForbiddenError("ACTION_NOT_ALLOWED", "Action is outside the configured allowlist")
-        if action not in configured_legacy_capabilities(self.settings):
+        if action is not OperationAction.RESTART:
             raise ForbiddenError(
                 "EXECUTOR_ACTION_UNSUPPORTED",
-                "Configured executor does not support this action",
+                "Portable remediation supports restart only",
             )
 
     def _get(self, request_id_value: str) -> OperationRequest:

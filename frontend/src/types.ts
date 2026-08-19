@@ -30,6 +30,7 @@ export interface Host {
   name: string;
   description: string | null;
   enabled: boolean;
+  labels: Record<string, string>;
   last_status: string;
   service_count: number;
 }
@@ -37,14 +38,11 @@ export interface Host {
 export interface Asset {
   id: string;
   name: string;
-  ip: string | null;
   environmentId: string;
   environmentName: string;
   type: string | null;
-  connectionStatus: string | null;
   serviceCheckStatus: string;
   lastServiceCheckAt: string | null;
-  executorType: string | null;
   serviceCount: number;
   dataSource: "api" | "adapter";
 }
@@ -66,105 +64,12 @@ export interface SystemHealth {
 
 export interface SystemReady {
   status: string;
+  application: string;
   database: string;
-  configuration: string;
-  worker: { status: string; poll_seconds: number };
-  executor: { type: string; status: string };
-  services: {
-    required: boolean;
-    command_profile: string;
-    profile_name: string;
-    profile_error: string | null;
-    capabilities: Array<"status" | "start" | "stop">;
-    preflight: null | {
-      status: string;
-      checks: Record<string, { status: string; reason: string }>;
-    };
+  execution_backend: {
+    backend: "mock" | "ansible" | string;
+    available: boolean;
   };
-  operations_integration?: {
-    required: boolean;
-    preflight: null | {
-      status: string;
-      checks: Record<string, { status: string; reason: string }>;
-    };
-  };
-}
-
-export interface CredentialMetadata {
-  name: string;
-  configured: boolean;
-  fingerprint: string | null;
-}
-
-export interface IntegrationHost {
-  id?: string;
-  name: string;
-  address: string;
-  ssh_port: number;
-  ssh_username: string;
-  credential_reference: string;
-  credential?: CredentialMetadata;
-}
-
-export interface IntegrationService {
-  id?: string;
-  name: string;
-  host_names: string[];
-}
-
-export interface IntegrationConfigInput {
-  environment: { name: string; code: string; level: Environment["environment_level"] };
-  hosts: IntegrationHost[];
-  services: IntegrationService[];
-  execution: {
-    services_sh_remote_path: string;
-    working_directory: string;
-    timeout_seconds: number;
-    status_argv: string[];
-    start_argv: string[];
-    stop_argv: string[];
-  };
-  parser: {
-    type: "regex";
-    exit_code_map: Record<string, string>;
-    stdout_regex: Record<string, string>;
-    stderr_regex: Record<string, string>;
-    conflict_policy: "failed" | "first" | "last";
-    default_state: string;
-    custom_parser: null;
-  };
-  allowlist: {
-    environments: string[];
-    hosts: string[];
-    services: string[];
-    actions: Array<"status" | "start" | "stop">;
-  };
-}
-
-export interface IntegrationConfig extends IntegrationConfigInput {
-  id: string;
-  environment_id: string;
-  status: "DRAFT" | "VALIDATED" | "READY" | "DISABLED";
-  enabled: boolean;
-  validation_errors: string[];
-  last_ssh_test_ok: boolean;
-  last_status_test_ok: boolean;
-  last_test_details: Record<string, unknown>;
-}
-
-export interface IntegrationTestResult {
-  success: boolean;
-  result?: "SUCCESS" | "FAILED";
-  latency_ms?: number;
-  duration_ms?: number;
-  exit_code: number;
-  parsed_state?: string | null;
-  error?: string | null;
-  stdout?: string;
-  stderr?: string;
-  host_fingerprint?: string | null;
-  host_key_status?: string;
-  credential_fingerprint?: string | null;
 }
 
 export type TaskStatus =
@@ -242,7 +147,6 @@ export interface LoginResponse {
 
 export interface SecurityContext {
   environment: string;
-  environment_mode: "mock" | "integration-test" | "production";
   executor: string;
   execution_mode: "mock" | "real";
   write_operations: boolean;
@@ -250,10 +154,14 @@ export interface SecurityContext {
   approval_required_for_write: boolean;
   safe_mode: boolean;
   real_execution: boolean;
-  allowed_hosts: string[];
-  allowed_services: string[];
   allowed_actions: string[];
   permissions: string[];
+  capabilities: {
+    observe: boolean;
+    remediate: boolean;
+    approve: boolean;
+    administer: boolean;
+  };
   approval: {
     required_for_write: boolean;
     allow_self_approval: boolean;
@@ -263,12 +171,11 @@ export interface SecurityContext {
     can_reject: boolean;
     can_cancel: boolean;
   };
-  executor_capabilities: Record<"status" | "start" | "stop", boolean>;
 }
 
 export interface OperationRequest {
   id: string;
-  action: "start" | "stop";
+  action: "restart";
   status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
   task_id: string | null;
   reason: string | null;

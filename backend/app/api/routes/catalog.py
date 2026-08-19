@@ -3,12 +3,11 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import response
 from app.api.routes.auth import get_current_user
-from app.core.config import get_settings
 from app.core.errors import NotFoundError
 from app.db.session import get_db
 from app.models import User
 from app.repositories.catalog import CatalogRepository
-from app.schemas import EnvironmentRead, HostRead, ServiceRead
+from app.schemas import EnvironmentRead, HostRead, ServiceRead, TargetAssetRead
 from app.services.rbac import require_permission
 
 router = APIRouter(tags=["catalog"])
@@ -34,12 +33,7 @@ def environments(
     user: User = Depends(get_current_user),
 ) -> dict[str, object]:
     require_permission(db, user, "service.read")
-    settings = get_settings()
     environments = CatalogRepository(db).list_environments()
-    if settings.real_integration_execution_enabled:
-        environments = [
-            item for item in environments if item.code in settings.allowed_environment_set
-        ]
     items = [EnvironmentRead.model_validate(item) for item in environments]
     return response(request, items)
 
@@ -99,6 +93,23 @@ def hosts(
     require_permission(db, user, "host.read")
     return response(
         request, [host_read(item) for item in CatalogRepository(db).list_hosts(environment_id)]
+    )
+
+
+@router.get("/targets")
+def targets(
+    request: Request,
+    environment_id: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, object]:
+    require_permission(db, user, "host.read")
+    return response(
+        request,
+        [
+            TargetAssetRead.model_validate(item)
+            for item in CatalogRepository(db).list_hosts(environment_id)
+        ],
     )
 
 

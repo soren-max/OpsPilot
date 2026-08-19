@@ -87,10 +87,9 @@ export function DashboardPage({
       mapHostsToAssets(
         hosts.data ?? [],
         security.environment,
-        security.executor,
         snapshots.data ?? [],
       ),
-    [hosts.data, security.environment, security.executor, snapshots.data],
+    [hosts.data, security.environment, snapshots.data],
   );
   const dashboard = useMemo(
     () =>
@@ -135,12 +134,10 @@ export function DashboardPage({
               detail={health.data ? "健康检查已响应" : "尚未检查"}
             />
             <SystemStatusItem
-              id="worker"
-              label="Worker"
-              status={readiness?.worker.status.toUpperCase() ?? "UNKNOWN"}
-              detail={
-                readiness ? `已配置 · 轮询间隔 ${readiness.worker.poll_seconds} 秒` : "尚未检查"
-              }
+              id="application"
+              label="Application"
+              status={readiness?.application.toUpperCase() ?? "UNKNOWN"}
+              detail="应用编排层"
             />
             <SystemStatusItem
               id="readiness"
@@ -155,20 +152,16 @@ export function DashboardPage({
               detail={environmentName || "未提供"}
             />
             <SystemStatusItem
-              id="executor"
-              label="Executor"
-              status={readiness?.executor.status.toUpperCase() ?? "UNKNOWN"}
-              detail={readiness?.executor.type ?? security.executor ?? "未提供"}
+              id="execution-backend"
+              label="Execution Backend"
+              status={readiness?.execution_backend.available ? "AVAILABLE" : "UNAVAILABLE"}
+              detail={readiness?.execution_backend.backend ?? security.executor ?? "未提供"}
             />
             <SystemStatusItem
-              id="profile"
-              label="Command profile"
-              status={readiness?.services.command_profile.toUpperCase() ?? "UNKNOWN"}
-              detail={
-                readiness
-                  ? `${readiness.services.profile_name} · ${readiness.services.capabilities.join(", ") || "无 capability"}`
-                  : "尚未检查"
-              }
+              id="action-boundary"
+              label="Action Boundary"
+              status="STRUCTURED"
+              detail="Policy → Approval → Execute → Verify"
             />
             <SystemStatusItem
               id="write-policy"
@@ -191,8 +184,7 @@ export function DashboardPage({
         </PageSection>
         <section className="operation-capability-summary" aria-label="当前操作能力">
           <CapabilityReason capability={capabilities.status} />
-          <CapabilityReason capability={capabilities.start} />
-          <CapabilityReason capability={capabilities.stop} />
+          <CapabilityReason capability={capabilities.restart} />
         </section>
       </div>
 

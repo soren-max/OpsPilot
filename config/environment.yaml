@@ -1,3 +1,0 @@
-default_environment: public-mock
-real_asset_connectivity: disabled
-fixtures: sanitized

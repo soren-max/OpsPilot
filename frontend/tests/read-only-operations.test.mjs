@@ -14,23 +14,21 @@ const policy = await readFile(
   "utf8",
 );
 
-test("start and stop are controlled by effective permissions and policy", () => {
+test("restart remediation is controlled by effective capabilities and policy", () => {
   assert.match(composer, /<option value="status" disabled=\{!capabilities\.status\.canInitiate\}>/);
-  assert.match(composer, /disabled=\{!capabilities\.start\.canInitiate\}/);
-  assert.match(composer, /disabled=\{!capabilities\.stop\.canInitiate\}/);
+  assert.match(composer, /disabled=\{!capabilities\.restart\.canInitiate\}/);
   assert.match(policy, /EXECUTABLE/);
   assert.match(policy, /ENVIRONMENT_POLICY_DENIED/);
   assert.match(policy, /PERMISSION_DENIED/);
-  assert.match(policy, /EXECUTOR_UNSUPPORTED/);
-  assert.match(policy, /PROFILE_NOT_CONFIGURED/);
+  assert.match(policy, /BACKEND_UNAVAILABLE/);
   assert.match(policy, /PRODUCTION_OPERATION_DENIED/);
   assert.match(policy, /APPROVAL_REQUIRED/);
-  assert.match(policy, /operation\.create/);
+  assert.match(policy, /remediate/);
   assert.match(composer, /tasksApi\.createOperationRequest/);
   assert.match(composer, /security\.approval\.allow_self_approval/);
   assert.match(composer, /tasksApi\.approveOperationRequest/);
-  assert.match(policy, /当前环境未启用写操作。/);
-  assert.match(services, /CapabilityReason capability=\{startCapability\}/);
+  assert.match(policy, /当前环境未启用受控修复/);
+  assert.match(services, /CapabilityReason capability=\{restartCapability\}/);
 });
 
 test("one resolver owns every user-facing operation outcome", () => {
@@ -41,8 +39,7 @@ test("one resolver owns every user-facing operation outcome", () => {
     "需要审批",
     "无权限",
     "环境策略禁止",
-    "Executor 不支持",
-    "Profile 未配置",
+    "执行后端不可用",
     "生产操作禁止",
   ]) {
     assert.match(policy, new RegExp(label));

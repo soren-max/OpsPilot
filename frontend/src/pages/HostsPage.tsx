@@ -44,7 +44,7 @@ export function HostsPage({
   });
   const assets = useQuery({
     queryKey: [...queryKeys.assets(environmentId), snapshots.dataUpdatedAt],
-    queryFn: () => assetService.list(environmentId, environmentName, null, snapshots.data ?? []),
+    queryFn: () => assetService.list(environmentId, environmentName, snapshots.data ?? []),
   });
 
   useEffect(() => setSelected(null), [environmentId]);
@@ -63,7 +63,7 @@ export function HostsPage({
         .filter(
           (asset) =>
             (status === "ALL" || asset.serviceCheckStatus === status) &&
-            `${asset.name} ${asset.ip ?? ""}`.toLowerCase().includes(search.toLowerCase()),
+            asset.name.toLowerCase().includes(search.toLowerCase()),
         )
         .sort(
           (a, b) =>
@@ -80,7 +80,7 @@ export function HostsPage({
     <div className="page-stack data-page asset-page">
       <PageHeader
         title="主机 / 资产管理"
-        description="主机连接状态与服务检查结果分开呈现；后端未提供连接状态时明确显示未提供。"
+        description="逻辑执行目标及其最近服务检查结果。连接细节由执行后端的 operator 配置管理。"
       />
       <PageSection
         title="资产清单"
@@ -91,8 +91,8 @@ export function HostsPage({
           <SearchInput
             value={search}
             onChange={(value) => setParam("search", value)}
-            placeholder="搜索资产名称或 IP"
-            ariaLabel="搜索资产名称或 IP"
+            placeholder="搜索资产名称"
+            ariaLabel="搜索资产名称"
           />
           <select
             value={environmentId}
@@ -132,7 +132,7 @@ export function HostsPage({
         ) : !filtered.length ? (
           <EmptyState
             title={assets.data?.length ? "没有匹配资产" : "暂无资产"}
-            message={assets.data?.length ? "请调整名称、IP 或状态筛选。" : "当前环境尚未登记资产。"}
+            message={assets.data?.length ? "请调整名称或状态筛选。" : "当前环境尚未登记资产。"}
             action={
               assets.data?.length ? (
                 <button className="button button--secondary" onClick={() => setParams({})}>
@@ -152,10 +152,8 @@ export function HostsPage({
               <thead>
                 <tr>
                   <th>资产名称</th>
-                  <th>IP</th>
                   <th>环境</th>
                   <th>类型</th>
-                  <th>连接状态</th>
                   <th>服务检查状态</th>
                   <th>最近服务检查</th>
                   <th>服务数</th>
@@ -175,7 +173,6 @@ export function HostsPage({
                         </span>
                       </span>
                     </td>
-                    <td className="mono">{valueOrUnrecorded(asset.ip, "IP")}</td>
                     <td>
                       <EnvironmentBadge
                         name={asset.environmentName}
@@ -186,13 +183,6 @@ export function HostsPage({
                       />
                     </td>
                     <td>{valueOrUnrecorded(asset.type, "资产类型")}</td>
-                    <td>
-                      {asset.connectionStatus ? (
-                        <StatusBadge status={asset.connectionStatus} domain="host" />
-                      ) : (
-                        missing("主机连接状态")
-                      )}
-                    </td>
                     <td>
                       <StatusBadge status={asset.serviceCheckStatus} domain="service" />
                     </td>
@@ -273,26 +263,12 @@ function AssetDrawer({ asset, onClose }: { asset: Asset | null; onClose: () => v
             <h3>资产信息</h3>
             <dl className="key-value">
               <div>
-                <dt>IP</dt>
-                <dd>{valueOrUnrecorded(asset.ip, "IP")}</dd>
-              </div>
-              <div>
                 <dt>所属环境</dt>
                 <dd>{asset.environmentName}</dd>
               </div>
               <div>
                 <dt>资产类型</dt>
                 <dd>{valueOrUnrecorded(asset.type, "资产类型")}</dd>
-              </div>
-              <div>
-                <dt>主机连接状态</dt>
-                <dd>
-                  {asset.connectionStatus ? (
-                    <StatusBadge status={asset.connectionStatus} domain="host" />
-                  ) : (
-                    missing("主机连接状态")
-                  )}
-                </dd>
               </div>
               <div>
                 <dt>服务检查状态</dt>
@@ -307,10 +283,6 @@ function AssetDrawer({ asset, onClose }: { asset: Asset | null; onClose: () => v
                     ? formatDate(asset.lastServiceCheckAt)
                     : missing("服务检查时间")}
                 </dd>
-              </div>
-              <div>
-                <dt>执行方式</dt>
-                <dd>{valueOrUnrecorded(asset.executorType, "Executor")}</dd>
               </div>
             </dl>
           </section>

@@ -37,11 +37,6 @@ const TasksPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })),
 );
-const OperationsIntegrationPage = lazy(() =>
-  import("./pages/OperationsIntegrationPage").then((module) => ({
-    default: module.OperationsIntegrationPage,
-  })),
-);
 
 function ProtectedApp() {
   const environments = useQuery({
@@ -99,20 +94,7 @@ function ProtectedApp() {
   });
 
   if (!environmentId) {
-    if (!security.data!.permissions.includes("config.write")) {
-      return <ErrorState error={new Error("没有可用环境，且当前账号无权创建运维接入配置。")} />;
-    }
-    return (
-      <AppShell
-        environments={[]}
-        environmentId=""
-        onEnvironmentChange={selectEnvironment}
-        security={security.data!}
-        capabilities={operationCapabilities}
-      >
-        <OperationsIntegrationPage environmentId="" environments={[]} security={security.data!} />
-      </AppShell>
-    );
+    return <ErrorState error={new Error("没有可用环境。请先配置逻辑执行目标目录。")} />;
   }
 
   return (
@@ -168,16 +150,6 @@ function ProtectedApp() {
         <Route
           path="/access"
           element={<AccessControlPage capabilities={operationCapabilities} />}
-        />
-        <Route
-          path="/operations-integration"
-          element={
-            <OperationsIntegrationPage
-              environmentId={environmentId}
-              environments={environments.data ?? []}
-              security={security.data!}
-            />
-          }
         />
         <Route
           path="/settings"

@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import auth, catalog, integration_config, operations, system
+from app.api.routes import auth, catalog, operations, system
 from app.bootstrap.seed_users import seed_default_admin
 from app.core.config import get_settings
 from app.core.errors import AppError, ForbiddenError
@@ -116,8 +116,7 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
                 "code": "REQUEST_VALIDATION_ERROR",
                 "message": "Request validation failed",
                 # Pydantic includes the rejected input by default. Never reflect
-                # request values because this endpoint also accepts write-only
-                # credential material.
+                # request values because rejected input may contain secrets.
                 "details": [
                     {
                         "type": item.get("type"),
@@ -160,7 +159,6 @@ app.include_router(system.router, prefix="/api/v1")
 app.include_router(system.router, include_in_schema=False)
 app.include_router(catalog.router, prefix="/api/v1")
 app.include_router(operations.router, prefix="/api/v1")
-app.include_router(integration_config.router, prefix="/api/v1")
 
 
 # The offline package places the already-built Vite application beside backend/.

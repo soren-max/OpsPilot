@@ -1,7 +1,6 @@
 name: opspilot
 
 x-backend-environment: &backend-environment
-  OPSPILOT_ENVIRONMENT_CONFIG_PATH: /etc/opspilot/application.yml
   OPSPILOT_DATABASE_URL: sqlite:////var/lib/opspilot/opspilot_ops.db
   OPSPILOT_SERVER_HOST: 0.0.0.0
   OPSPILOT_SERVER_PORT: "8000"
@@ -25,8 +24,6 @@ services:
       OPSPILOT_LOG_FILE: /var/log/opspilot/api.log
       DEFAULT_ADMIN_ENABLED: ${DEFAULT_ADMIN_ENABLED:-true}
     volumes:
-      - ${OPSPILOT_CONFIG_FILE:?Set OPSPILOT_CONFIG_FILE to the reviewed production config}:/etc/opspilot/application.yml:ro
-      - ${OPSPILOT_SERVICES_DIR:?Set OPSPILOT_SERVICES_DIR to the reviewed services directory}:/opt/opspilot-services:ro
       - ${OPSPILOT_DATABASE_DIR:-./runtime-data/database}:/var/lib/opspilot
       - ${OPSPILOT_API_LOG_DIR:-./runtime-data/logs/api}:/var/log/opspilot
     command:
@@ -58,8 +55,6 @@ services:
       OPSPILOT_WORKER_POLL_SECONDS: ${OPSPILOT_WORKER_POLL_SECONDS:-1}
       DEFAULT_ADMIN_ENABLED: "false"
     volumes:
-      - ${OPSPILOT_CONFIG_FILE:?Set OPSPILOT_CONFIG_FILE to the reviewed production config}:/etc/opspilot/application.yml:ro
-      - ${OPSPILOT_SERVICES_DIR:?Set OPSPILOT_SERVICES_DIR to the reviewed services directory}:/opt/opspilot-services:ro
       - ${OPSPILOT_DATABASE_DIR:-./runtime-data/database}:/var/lib/opspilot
       - ${OPSPILOT_WORKER_LOG_DIR:-./runtime-data/logs/worker}:/var/log/opspilot
     command:
@@ -93,11 +88,9 @@ services:
       <<: *backend-environment
       OPSPILOT_LOG_FILE: /var/log/opspilot/api-dev.log
       OPSPILOT_WRITE_OPERATIONS_ENABLED: ${OPSPILOT_DEV_WRITE_OPERATIONS_ENABLED:-true}
-      OPSPILOT_ALLOWED_ACTIONS: ${OPSPILOT_DEV_ALLOWED_ACTIONS:-status,start,stop}
+      OPSPILOT_ALLOWED_ACTIONS: ${OPSPILOT_DEV_ALLOWED_ACTIONS:-status,restart}
       DEFAULT_ADMIN_ENABLED: ${DEFAULT_ADMIN_ENABLED:-true}
     volumes:
-      - ${OPSPILOT_DEV_CONFIG_FILE:-./config/application.dev.yml}:/etc/opspilot/application.yml:ro
-      - ${OPSPILOT_DEV_SERVICES_DIR:-./test-assets}:/opt/opspilot-services:ro
       - ${OPSPILOT_DATABASE_DIR:-./runtime-data/database}:/var/lib/opspilot
       - ${OPSPILOT_API_LOG_DIR:-./runtime-data/logs/api}:/var/log/opspilot
       - ./backend:/app
@@ -129,11 +122,9 @@ services:
       OPSPILOT_LOG_FILE: /var/log/opspilot/worker-dev.log
       OPSPILOT_WORKER_POLL_SECONDS: ${OPSPILOT_WORKER_POLL_SECONDS:-1}
       OPSPILOT_WRITE_OPERATIONS_ENABLED: ${OPSPILOT_DEV_WRITE_OPERATIONS_ENABLED:-true}
-      OPSPILOT_ALLOWED_ACTIONS: ${OPSPILOT_DEV_ALLOWED_ACTIONS:-status,start,stop}
+      OPSPILOT_ALLOWED_ACTIONS: ${OPSPILOT_DEV_ALLOWED_ACTIONS:-status,restart}
       DEFAULT_ADMIN_ENABLED: "false"
     volumes:
-      - ${OPSPILOT_DEV_CONFIG_FILE:-./config/application.dev.yml}:/etc/opspilot/application.yml:ro
-      - ${OPSPILOT_DEV_SERVICES_DIR:-./test-assets}:/opt/opspilot-services:ro
       - ${OPSPILOT_DATABASE_DIR:-./runtime-data/database}:/var/lib/opspilot
       - ${OPSPILOT_WORKER_LOG_DIR:-./runtime-data/logs/worker}:/var/log/opspilot
       - ./backend:/app

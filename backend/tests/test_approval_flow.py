@@ -1,11 +1,21 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.adapters.mock import MockActionExecutor
+from app.application import ActionService
 from app.core.config import Settings
 from app.core.enums import ApprovalStatus, TaskStatus
 from app.core.security import hash_password
-from app.executors.mock import MockExecutor
-from app.models import AuditLog, OperationRequest, OperationTask, Role, User, UserRole
+from app.domain.actions.policy import ActionPolicyEngine
+from app.models import (
+    AuditLog,
+    OperationLock,
+    OperationRequest,
+    OperationTask,
+    Role,
+    User,
+    UserRole,
+)
 from app.services import approvals as approvals_module
 from app.services import operations as operations_module
 from app.services.worker import WorkerService
@@ -20,12 +30,11 @@ def approval_settings() -> Settings:
         write_operations_enabled=True,
         production_operations_enabled=False,
         approval_required_for_write=True,
-        allowed_actions="status,start,stop",
         _env_file=None,
     )
 
 
-def request_body(action: str = "start") -> dict[str, object]:
+def request_body(action: str = "restart") -> dict[str, object]:
     return {
         "operation": {
             "environment_id": ENV,
@@ -33,7 +42,6 @@ def request_body(action: str = "start") -> dict[str, object]:
             "scope": "service_hosts",
             "service_id": SERVICE,
             "host_ids": [HOST],
-            "parameters": {},
         },
         "reason": "scheduled mock maintenance",
     }
@@ -65,6 +73,12 @@ def login_as_approver(client, db: Session) -> User:
 def configure_approval(monkeypatch, settings: Settings) -> None:
     monkeypatch.setattr(approvals_module, "get_settings", lambda: settings)
     monkeypatch.setattr(operations_module, "get_settings", lambda: settings)
+
+
+def action_service() -> ActionService:
+    return ActionService(
+        ActionPolicyEngine(frozenset({"mock-host-ok"})), MockActionExecutor()
+    )
 
 
 def test_request_approve_execute_and_duplicate_protection(client, db, monkeypatch) -> None:
@@ -100,7 +114,7 @@ def test_request_approve_execute_and_duplicate_protection(client, db, monkeypatc
     assert duplicate.status_code == 409
     assert duplicate.json()["error"]["code"] == "APPROVAL_ALREADY_DECIDED"
 
-    assert WorkerService(db, MockExecutor(), settings).run_once()
+    assert WorkerService(db, action_service(), settings).run_once()
     task = db.get(OperationTask, data["task_id"])
     assert task is not None and task.status is TaskStatus.SUCCEEDED
     audits = list(db.scalars(select(AuditLog).order_by(AuditLog.created_at)))
@@ -117,7 +131,7 @@ def test_request_reject_and_requester_cancel_are_audited(client, db, monkeypatch
     configure_approval(monkeypatch, settings)
     first = client.post(
         "/api/v1/operation-requests",
-        json=request_body("stop"),
+        json=request_body(),
         headers={"Idempotency-Key": "approval-cancel-0001"},
     )
     first_id = first.json()["data"]["id"]
@@ -127,7 +141,7 @@ def test_request_reject_and_requester_cancel_are_audited(client, db, monkeypatch
 
     second = client.post(
         "/api/v1/operation-requests",
-        json=request_body("stop"),
+        json=request_body(),
         headers={"Idempotency-Key": "approval-reject-0001"},
     )
     second_id = second.json()["data"]["id"]
@@ -162,7 +176,7 @@ def test_worker_rechecks_approval_before_executor_invocation(client, db, monkeyp
     operation_request.status = ApprovalStatus.CANCELLED
     db.commit()
 
-    assert WorkerService(db, MockExecutor(), settings).run_once()
+    assert WorkerService(db, action_service(), settings).run_once()
     task = db.get(OperationTask, approved["task_id"])
     assert task is not None
     assert task.status is TaskStatus.FAILED
@@ -175,7 +189,7 @@ def test_test_environment_allows_single_admin_self_approval(client, db, monkeypa
     configure_approval(monkeypatch, settings)
     created = client.post(
         "/api/v1/operation-requests",
-        json=request_body("start"),
+        json=request_body(),
         headers={"Idempotency-Key": "approval-self-test-0001"},
     )
     request_id = created.json()["data"]["id"]
@@ -187,6 +201,28 @@ def test_test_environment_allows_single_admin_self_approval(client, db, monkeypa
     assert approved.json()["data"]["status"] == "APPROVED"
     task_id = approved.json()["data"]["task_id"]
     assert task_id
-    assert WorkerService(db, MockExecutor(), settings).run_once()
+    assert WorkerService(db, action_service(), settings).run_once()
     task = db.get(OperationTask, task_id)
     assert task is not None and task.status is TaskStatus.SUCCEEDED
+
+
+def test_pending_approved_remediation_cancel_releases_target_lock(
+    client, db, monkeypatch
+) -> None:
+    settings = approval_settings()
+    settings.allow_self_approval = True
+    configure_approval(monkeypatch, settings)
+    created = client.post(
+        "/api/v1/operation-requests",
+        json=request_body(),
+        headers={"Idempotency-Key": "approval-lock-cancel-0001"},
+    )
+    request_id = created.json()["data"]["id"]
+    approved = client.post(f"/api/v1/operation-requests/{request_id}/approve", json={})
+    task_id = approved.json()["data"]["task_id"]
+    assert db.scalar(select(func.count()).select_from(OperationLock)) == 1
+
+    cancelled = client.post(f"/api/v1/tasks/{task_id}/cancel")
+    assert cancelled.status_code == 200
+    assert cancelled.json()["data"]["status"] == "CANCELLED"
+    assert db.scalar(select(func.count()).select_from(OperationLock)) == 0

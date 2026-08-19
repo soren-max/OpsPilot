@@ -31,8 +31,13 @@ class HostRead(BaseModel):
     name: str
     description: str | None
     enabled: bool
+    labels: dict[str, str]
     last_status: str
     service_count: int = 0
+
+
+class TargetAssetRead(HostRead):
+    """Transport-agnostic logical execution target."""
 
 
 class ServiceRead(BaseModel):
@@ -49,13 +54,14 @@ class ServiceRead(BaseModel):
 
 
 class OperationCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     environment_id: str = Field(min_length=36, max_length=36)
     action: OperationAction
     scope: OperationScope
     service_id: str | None = Field(default=None, min_length=36, max_length=36)
     host_id: str | None = Field(default=None, min_length=36, max_length=36)
     host_ids: list[str] = Field(default_factory=list, max_length=100)
-    parameters: dict[str, Any] = Field(default_factory=dict)
     partial_failure_policy: PartialFailurePolicy | None = None
     requested_by: str = Field(
         default="web-user", min_length=1, max_length=80, pattern=r"^[\w .@-]+$"

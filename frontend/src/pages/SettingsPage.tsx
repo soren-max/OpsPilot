@@ -28,7 +28,7 @@ export function SettingsPage({
     <div className="page-stack config-page settings-page">
       <PageHeader
         title="系统配置"
-        description="只读展示当前执行器、安全策略和白名单；敏感连接信息不会下发到浏览器。"
+        description="只读展示当前执行后端与安全策略；连接信息不属于应用契约。"
         actions={
           <span className="page-header__status">
             <LockKeyhole size={15} aria-hidden="true" /> 只读视图
@@ -52,10 +52,6 @@ export function SettingsPage({
               <strong className="mono">{security.executor}</strong>
             </div>
             <div>
-              <span>运行模式</span>
-              <strong>{security.environment_mode}</strong>
-            </div>
-            <div>
               <span>配置可见性</span>
               <strong>脱敏只读</strong>
             </div>
@@ -77,73 +73,47 @@ export function SettingsPage({
               </dl>
               <div className="settings-capability-list" aria-label="有效操作能力">
                 <CapabilityReason capability={capabilities.status} />
-                <CapabilityReason capability={capabilities.start} />
-                <CapabilityReason capability={capabilities.stop} />
+                <CapabilityReason capability={capabilities.restart} />
               </div>
             </PageSection>
             <PageSection
-              title="Executor 与 services.sh"
-              description="来自 /ready，不执行任何命令"
+              title="Execution Backend"
+              description="来自 /ready，仅报告通用后端可用性"
               className="settings-panel settings-panel--wide"
             >
               <dl className="settings-definition-list settings-definition-list--technical">
                 <ReadyValue label="ready" value={readiness.status} ok="ready" />
-                <ReadyValue label="executor.type" value={readiness.executor.type} />
+                <ReadyValue label="backend" value={readiness.execution_backend.backend} />
                 <ReadyValue
-                  label="executor.status"
-                  value={readiness.executor.status}
-                  ok="configured"
+                  label="available"
+                  value={String(readiness.execution_backend.available)}
+                  ok="true"
                 />
-                <ReadyValue label="services.required" value={String(readiness.services.required)} />
-                <ReadyValue label="services.profile_name" value={readiness.services.profile_name} />
-                {readiness.services.preflight && (
-                  <ReadyValue
-                    label="services.preflight"
-                    value={readiness.services.preflight.status}
-                    ok="ready"
-                  />
-                )}
-                {Object.entries(readiness.services.preflight?.checks ?? {}).map(
-                  ([name, check]) => (
-                    <ReadyValue
-                      key={name}
-                      label={`preflight.${name}`}
-                      value={`${check.status}: ${check.reason}`}
-                      enabled={check.status === "ok"}
-                    />
-                  ),
-                )}
               </dl>
             </PageSection>
             <PageSection
-              title="有效动作与目标保护"
-              description="动作是后端合并权限与策略后的有效集合；目标白名单不下发"
+              title="有效动作"
+              description="动作是后端合并权限与确定性策略后的有效集合"
               className="settings-panel"
             >
-              <Allowlist label="environment" values={[security.environment]} />
-              <Allowlist label="host" values={[]} redacted />
-              <Allowlist label="service" values={[]} redacted />
               <Allowlist label="action" values={security.allowed_actions} />
             </PageSection>
             <PageSection
-              title="敏感配置"
-              description="私钥、口令和远端连接参数不向前端暴露"
+              title="Operator-owned 配置"
+              description="执行清单与 playbook 映射由部署方和应用代码管理"
               className="settings-panel settings-panel--wide"
             >
               <div className="sensitive-config-notice">
                 <EyeOff size={18} aria-hidden="true" />
                 <div>
-                  <strong>已脱敏</strong>
-                  <span>SSH 私钥、主机凭据、脚本绝对路径及远端工作目录仅由服务端读取。</span>
+                  <strong>不属于应用契约</strong>
+                  <span>浏览器、Agent 和 ActionRequest 均不能提供执行清单或 playbook。</span>
                 </div>
               </div>
               <dl className="sensitive-field-list">
                 {[
-                  "ssh.host",
-                  "ssh.username",
-                  "ssh.private_key",
-                  "services.script_path",
-                  "remote.working_directory",
+                  "operator.inventory",
+                  "application.playbook_mapping",
                 ].map((field) => (
                   <div key={field}>
                     <dt className="mono">{field}</dt>
@@ -205,21 +175,15 @@ function SettingFlag({
 function Allowlist({
   label,
   values,
-  redacted = false,
 }: {
   label: string;
   values: string[];
-  redacted?: boolean;
 }) {
   return (
     <div className="allowlist-row">
       <span className="mono">{label}</span>
       <div>
-        {redacted ? (
-          <span className="redacted-config">
-            <EyeOff size={13} aria-hidden="true" /> 服务端校验 · 不下发
-          </span>
-        ) : values.length ? (
+        {values.length ? (
           values.map((value) => (
             <code key={value}>
               <ShieldCheck size={12} aria-hidden="true" />

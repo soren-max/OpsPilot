@@ -30,14 +30,11 @@ class AnsibleActionExecutor:
         *,
         runner: AnsibleRunner,
         playbook_root: Path,
-        allowed_targets: frozenset[str],
     ) -> None:
         self.runner = runner
         self.playbook_root = playbook_root.resolve()
-        self.allowed_targets = allowed_targets
 
     async def preview(self, action: ActionRequest) -> ActionPreview:
-        self._validate_target(action.target)
         return ActionPreview(
             action_type=action.action_type,
             target=action.target,
@@ -47,7 +44,6 @@ class AnsibleActionExecutor:
         )
 
     async def execute(self, action: ActionRequest) -> ActionResult:
-        self._validate_target(action.target)
         result = await self.runner.run(
             playbook=self._playbook(action.action_type),
             target=action.target,
@@ -80,10 +76,6 @@ class AnsibleActionExecutor:
 
     def _playbook(self, action_type: ActionType) -> Path:
         return self.playbook_root / PLAYBOOK_MAPPING[action_type]
-
-    def _validate_target(self, target: str) -> None:
-        if target not in self.allowed_targets:
-            raise ValueError("Target is outside the Ansible adapter allowlist")
 
     @staticmethod
     def _variables(action: ActionRequest) -> dict[str, str | int]:

@@ -8,7 +8,6 @@ export { auditsApi } from "./api/audits";
 export { authApi } from "./api/auth";
 export { catalogApi } from "./api/catalog";
 export { systemApi } from "./api/system";
-export { integrationApi } from "./api/integration";
 export { tasksApi } from "./api/tasks";
 
 /** Compatibility facade while pages migrate to domain API modules. */

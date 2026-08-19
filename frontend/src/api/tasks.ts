@@ -18,7 +18,7 @@ export const tasksApi = {
     environmentId: string,
     serviceId: string,
     hostIds: string[],
-    action: "status" | "start" | "stop",
+    action: "status" | "restart",
   ) =>
     api<{ task_id: string; status: Task["status"] }>("/operations", {
       method: "POST",
@@ -30,14 +30,13 @@ export const tasksApi = {
         service_id: serviceId,
         host_ids: hostIds,
         requested_by: "web-user",
-        parameters: {},
       }),
     }),
   createOperationRequest: (
     environmentId: string,
     serviceId: string,
     hostIds: string[],
-    action: "start" | "stop",
+    action: "restart",
   ) =>
     api<OperationRequest>("/operation-requests", {
       method: "POST",
@@ -50,7 +49,6 @@ export const tasksApi = {
           service_id: serviceId,
           host_ids: hostIds,
           requested_by: "web-user",
-          parameters: {},
         },
         reason: `Web console ${action} request`,
       }),

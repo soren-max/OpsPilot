@@ -1,5 +1,5 @@
 ---
-- name: Restart an allowlisted service
+- name: Restart a policy-authorized service
   hosts: all
   gather_facts: false
   become: true

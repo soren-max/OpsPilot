@@ -19,7 +19,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.enums import (
     ApprovalStatus,
     EnvironmentLevel,
-    IntegrationConfigStatus,
     OperationAction,
     OperationScope,
     PartialFailurePolicy,
@@ -45,22 +44,23 @@ class Environment(TimestampMixin, Base):
     )
 
 
-class Host(TimestampMixin, Base):
+class Target(TimestampMixin, Base):
     __tablename__ = "hosts"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
     environment_id: Mapped[str] = mapped_column(ForeignKey("environments.id"), index=True)
     name: Mapped[str] = mapped_column(String(80), nullable=False)
     description: Mapped[str | None] = mapped_column(String(255))
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    labels: Mapped[dict[str, str]] = mapped_column(JSON, default=dict, nullable=False)
     mock_behavior: Mapped[str] = mapped_column(String(20), default="success", nullable=False)
     last_status: Mapped[str] = mapped_column(String(30), default="UNKNOWN", nullable=False)
-    address: Mapped[str | None] = mapped_column(String(253))
-    ssh_port: Mapped[int | None] = mapped_column(Integer)
-    ssh_username: Mapped[str | None] = mapped_column(String(64))
-    credential_reference: Mapped[str | None] = mapped_column(String(80))
     environment: Mapped[Environment] = relationship()
     deployments: Mapped[list["ServiceDeployment"]] = relationship(back_populates="host")
     __table_args__ = (UniqueConstraint("environment_id", "name"),)
+
+
+# Compatibility name for the existing /hosts catalog while the UI migrates to Targets.
+Host = Target
 
 
 class Service(TimestampMixin, Base):
@@ -86,32 +86,6 @@ class ServiceDeployment(TimestampMixin, Base):
     service: Mapped[Service] = relationship(back_populates="deployments")
     host: Mapped[Host] = relationship(back_populates="deployments")
     __table_args__ = (UniqueConstraint("service_id", "host_id"),)
-
-
-class OperationsIntegrationConfig(TimestampMixin, Base):
-    __tablename__ = "operations_integration_configs"
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
-    environment_id: Mapped[str] = mapped_column(
-        ForeignKey("environments.id"), unique=True, index=True, nullable=False
-    )
-    status: Mapped[IntegrationConfigStatus] = mapped_column(
-        Enum(IntegrationConfigStatus), default=IntegrationConfigStatus.DRAFT, nullable=False
-    )
-    enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    remote_services_path: Mapped[str] = mapped_column(String(512), nullable=False)
-    remote_working_directory: Mapped[str] = mapped_column(String(512), nullable=False)
-    timeout_seconds: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
-    status_argv: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
-    start_argv: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
-    stop_argv: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
-    parser_config: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
-    allowlist: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
-    validation_errors: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
-    last_ssh_test_ok: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    last_status_test_ok: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    last_test_details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
-    validated_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
-    environment: Mapped[Environment] = relationship()
 
 
 class OperationTask(TimestampMixin, Base):
