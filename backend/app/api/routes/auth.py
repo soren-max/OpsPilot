@@ -6,17 +6,14 @@ from collections import defaultdict, deque
 
 from fastapi import APIRouter, Depends, Header, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import response
 from app.core.config import get_settings
-from app.core.enums import IntegrationConfigStatus, OperationAction
 from app.core.errors import AppError
 from app.core.security import create_token, decode_token, verify_password
 from app.db.session import get_db
-from app.executors.factory import build_executor
-from app.models import OperationsIntegrationConfig, User
+from app.models import User
 from app.services.rbac import get_user_access
 
 router = APIRouter(tags=["auth"])
@@ -153,80 +150,40 @@ def auth_status(
 ) -> dict[str, object]:
     """Return the public local security context."""
     settings = get_settings()
-    executor_label = {
-        "mock": "MockExecutor",
-        "dry_run": "DryRunExecutor",
-        "script": "Legacy ScriptExecutor（未推荐）",
-        "local_script": "Legacy ScriptExecutor（未推荐）",
-        "local_services": "LocalServicesExecutor（Linux 本地 services.sh）",
-        "ansible": "AnsiblePlaybookExecutor（未启用）",
-        "ansible_playbook": "AnsiblePlaybookExecutor（未启用）",
-    }.get(settings.selected_executor, settings.selected_executor)
-    is_integration = settings.environment_mode == "integration-test"
-    executor = build_executor(settings)
-    executor_actions = {action.value for action in executor.capabilities}
-    dynamic_configs = list(
-        db.scalars(
-            select(OperationsIntegrationConfig).where(
-                OperationsIntegrationConfig.status == IntegrationConfigStatus.READY,
-                OperationsIntegrationConfig.enabled.is_(True),
-                OperationsIntegrationConfig.last_ssh_test_ok.is_(True),
-                OperationsIntegrationConfig.last_status_test_ok.is_(True),
-            )
-        )
-    )
-    for dynamic_config in dynamic_configs:
-        executor_actions.update(dynamic_config.allowlist.get("actions", []))
     access = get_user_access(db, user.id) if user is not None else None
     permissions = set(access.permissions) if access else set()
-    permission_for_action = {
-        "status": "service.status",
-        "start": "service.start",
-        "stop": "service.stop",
+    capabilities = {
+        "observe": "service.status" in permissions,
+        "remediate": "service.start" in permissions,
+        "approve": "operation.approve" in permissions,
+        "administer": "config.write" in permissions,
     }
-    configured_actions = settings.allowed_action_set
-    if dynamic_configs:
-        configured_actions = frozenset(
-            action for item in dynamic_configs for action in item.allowlist.get("actions", [])
-        )
-    effective_actions = sorted(
-        action
-        for action in configured_actions & executor_actions
-        if permission_for_action[action] in permissions
-        and (action == "status" or settings.write_operations_enabled)
-        and (
-            action == "status"
-            or not settings.approval_required_for_write
-            or "operation.create" in permissions
-        )
-    )
     return response(
         request,
         {
-            "environment": (
-                (
-                    "集成环境 · Linux 控制节点本地 services.sh"
-                    if settings.real_script_execution_enabled
-                    else "隔离测试环境 · 真实 Ansible 执行"
-                )
-                if is_integration
-                else "外网模拟环境"
-            ),
+            "environment": settings.environment,
             "environment_mode": settings.environment_mode,
-            "executor": executor_label,
+            "executor": settings.selected_executor,
             "execution_mode": "mock" if settings.selected_executor == "mock" else "real",
             "write_operations": settings.write_operations_enabled,
             "production_operations": settings.production_operations_enabled,
             "approval_required_for_write": settings.approval_required_for_write,
             "safe_mode": settings.dry_run_only or not settings.write_operations_enabled,
-            "real_execution": settings.real_integration_execution_enabled or bool(dynamic_configs),
+            "real_execution": settings.selected_executor == "ansible",
             # This endpoint is intentionally public for the login screen. Target
             # allowlists are enforcement inputs and must never be disclosed here.
             "allowed_hosts": [],
             "allowed_services": [],
             # The backend remains authoritative for target, action, RBAC and
             # approval checks. This public response intentionally omits targets.
-            "allowed_actions": effective_actions,
+            "allowed_actions": [
+                action
+                for action, available in (
+                    ("status", capabilities["observe"]),
+                    ("restart", capabilities["remediate"]),
+                )
+                if available
+            ],
             "permissions": sorted(permissions),
             "approval": {
                 "required_for_write": settings.approval_required_for_write,
@@ -237,9 +194,10 @@ def auth_status(
                 "can_reject": "operation.reject" in permissions,
                 "can_cancel": "operation.cancel" in permissions,
             },
+            "capabilities": capabilities,
             "executor_capabilities": {
-                action.value: action.value in executor_actions
-                for action in (OperationAction.STATUS, OperationAction.START, OperationAction.STOP)
+                "status": True,
+                "restart": True,
             },
         },
     )

@@ -77,10 +77,10 @@ def seed(*, reset: bool = False) -> None:
                     "review the database backup and run `python -m app.seed --reset`"
                 )
             environment = Environment(
-                name="隔离测试环境 · 受控本地执行",
+                name="隔离测试环境 · 受控动作执行",
                 code=environment_code,
                 enabled=True,
-                description="仅允许经评审的白名单 services.sh 目标",
+                description="仅允许经评审的逻辑执行目标",
                 environment_level=EnvironmentLevel.TEST,
             )
             services = [

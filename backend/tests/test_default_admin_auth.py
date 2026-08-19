@@ -151,6 +151,6 @@ def test_public_auth_status_never_discloses_target_allowlists(client) -> None:
     data = response.json()["data"]
     assert data["allowed_hosts"] == []
     assert data["allowed_services"] == []
-    assert data["allowed_actions"] == ["status"]
+    assert data["allowed_actions"] == ["status", "restart"]
     assert data["write_operations"] is False
     assert data["approval_required_for_write"] is True

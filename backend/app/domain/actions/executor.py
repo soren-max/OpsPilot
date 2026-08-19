@@ -9,6 +9,8 @@ from app.domain.actions.models import (
 
 
 class ActionExecutor(Protocol):
+    executor_name: str
+
     async def preview(self, action: ActionRequest) -> ActionPreview: ...
 
     async def execute(self, action: ActionRequest) -> ActionResult: ...

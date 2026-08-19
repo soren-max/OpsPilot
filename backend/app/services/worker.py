@@ -1,42 +1,29 @@
+import asyncio
 import logging
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from datetime import timedelta
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.application import ActionExecutionOutcome, ActionService
 from app.core.config import Settings, get_settings
-from app.core.enums import (
-    ApprovalStatus,
-    OperationAction,
-    PartialFailurePolicy,
-    TargetStatus,
-    TaskStatus,
-)
+from app.core.enums import ApprovalStatus, OperationAction, TargetStatus, TaskStatus
 from app.db.base import utc_now
-from app.executors.base import ExecutionResult, ExecutionTarget, Executor
+from app.domain.actions.models import ActionRequest, ActionStatus
 from app.models import (
     Environment,
-    Host,
     OperationLock,
     OperationRequest,
-    OperationsIntegrationConfig,
     OperationTask,
-    Service,
     ServiceStatusSnapshot,
     TaskLog,
     TopologySyncState,
 )
 from app.repositories.tasks import TaskRepository
 from app.services.audit import write_audit
-from app.services.execution_policy import WRITE_ACTIONS, PolicyRejection, validate_execution_target
-from app.services.integration_config import (
-    active_config,
-    build_config_executor,
-    dynamic_allowlists,
-    read_config,
-)
+from app.services.execution_policy import WRITE_ACTIONS, PolicyRejection
+from app.services.operations import structured_action
 from app.services.redaction import redact_text
 
 logger = logging.getLogger(__name__)
@@ -44,45 +31,22 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class TargetRun:
-    result: ExecutionResult
+    outcome: ActionExecutionOutcome
     attempts: int
-    verification: ExecutionResult | None
-
-
-class ConfigurationTestWorker:
-    """Synchronous, status-only worker path used by the administrator test API."""
-
-    def __init__(self, settings: Settings) -> None:
-        self.settings = settings
-
-    def run_status(
-        self,
-        config: OperationsIntegrationConfig,
-        environment: Environment,
-        host: Host,
-        service: Service,
-    ) -> ExecutionResult:
-        executor = build_config_executor(config, host, self.settings)
-        return executor.execute(
-            OperationAction.STATUS,
-            ExecutionTarget(
-                environment=environment.code,
-                host=host.name,
-                service=service.name,
-                mock_behavior="success",
-            ),
-            {
-                "task_id": f"config-test-{config.id}",
-                "parameters": {},
-                "timeout_seconds": config.timeout_seconds,
-            },
-        )
+    timed_out: bool = False
 
 
 class WorkerService:
-    def __init__(self, db: Session, executor: Executor, settings: Settings | None = None) -> None:
+    """Runs validated tasks through an injected portable ActionService."""
+
+    def __init__(
+        self,
+        db: Session,
+        action_service: ActionService,
+        settings: Settings | None = None,
+    ) -> None:
         self.db = db
-        self.executor = executor
+        self.action_service = action_service
         self.settings = settings or get_settings()
         self.tasks = TaskRepository(db)
 
@@ -156,205 +120,102 @@ class WorkerService:
         return True
 
     def _run_targets(self, task: object, environment: Environment, approval_granted: bool) -> None:
-        targets = list(task.targets)  # type: ignore[attr-defined]
-        runtime_config = active_config(self.db, environment.id)
-        if read_config(self.db, environment.id) is not None and runtime_config is None:
-            raise PolicyRejection(
-                "CONFIG_NOT_READY",
-                "Dynamic operations integration configuration is not READY and enabled",
-                "environment",
-            )
-        runtime_allowlists = dynamic_allowlists(runtime_config)
-        limit = self.settings.batch_concurrency_limit
-        stop_scheduling = False
-        for offset in range(0, len(targets), limit):
+        for target in list(task.targets):  # type: ignore[attr-defined]
             self.db.refresh(task, ["cancel_requested"])
-            if task.cancel_requested or stop_scheduling:  # type: ignore[attr-defined]
+            if task.cancel_requested:  # type: ignore[attr-defined]
                 self._cancel_remaining(task)
                 break
-            batch = [
-                item
-                for item in targets[offset : offset + limit]
-                if item.status is TargetStatus.PENDING
-            ]
-            requests: list[tuple[object, ExecutionTarget, Executor]] = []
-            for target in batch:
-                validate_execution_target(
-                    self.settings,
-                    action=task.action,  # type: ignore[attr-defined]
-                    environment=environment.code,
-                    host=target.host.name,
-                    service=target.service.name,
-                    environment_level=environment.environment_level,
-                    approval_granted=approval_granted,
-                    require_execution_acknowledgement=runtime_config is not None,
-                    **runtime_allowlists,
-                )
-                requests.append(
-                    (
-                        target,
-                        ExecutionTarget(
-                            environment=environment.code,
-                            service=target.service.name,
-                            host=target.host.name,
-                            mock_behavior=target.host.mock_behavior,
-                        ),
-                        (
-                            build_config_executor(runtime_config, target.host, self.settings)
-                            if runtime_config is not None
-                            else self.executor
-                        ),
-                    )
-                )
-            with ThreadPoolExecutor(max_workers=limit) as pool:
-                futures = [
-                    (
-                        target,
-                        pool.submit(
-                            self._execute_one,
-                            target_executor,
-                            task.action,  # type: ignore[attr-defined]
-                            execution_target,
-                            task.id,  # type: ignore[attr-defined]
-                            task.parameters,  # type: ignore[attr-defined]
-                        ),
-                    )
-                    for target, execution_target, target_executor in requests
-                ]
-                pending = {future: target for target, future in futures}
-                while pending:
-                    completed, _ = wait(pending, timeout=0.1, return_when=FIRST_COMPLETED)
-                    self.db.refresh(task, ["cancel_requested"])
-                    if task.cancel_requested:  # type: ignore[attr-defined]
-                        cancel = getattr(self.executor, "cancel", None)
-                        if callable(cancel):
-                            cancel(task.id)  # type: ignore[attr-defined]
-                    for future in completed:
-                        target = pending.pop(future)
-                        self._apply_target_run(task, target, future.result())
+            action = structured_action(
+                action=task.action,  # type: ignore[attr-defined]
+                target=target.host.name,
+                service=target.service.name,
+                environment_level=environment.environment_level.value,
+            )
+            run = self._execute_one(action, approval_granted=approval_granted)
+            self._apply_target_run(task, target, run)
             self.db.commit()
             if (
-                task.partial_failure_policy is PartialFailurePolicy.NONE  # type: ignore[attr-defined]
-                and any(target.status is not TargetStatus.SUCCEEDED for target in batch)
+                task.partial_failure_policy.value == "NONE"  # type: ignore[attr-defined]
+                and target.status is not TargetStatus.SUCCEEDED
             ):
-                stop_scheduling = True
-
-    def _execute_one(
-        self,
-        executor: Executor,
-        action: OperationAction,
-        target: ExecutionTarget,
-        task_id: str,
-        parameters: dict[str, object],
-    ) -> TargetRun:
-        result: ExecutionResult | None = None
-        attempts = 0
-        for attempt_index in range(1, self.settings.executor_retry + 2):
-            attempts = attempt_index
-            result = executor.execute(
-                action,
-                target,
-                {
-                    "task_id": task_id,
-                    "parameters": parameters,
-                    "timeout_seconds": self.settings.execution_timeout_seconds,
-                },
-            )
-            if result.success or not result.retryable:
+                self._cancel_remaining(task)
                 break
-        assert result is not None
-        verification = None
-        if action in WRITE_ACTIONS:
-            verification = executor.execute(
-                OperationAction.STATUS,
-                target,
-                {
-                    "task_id": task_id,
-                    "parameters": {},
-                    "timeout_seconds": self.settings.execution_timeout_seconds,
-                },
-            )
-        return TargetRun(result=result, attempts=attempts, verification=verification)
+
+    def _execute_one(self, action: ActionRequest, *, approval_granted: bool) -> TargetRun:
+        outcome: ActionExecutionOutcome | None = None
+        for attempt in range(1, self.settings.executor_retry + 2):
+            try:
+                outcome = asyncio.run(
+                    asyncio.wait_for(
+                        self.action_service.execute(
+                            action, approval_granted=approval_granted
+                        ),
+                        timeout=self.settings.execution_timeout_seconds,
+                    )
+                )
+            except TimeoutError:
+                return TargetRun(
+                    outcome=ActionExecutionOutcome(
+                        assessment=self.action_service.policy.assess(
+                            action, approval_granted=approval_granted
+                        )
+                    ),
+                    attempts=attempt,
+                    timed_out=True,
+                )
+            if outcome.result is None or outcome.result.status is ActionStatus.SUCCEEDED:
+                return TargetRun(outcome=outcome, attempts=attempt)
+        assert outcome is not None
+        return TargetRun(outcome=outcome, attempts=self.settings.executor_retry + 1)
 
     def _apply_target_run(self, task: object, target: object, run: TargetRun) -> None:
-        result = run.result
-        target.status = result.status  # type: ignore[attr-defined]
-        hostnames = (target.host.name,)  # type: ignore[attr-defined]
-        accounts = (task.requested_by,)  # type: ignore[attr-defined]
-        target.output = redact_text(  # type: ignore[attr-defined]
-            result.output, hostnames=hostnames, accounts=accounts
-        )
-        target.error_message = redact_text(  # type: ignore[attr-defined]
-            result.error_message, hostnames=hostnames, accounts=accounts
-        )
-        target.duration_ms = result.duration_ms  # type: ignore[attr-defined]
         target.attempt_count = run.attempts  # type: ignore[attr-defined]
-        self._add_logs(
-            task.id,  # type: ignore[attr-defined]
-            target.id,  # type: ignore[attr-defined]
-            result,
-            hostnames=hostnames,
-            accounts=accounts,
+        target.duration_ms = 0  # type: ignore[attr-defined]
+        if run.timed_out:
+            target.status = TargetStatus.TIMED_OUT  # type: ignore[attr-defined]
+            target.error_message = "ACTION_EXECUTION_TIMED_OUT"  # type: ignore[attr-defined]
+            return
+        result = run.outcome.result
+        verification = run.outcome.verification
+        if result is None:
+            target.status = TargetStatus.FAILED  # type: ignore[attr-defined]
+            target.error_message = run.outcome.assessment.reason  # type: ignore[attr-defined]
+            return
+        succeeded = result.status is ActionStatus.SUCCEEDED
+        verified = verification is not None and verification.verified
+        target.status = (  # type: ignore[attr-defined]
+            TargetStatus.SUCCEEDED if succeeded and verified else TargetStatus.FAILED
         )
+        target.output = redact_text(result.summary)  # type: ignore[attr-defined]
+        target.verification_status = (  # type: ignore[attr-defined]
+            TargetStatus.SUCCEEDED if verified else TargetStatus.FAILED
+        )
+        target.verification_output = (  # type: ignore[attr-defined]
+            redact_text(verification.summary) if verification is not None else None
+        )
+        self.db.add(
+            TaskLog(
+                task_id=task.id,  # type: ignore[attr-defined]
+                target_id=target.id,  # type: ignore[attr-defined]
+                stream="action",
+                message=target.output or "",  # type: ignore[attr-defined]
+                exit_code=0 if succeeded else 1,
+                dry_run=self.action_service.executor.executor_name == "mock",
+                created_at=utc_now(),
+            )
+        )
+        self._upsert_snapshot(task, target)
         if run.attempts > 1:
             write_audit(
                 self.db,
                 "EXECUTOR_RETRIED",
                 "worker",
-                "Executor retried an explicitly retryable failure",
+                "Action execution retried",
                 task.id,  # type: ignore[attr-defined]
                 {"target_id": target.id, "attempts": run.attempts},  # type: ignore[attr-defined]
             )
-        if run.verification is not None:
-            verification = run.verification
-            target.verification_status = verification.status  # type: ignore[attr-defined]
-            target.verification_output = redact_text(  # type: ignore[attr-defined]
-                verification.output, hostnames=hostnames, accounts=accounts
-            )
-            self._add_logs(
-                task.id,  # type: ignore[attr-defined]
-                target.id,  # type: ignore[attr-defined]
-                verification,
-                stream_prefix="verification_",
-                hostnames=hostnames,
-                accounts=accounts,
-            )
-            self._upsert_snapshot(task, target, verification)
-            if result.success and not verification.success:
-                target.status = TargetStatus.FAILED  # type: ignore[attr-defined]
-                target.error_message = "STATUS_VERIFICATION_FAILED"  # type: ignore[attr-defined]
-            write_audit(
-                self.db,
-                "WRITE_STATUS_VERIFIED",
-                "worker",
-                "Status verification completed after write operation",
-                task.id,  # type: ignore[attr-defined]
-                {
-                    "target_id": target.id,  # type: ignore[attr-defined]
-                    "verification_status": verification.status.value,
-                },
-            )
-        else:
-            self._upsert_snapshot(task, target, result)
-        reported = (
-            run.verification.service_state if run.verification is not None else result.service_state
-        )
-        if reported:
-            target.host.last_status = reported  # type: ignore[attr-defined]
 
-    def _upsert_snapshot(self, task: object, target: object, result: ExecutionResult) -> None:
-        action = task.action  # type: ignore[attr-defined]
-        if (
-            action
-            not in {
-                OperationAction.STATUS,
-                OperationAction.STATUS_ALL,
-                OperationAction.STATUS_SERVICE,
-                OperationAction.STATUS_SERVICE_HOSTS,
-            }
-            and action not in WRITE_ACTIONS
-        ):
-            return
+    def _upsert_snapshot(self, task: object, target: object) -> None:
         snapshot = self.db.scalar(
             select(ServiceStatusSnapshot).where(
                 ServiceStatusSnapshot.environment_id == task.environment_id,  # type: ignore[attr-defined]
@@ -367,42 +228,16 @@ class WorkerService:
                 environment_id=task.environment_id,  # type: ignore[attr-defined]
                 service_id=target.service_id,  # type: ignore[attr-defined]
                 host_id=target.host_id,  # type: ignore[attr-defined]
-                status=result.status,
+                status=target.status,  # type: ignore[attr-defined]
                 task_id=task.id,  # type: ignore[attr-defined]
                 observed_at=utc_now(),
-                dry_run=result.dry_run,
+                dry_run=self.action_service.executor.executor_name == "mock",
             )
             self.db.add(snapshot)
         else:
-            snapshot.status = result.status
+            snapshot.status = target.status  # type: ignore[attr-defined]
             snapshot.task_id = task.id  # type: ignore[attr-defined]
             snapshot.observed_at = utc_now()
-            snapshot.dry_run = result.dry_run
-
-    def _add_logs(
-        self,
-        task_id: str,
-        target_id: str,
-        result: ExecutionResult,
-        stream_prefix: str = "",
-        hostnames: tuple[str, ...] = (),
-        accounts: tuple[str, ...] = (),
-    ) -> None:
-        for stream, message in (
-            (f"{stream_prefix}stdout", result.output or ""),
-            (f"{stream_prefix}stderr", result.error_message or ""),
-        ):
-            self.db.add(
-                TaskLog(
-                    task_id=task_id,
-                    target_id=target_id,
-                    stream=stream,
-                    message=redact_text(message, hostnames=hostnames, accounts=accounts) or "",
-                    exit_code=result.exit_code,
-                    dry_run=result.dry_run,
-                    created_at=utc_now(),
-                )
-            )
 
     @staticmethod
     def _final_status(task: object) -> TaskStatus:
@@ -428,7 +263,6 @@ class WorkerService:
         self.db.execute(delete(OperationLock).where(OperationLock.task_id == task_id))
 
     def _recover_stale_work(self) -> None:
-        """Recover abandoned RUNNING tasks and remove orphan/terminal target locks."""
         now = utc_now()
         cutoff = now - timedelta(
             seconds=min(self.settings.stale_task_seconds, self.settings.lock_ttl_seconds)
@@ -488,10 +322,6 @@ class WorkerService:
                 updated_at=utc_now(),
             )
             self.db.add(sync)
-        else:
-            sync.last_task_id = task.id  # type: ignore[attr-defined]
-            sync.status = final_status
-            sync.updated_at = utc_now()
 
     def _audit_completion(
         self, task: object, environment: Environment, final_status: TaskStatus
@@ -507,23 +337,8 @@ class WorkerService:
                 "to": final_status.value,
                 "action": task.action.value,  # type: ignore[attr-defined]
                 "environment": environment.code,
-                "requested_by": task.requested_by,  # type: ignore[attr-defined]
                 "result": final_status.value,
-                "execution_mode": "mock" if self.executor.executor_type == "mock" else "real",
-                "partial_failure_policy": task.partial_failure_policy.value,  # type: ignore[attr-defined]
-                "targets": [
-                    {
-                        "service": target.service.name,
-                        "host": target.host.name,
-                        "status": target.status.value,
-                        "duration_ms": target.duration_ms,
-                        "attempt_count": target.attempt_count,
-                        "verification_status": (
-                            target.verification_status.value if target.verification_status else None
-                        ),
-                    }
-                    for target in task.targets  # type: ignore[attr-defined]
-                ],
+                "execution_mode": self.action_service.executor.executor_name,
             },
         )
 
@@ -539,12 +354,11 @@ class WorkerService:
             self.db,
             "EXECUTION_REJECTED",
             "worker",
-            "Task rejected before executor invocation",
+            "Task rejected before action execution",
             task.id,
             {"action": task.action.value, "error_code": rejection.code},
         )
         self.db.commit()
-        logger.warning("Worker rejected task %s: %s", task.id, rejection.code)
 
     def _fail_unexpected_task(self, task_id: str, exc: Exception) -> None:
         task = self.tasks.get(task_id)

@@ -1,6 +1,3 @@
-import re
-from typing import Any
-
 from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -16,6 +13,13 @@ from app.core.enums import (
 )
 from app.core.errors import AppError, ConflictError, ForbiddenError, NotFoundError, ValidationError
 from app.db.base import utc_now
+from app.domain.actions.models import (
+    ActionRequest,
+    ActionType,
+    ServiceActionParams,
+    TargetEnvironment,
+)
+from app.domain.actions.policy import ActionPolicyEngine
 from app.models import (
     OperationLock,
     OperationRequest,
@@ -28,36 +32,43 @@ from app.repositories.catalog import CatalogRepository
 from app.repositories.tasks import TaskRepository
 from app.schemas import OperationCreate
 from app.services.audit import write_audit
-from app.services.execution_policy import WRITE_ACTIONS, PolicyRejection, validate_execution_target
-from app.services.integration_config import active_config, dynamic_allowlists, read_config
+from app.services.execution_policy import WRITE_ACTIONS
 from app.services.rbac import require_permission
 from app.services.reliability import request_fingerprint, validate_idempotency_key
 
-SAFE_VALUE = re.compile(r"^[\w .:@/-]*$")
+STATUS_ACTIONS = frozenset(
+    {
+        OperationAction.STATUS,
+        OperationAction.STATUS_ALL,
+        OperationAction.STATUS_SERVICE,
+        OperationAction.STATUS_SERVICE_HOSTS,
+    }
+)
 
 
-def configured_legacy_capabilities(settings: Settings) -> frozenset[OperationAction]:
-    """Deprecated operation compatibility without constructing infrastructure in services."""
-    if settings.selected_executor in {"mock", "dry_run", "local_services"}:
-        return frozenset(
-            {OperationAction.STATUS, OperationAction.START, OperationAction.STOP}
+def structured_action(
+    *,
+    action: OperationAction,
+    target: str,
+    service: str,
+    environment_level: object,
+) -> ActionRequest:
+    if action in STATUS_ACTIONS:
+        action_type = ActionType.GET_SERVICE_STATUS
+    elif action is OperationAction.RESTART:
+        action_type = ActionType.RESTART_SERVICE
+    else:
+        raise ValidationError(
+            "Operation is not part of the portable action boundary",
+            {"action": action.value, "allowed_actions": ["status", "restart"]},
         )
-    return frozenset({OperationAction.STATUS})
-
-
-def _validate_parameters(value: Any, path: str = "parameters") -> None:
-    if isinstance(value, dict):
-        for key, item in value.items():
-            if not isinstance(key, str) or not SAFE_VALUE.fullmatch(key):
-                raise ValidationError(f"Unsafe characters in {path} key")
-            _validate_parameters(item, f"{path}.{key}")
-    elif isinstance(value, list):
-        for index, item in enumerate(value):
-            _validate_parameters(item, f"{path}[{index}]")
-    elif isinstance(value, str) and not SAFE_VALUE.fullmatch(value):
-        raise ValidationError(f"Unsafe characters in {path}")
-    elif not isinstance(value, (str, int, float, bool, type(None))):
-        raise ValidationError(f"Unsupported value in {path}")
+    return ActionRequest(
+        action_type=action_type,
+        target=target,
+        environment=TargetEnvironment(str(environment_level).lower()),
+        parameters=ServiceActionParams(service=service),
+        reason=f"Execute approved {action_type.value} operation.",
+    )
 
 
 class OperationService:
@@ -253,7 +264,6 @@ class OperationService:
             raise NotFoundError("Environment does not exist")
         if not environment.enabled:
             raise ValidationError("Environment is disabled")
-        _validate_parameters(payload.parameters)
         query = self.catalog.deployments_query(payload.environment_id)
         service = None
         host = None
@@ -295,22 +305,6 @@ class OperationService:
             query = query.where(ServiceDeployment.host_id.in_(payload.host_ids))
 
         deployments = list(self.db.scalars(query))
-        runtime_config = active_config(self.db, environment.id)
-        if read_config(self.db, environment.id) is not None and runtime_config is None:
-            raise ConflictError(
-                "CONFIG_NOT_READY",
-                "Dynamic operations integration configuration is not READY and enabled",
-            )
-        if (
-            payload.scope is OperationScope.ALL
-            and payload.action in WRITE_ACTIONS
-            and runtime_config is not None
-        ):
-            raise ValidationError(
-                "Aggregate start/stop is not enabled: the target services.sh aggregate "
-                "contract and no_mid Playbook scope require site confirmation"
-            )
-        runtime_allowlists = dynamic_allowlists(runtime_config)
         requested_host_ids = set(payload.host_ids)
         if requested_host_ids:
             found_host_ids = {deployment.host_id for deployment in deployments}
@@ -322,48 +316,30 @@ class OperationService:
                 )
         if not deployments:
             raise ValidationError("No enabled deployments match the requested scope")
+        policy = ActionPolicyEngine(frozenset(item.host.name for item in deployments))
         for deployment in deployments:
-            try:
-                validate_execution_target(
-                    self.settings,
-                    action=payload.action,
-                    environment=environment.code,
-                    host=deployment.host.name,
-                    service=deployment.service.name,
-                    environment_level=environment.environment_level,
-                    approval_granted=approval_granted,
-                    require_execution_acknowledgement=runtime_config is not None,
-                    **runtime_allowlists,
-                )
-                if (
-                    payload.action in {OperationAction.START, OperationAction.STOP}
-                    and runtime_config is None
-                    and payload.action not in configured_legacy_capabilities(self.settings)
-                ):
-                    raise PolicyRejection(
-                        "EXECUTOR_ACTION_UNSUPPORTED",
-                        "Configured executor does not support this action",
-                        "action",
-                    )
-            except PolicyRejection as rejection:
+            action = structured_action(
+                action=payload.action,
+                target=deployment.host.name,
+                service=deployment.service.name,
+                environment_level=environment.environment_level.value,
+            )
+            assessment = policy.assess(action, approval_granted=approval_granted)
+            if not assessment.allowed:
                 actor_name = actor.username if actor is not None else payload.requested_by
                 write_audit(
                     self.db,
                     "EXECUTION_REJECTED",
                     actor_name,
-                    (
-                        "Write operation rejected by safety policy"
-                        if rejection.code == "WRITE_OPERATION_DISABLED"
-                        else "Operation rejected by safety policy"
-                    ),
+                    "Operation rejected by portable action policy",
                     details={
                         "action": payload.action.value,
                         "environment": environment.code,
                         "host": deployment.host.name,
                         "service": deployment.service.name,
-                        "error_code": rejection.code,
-                        "rejection_reason": rejection.message,
-                        "field": rejection.field,
+                        "error_code": "ACTION_POLICY_REJECTED",
+                        "rejection_reason": assessment.reason,
+                        "policy_rule": assessment.policy_rule,
                         "request_id": request_id,
                     },
                 )
@@ -372,17 +348,17 @@ class OperationService:
                 else:
                     self.db.flush()
                 raise ForbiddenError(
-                    rejection.code,
-                    rejection.message,
+                    "ACTION_POLICY_REJECTED",
+                    assessment.reason,
                     {
-                        "field": rejection.field,
                         "action": payload.action.value,
                         "environment": environment.code,
                         "host": deployment.host.name,
                         "service": deployment.service.name,
-                        "rejection_reason": rejection.message,
+                        "rejection_reason": assessment.reason,
+                        "policy_rule": assessment.policy_rule,
                     },
-                ) from rejection
+                )
 
         if payload.action in WRITE_ACTIONS:
             lock_conditions = [
@@ -424,7 +400,7 @@ class OperationService:
             scope=payload.scope,
             status=TaskStatus.PENDING,
             requested_by=actor_name,
-            parameters=payload.parameters,
+            parameters={},
             operation_request_id=(approved_request.id if approved_request else None),
             idempotency_key=key,
             request_fingerprint=fingerprint,
