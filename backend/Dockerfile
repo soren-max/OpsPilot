@@ -27,10 +27,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 COPY --from=builder /src/.venv /src/.venv
-RUN apt-get update \
-    && apt-get install --yes --no-install-recommends openssh-client \
-    && rm -rf /var/lib/apt/lists/* \
-    && groupadd --gid 10001 opspilot \
+RUN groupadd --gid 10001 opspilot \
     && useradd --uid 10001 --gid opspilot --create-home opspilot \
     && install -d -o opspilot -g opspilot /var/log/opspilot /var/lib/opspilot
 COPY alembic ./alembic

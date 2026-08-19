@@ -28,7 +28,7 @@ export function SettingsPage({
     <div className="page-stack config-page settings-page">
       <PageHeader
         title="系统配置"
-        description="只读展示当前执行器、安全策略和白名单；敏感连接信息不会下发到浏览器。"
+        description="只读展示当前执行后端与安全策略；连接信息不属于应用契约。"
         actions={
           <span className="page-header__status">
             <LockKeyhole size={15} aria-hidden="true" /> 只读视图
@@ -50,10 +50,6 @@ export function SettingsPage({
             <div>
               <span>Executor 类型</span>
               <strong className="mono">{security.executor}</strong>
-            </div>
-            <div>
-              <span>运行模式</span>
-              <strong>{security.environment_mode}</strong>
             </div>
             <div>
               <span>配置可见性</span>
@@ -96,13 +92,10 @@ export function SettingsPage({
               </dl>
             </PageSection>
             <PageSection
-              title="有效动作与目标保护"
-              description="动作是后端合并权限与策略后的有效集合；目标白名单不下发"
+              title="有效动作"
+              description="动作是后端合并权限与确定性策略后的有效集合"
               className="settings-panel"
             >
-              <Allowlist label="environment" values={[security.environment]} />
-              <Allowlist label="host" values={[]} redacted />
-              <Allowlist label="service" values={[]} redacted />
               <Allowlist label="action" values={security.allowed_actions} />
             </PageSection>
             <PageSection
@@ -182,21 +175,15 @@ function SettingFlag({
 function Allowlist({
   label,
   values,
-  redacted = false,
 }: {
   label: string;
   values: string[];
-  redacted?: boolean;
 }) {
   return (
     <div className="allowlist-row">
       <span className="mono">{label}</span>
       <div>
-        {redacted ? (
-          <span className="redacted-config">
-            <EyeOff size={13} aria-hidden="true" /> 服务端校验 · 不下发
-          </span>
-        ) : values.length ? (
+        {values.length ? (
           values.map((value) => (
             <code key={value}>
               <ShieldCheck size={12} aria-hidden="true" />

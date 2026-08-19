@@ -162,7 +162,6 @@ def auth_status(
         request,
         {
             "environment": settings.environment,
-            "environment_mode": settings.environment_mode,
             "executor": settings.selected_executor,
             "execution_mode": "mock" if settings.selected_executor == "mock" else "real",
             "write_operations": settings.write_operations_enabled,
@@ -170,12 +169,6 @@ def auth_status(
             "approval_required_for_write": settings.approval_required_for_write,
             "safe_mode": settings.dry_run_only or not settings.write_operations_enabled,
             "real_execution": settings.selected_executor == "ansible",
-            # This endpoint is intentionally public for the login screen. Target
-            # allowlists are enforcement inputs and must never be disclosed here.
-            "allowed_hosts": [],
-            "allowed_services": [],
-            # The backend remains authoritative for target, action, RBAC and
-            # approval checks. This public response intentionally omits targets.
             "allowed_actions": [
                 action
                 for action, available in (
@@ -195,10 +188,6 @@ def auth_status(
                 "can_cancel": "operation.cancel" in permissions,
             },
             "capabilities": capabilities,
-            "executor_capabilities": {
-                "status": True,
-                "restart": True,
-            },
         },
     )
 

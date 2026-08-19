@@ -1,8 +1,0 @@
-default_executor: mock
-dry_run_only: true
-enabled_transports:
-  - fake
-disabled_executors:
-  - local_script
-  - ssh_script
-  - ansible

@@ -1,7 +1,0 @@
-# Local development defaults. Deployment values come from environment variables.
-provider: sqlite
-database_url: sqlite:///./opspilot_ops.db
-postgres:
-  enabled_for_compose: true
-  service: database
-  port: 5432

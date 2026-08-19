@@ -56,7 +56,7 @@ export function AppShell({
   const location = useLocation();
   const currentEnvironment = environments.find((item) => item.id === environmentId);
   const isProduction = currentEnvironment?.environment_level === "PRODUCTION";
-  const isIntegration = security.environment_mode === "integration-test";
+  const isAnsible = security.executor === "ansible";
   const writeSummary = `restart：${capabilities.restart.label}`;
   useEffect(() => {
     if (location.hash) {
@@ -102,11 +102,11 @@ export function AppShell({
             </span>
           ))}
         </div>
-        <div className={`executor-notice ${isIntegration ? "is-integration" : ""}`}>
+        <div className={`executor-notice ${isAnsible ? "is-integration" : ""}`}>
           <ShieldCheck size={17} aria-hidden="true" />
           <div>
             <strong>
-              {isIntegration ? "受控 Ansible 执行" : "安全模拟模式"}
+              {isAnsible ? "受控 Ansible 执行" : "安全模拟模式"}
             </strong>
             <small>
               {security.executor} · {writeSummary}
@@ -117,18 +117,18 @@ export function AppShell({
       <div className="ops-main">
         <header className="global-bar">
           <div
-            className={`global-bar__execution ${isIntegration ? "is-integration" : ""}`}
-            role={isIntegration ? "alert" : "status"}
+            className={`global-bar__execution ${isAnsible ? "is-integration" : ""}`}
+            role="status"
           >
             <span className="global-bar__shield">
               <ShieldCheck size={17} aria-hidden="true" />
             </span>
             <strong>
-              {isIntegration ? "隔离测试环境 · 受控 Ansible 执行" : "模拟执行环境"}
+              {isAnsible ? "受控 Ansible 执行" : "模拟执行环境"}
             </strong>
             <b>{security.executor}</b>
             <span>
-              {isIntegration ? "Structured Action → Policy → Ansible → Verify" : writeSummary}
+              {isAnsible ? "Structured Action → Policy → Ansible → Verify" : writeSummary}
             </span>
           </div>
           <div className="global-bar__tools">
@@ -148,7 +148,7 @@ export function AppShell({
             </label>
             <span className={`top-status-chip ${isProduction ? "is-production" : ""}`}>
               <span aria-hidden="true" />
-              {isProduction ? "生产" : isIntegration ? "隔离测试" : "测试"}
+              {isProduction ? "生产" : "非生产"}
             </span>
             <span className="top-status-chip">
               <span aria-hidden="true" />

@@ -38,14 +38,11 @@ export interface Host {
 export interface Asset {
   id: string;
   name: string;
-  ip: string | null;
   environmentId: string;
   environmentName: string;
   type: string | null;
-  connectionStatus: string | null;
   serviceCheckStatus: string;
   lastServiceCheckAt: string | null;
-  executorType: string | null;
   serviceCount: number;
   dataSource: "api" | "adapter";
 }
@@ -150,7 +147,6 @@ export interface LoginResponse {
 
 export interface SecurityContext {
   environment: string;
-  environment_mode: "mock" | "integration-test" | "production";
   executor: string;
   execution_mode: "mock" | "real";
   write_operations: boolean;
@@ -158,8 +154,6 @@ export interface SecurityContext {
   approval_required_for_write: boolean;
   safe_mode: boolean;
   real_execution: boolean;
-  allowed_hosts: string[];
-  allowed_services: string[];
   allowed_actions: string[];
   permissions: string[];
   capabilities: {
@@ -177,7 +171,6 @@ export interface SecurityContext {
     can_reject: boolean;
     can_cancel: boolean;
   };
-  executor_capabilities: Record<"status" | "restart", boolean>;
 }
 
 export interface OperationRequest {

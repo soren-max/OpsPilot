@@ -148,14 +148,14 @@ test("service and asset pages preserve controlled operations operations", async 
   assert.match(services, /环境：\{environmentName\}/);
   assert.match(services, /to=\{`\/\?action=restart/);
   assert.match(hosts, /assetService\.list/);
-  assert.match(hosts, /搜索资产名称或 IP/);
+  assert.match(hosts, /搜索资产名称/);
   assert.match(hosts, /按环境筛选/);
-  assert.match(hosts, /connectionStatus/);
+  assert.doesNotMatch(hosts, /connectionStatus/);
   assert.match(hosts, /serviceCheckStatus/);
   assert.match(hosts, /lastServiceCheckAt/);
   assert.match(hosts, /未提供/);
   assert.doesNotMatch(hosts, /lastConnectedAt/);
-  assert.match(assets, /ip: null/);
+  assert.doesNotMatch(assets, /ip: null/);
   assert.match(assets, /type: null/);
 });
 
@@ -195,7 +195,7 @@ test("RBAC and configuration remain factual and read-only", async () => {
   assert.match(access, /operation\.create/);
   assert.match(access, /service\.status/);
   assert.match(access, /不可授权/);
-  assert.match(settings, /服务端校验 · 不下发/);
+  assert.match(settings, /连接信息不属于应用契约/);
   assert.match(settings, /operator\.inventory/);
   assert.match(settings, /application\.playbook_mapping/);
   assert.doesNotMatch(composer, /security\.allowed_hosts\.includes/);

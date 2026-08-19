@@ -87,10 +87,9 @@ export function DashboardPage({
       mapHostsToAssets(
         hosts.data ?? [],
         security.environment,
-        security.executor,
         snapshots.data ?? [],
       ),
-    [hosts.data, security.environment, security.executor, snapshots.data],
+    [hosts.data, security.environment, snapshots.data],
   );
   const dashboard = useMemo(
     () =>

@@ -38,7 +38,7 @@ export function StatusCheckComposer({
   const [action, setAction] = useState<SupportedAction>("status");
   const [approvalMessage, setApprovalMessage] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const isIntegration = security.environment_mode === "integration-test";
+  const isAnsible = security.executor === "ansible";
   const actionCapability = capabilities[action];
   const services = useQuery({
     queryKey: queryKeys.services(environmentId),
@@ -105,26 +105,25 @@ export function StatusCheckComposer({
 
   return (
     <PageSection
-      title={isIntegration ? "隔离测试操作目标" : "状态检查目标"}
+      title={isAnsible ? "受控执行目标" : "状态检查目标"}
       description={
-        isIntegration
-          ? "目标白名单仅在服务端校验，不向浏览器下发"
+        isAnsible
+          ? "逻辑目标由后端校验，连接信息由 operator-owned inventory 管理"
           : "创建任务后自动进入实时任务详情"
       }
     >
       <div
-        className={`operation-console__topline ${isIntegration ? "is-integration" : ""}`}
-        role={isIntegration ? "alert" : undefined}
+        className={`operation-console__topline ${isAnsible ? "is-integration" : ""}`}
       >
         <span>
-          {isIntegration ? (
+          {isAnsible ? (
             <ShieldAlert size={17} aria-hidden="true" />
           ) : (
             <SearchCheck size={17} aria-hidden="true" />
           )}{" "}
-          {isIntegration ? "INTEGRATION TEST" : "STATUS CHECK"}
+          {isAnsible ? "ANSIBLE BACKEND" : "STATUS CHECK"}
         </span>
-        <strong>{isIntegration ? "隔离测试执行" : "后端动态能力判定"}</strong>
+        <strong>{isAnsible ? "受控修复执行" : "后端动态能力判定"}</strong>
       </div>
       <div className="operation-form">
         {services.error && (

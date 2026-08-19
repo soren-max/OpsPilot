@@ -165,7 +165,6 @@ def mock_write_settings() -> Settings:
         write_operations_enabled=True,
         production_operations_enabled=False,
         approval_required_for_write=False,
-        allowed_actions="status,restart",
         _env_file=None,
     )
 

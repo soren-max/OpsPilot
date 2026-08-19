@@ -41,7 +41,6 @@ def main() -> None:
                 timeout_seconds=settings.execution_timeout_seconds,
             ),
             playbook_root=playbook_root,
-            allowed_targets=settings.allowed_host_set,
         )
     while running:
         with SessionLocal() as db:

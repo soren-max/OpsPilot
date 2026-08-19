@@ -316,7 +316,7 @@ function AuditDrawer({
               </div>
               <div>
                 <dt>Executor</dt>
-                <dd>{detailValue(audit, ["executor_type", "executor"])}</dd>
+                <dd>{detailValue(audit, ["executor"])}</dd>
               </div>
               <div>
                 <dt>Task ID</dt>

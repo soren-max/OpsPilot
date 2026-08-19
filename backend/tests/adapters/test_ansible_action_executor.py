@@ -49,7 +49,6 @@ def test_ansible_uses_fixed_playbook_mapping_and_generated_variables(tmp_path: P
     executor = AnsibleActionExecutor(
         runner=runner,
         playbook_root=tmp_path,
-        allowed_targets=frozenset({"web-01"}),
     )
 
     preview = asyncio.run(executor.preview(action()))
@@ -64,16 +63,6 @@ def test_ansible_uses_fixed_playbook_mapping_and_generated_variables(tmp_path: P
         "service_status.yml",
     ]
     assert all(call[2] == {"service_name": "nginx"} for call in runner.calls)
-
-
-def test_ansible_rejects_target_outside_adapter_allowlist(tmp_path: Path) -> None:
-    executor = AnsibleActionExecutor(
-        runner=RecordingRunner(),
-        playbook_root=tmp_path,
-        allowed_targets=frozenset(),
-    )
-    with pytest.raises(ValueError, match="allowlist"):
-        asyncio.run(executor.execute(action()))
 
 
 def test_subprocess_runner_rejects_playbook_outside_owned_root(tmp_path: Path) -> None:

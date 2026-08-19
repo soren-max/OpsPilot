@@ -22,7 +22,6 @@ def approval_settings() -> Settings:
         write_operations_enabled=True,
         production_operations_enabled=False,
         approval_required_for_write=True,
-        allowed_actions="status,restart",
         _env_file=None,
     )
 

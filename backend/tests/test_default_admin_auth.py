@@ -145,12 +145,12 @@ def test_login_failures_are_rate_limited(client) -> None:
     assert blocked.json()["code"] == "LOGIN_RATE_LIMITED"
 
 
-def test_public_auth_status_never_discloses_target_allowlists(client) -> None:
+def test_public_auth_status_exposes_only_portable_action_capabilities(client) -> None:
     response = client.get("/api/v1/auth/status")
     assert response.status_code == 200
     data = response.json()["data"]
-    assert data["allowed_hosts"] == []
-    assert data["allowed_services"] == []
+    assert "allowed_hosts" not in data
+    assert "allowed_services" not in data
     assert data["allowed_actions"] == ["status", "restart"]
     assert data["write_operations"] is False
     assert data["approval_required_for_write"] is True

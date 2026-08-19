@@ -10,11 +10,10 @@ export function createAssetService(source: AssetSource) {
     async list(
       environmentId: string,
       environmentName: string,
-      executorType: string | null,
       snapshots: ServiceStatusSnapshot[] = [],
     ): Promise<Asset[]> {
       const hosts = await source.list(environmentId);
-      return mapHostsToAssets(hosts, environmentName, executorType, snapshots);
+      return mapHostsToAssets(hosts, environmentName, snapshots);
     },
   };
 }
@@ -26,7 +25,6 @@ export const assetService = createAssetService({
 export function mapHostsToAssets(
   hosts: Host[],
   environmentName: string,
-  executorType: string | null,
   snapshots: ServiceStatusSnapshot[] = [],
 ): Asset[] {
   const lastServiceCheckByHost = new Map<string, string>();
@@ -39,14 +37,11 @@ export function mapHostsToAssets(
   return hosts.map((host) => ({
     id: host.id,
     name: host.name,
-    ip: null,
     environmentId: host.environment_id,
     environmentName,
     type: null,
-    connectionStatus: null,
     serviceCheckStatus: host.last_status,
     lastServiceCheckAt: lastServiceCheckByHost.get(host.id) ?? null,
-    executorType,
     serviceCount: host.service_count,
     dataSource: "adapter",
   }));

@@ -300,8 +300,6 @@ class ApprovalService:
     def _validate_write_gate(self, action: OperationAction) -> None:
         if not self.settings.write_operations_enabled:
             raise ForbiddenError("WRITE_OPERATION_DISABLED", "Write operations are disabled")
-        if action.value not in self.settings.allowed_action_set:
-            raise ForbiddenError("ACTION_NOT_ALLOWED", "Action is outside the configured allowlist")
         if action is not OperationAction.RESTART:
             raise ForbiddenError(
                 "EXECUTOR_ACTION_UNSUPPORTED",
