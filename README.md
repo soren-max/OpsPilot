@@ -61,7 +61,11 @@ See [Safety Model](docs/safety-model.md).
   and removal of application-level transport configuration.
 - **Implemented:** M2 LangGraph incident workflow, serializable reference state, conditional
   routing, WorkflowRun metadata, deterministic investigation, audit trace, and API/UI progress.
-- **Planned:** LLM integration, metrics, logs, tickets, durable HITL, MCP, RAG, and incident lab.
+- **Implemented:** M2.1 shared operator-configured execution boundary and fail-closed workflow
+  runtime wiring.
+- **Implemented:** M3A typed and bounded Prometheus, Loki, Ticket, and Service Health capability
+  ports with provenance-preserving Incident Evidence collection.
+- **Planned:** M3B LLM Investigator, durable HITL, MCP, RAG, and incident lab.
 
 The worker builds one operator-configured `ActionService` per iteration from the selected Mock or
 Ansible backend and the enabled Target allowlist. It injects that same policy/executor boundary

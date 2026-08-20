@@ -82,3 +82,16 @@ stable graph thread identifier equal to its workflow ID. M2's in-memory checkpoi
 development and tests. `WorkflowService` accepts LangGraph's existing `BaseCheckpointSaver`
 directly instead of wrapping it in a second application-specific checkpoint port. Durable
 Postgres checkpoint and approval resume remain deferred to M4.
+
+## Read-only investigation capabilities
+
+M3A adds a dependency-injected `IncidentCapabilities` registry between workflow runtime and typed
+Metrics, Logs, Tickets, and Health ports. Prometheus and Loki adapters translate domain queries
+into application-owned PromQL and LogQL templates. Base URLs, bearer credentials, and Loki tenant
+headers are operator configuration and never appear in API schemas, graph state, or evidence.
+
+`collect_context` requests a bounded time window, isolates timeout/unavailable/malformed failures,
+persists successful observations as deduplicated Incident Evidence, and returns only evidence IDs
+to LangGraph. Metrics, logs, tickets, and health remain parallel read-only evidence sources;
+`ActionService` remains the policy-controlled remediation boundary. The Health port may reuse a
+read-only Action request internally, but workflow nodes see only `get_service_health`.

@@ -23,6 +23,13 @@ executor-implementation imports, direct Ansible/SQLAlchemy use in nodes, and imp
 in workflow runtime. M4 will add durable approval interrupt/resume tests against a persistent
 checkpointer.
 
+M3A adds table-driven query-policy tests; controlled MetricKind-to-PromQL and LogQuery-to-LogQL
+mapping tests; fake HTTP response tests for range, instant, malformed, oversized, and timeout
+behavior; fixture-backed Ticket and Health tests; Evidence normalization, provenance, and dedup
+tests; partial-failure isolation; and a deterministic workflow scenario that actively collects
+four evidence types before stopping a proposed restart at `WAITING_APPROVAL`. Frontend contract
+tests require typed source, observation time, collector, and provenance display.
+
 ## Security Tests
 
 The current suite covers schema rejection, policy fail-closed behavior, output redaction, fixed
