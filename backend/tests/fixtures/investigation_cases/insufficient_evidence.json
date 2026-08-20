@@ -1,0 +1,1 @@
+{"case_id":"insufficient_evidence","incident_id":"i-6","service":"web","environment":"production","evidence":[],"expected_evidence_ids":[],"expected_action":null,"expected_insufficient_evidence":true,"expected_root_cause_category":"unknown"}
