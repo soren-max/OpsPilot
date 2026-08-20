@@ -16,6 +16,24 @@ function severityClass(severity: string): string {
   return `incident-severity incident-severity--${severity.toLowerCase()}`;
 }
 
+const evidenceLabels: Record<string, string> = {
+  METRIC: "Metric",
+  LOG: "Log",
+  TICKET: "Ticket",
+  SERVICE_STATUS: "Health",
+};
+
+function EvidenceReference({ value }: { value: string }) {
+  if (/^https?:\/\//.test(value)) {
+    return (
+      <a href={value} rel="noreferrer">
+        {value}
+      </a>
+    );
+  }
+  return <code className="mono">{value}</code>;
+}
+
 export function IncidentsPage({ environment }: { environment: string }) {
   const { incidentId } = useParams();
   if (incidentId) return <IncidentDetail incidentId={incidentId} />;
@@ -155,16 +173,22 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
           )}
         </PageSection>
       </div>
-      <PageSection title="Evidence" description="原始数据由来源系统保留；这里只保存摘录与引用。">
+      <PageSection
+        title="Collected Evidence"
+        description="能力状态和原始数据由来源系统保留；这里只保存有界摘要与 provenance 引用。"
+      >
         {item.evidence.length ? (
           <div className="incident-card-list">
             {item.evidence.map((value) => (
               <article key={value.id} className="incident-card">
                 <span>
-                  {value.evidence_type} · {value.source}
+                  {evidenceLabels[value.evidence_type] ?? value.evidence_type} · {value.source}
                 </span>
                 <strong>{value.summary}</strong>
-                <a href={value.source_reference}>{value.source_reference}</a>
+                <small>
+                  观测 {formatDate(value.observed_at)} · 采集器 {value.collector}
+                </small>
+                <EvidenceReference value={value.source_reference} />
               </article>
             ))}
           </div>
