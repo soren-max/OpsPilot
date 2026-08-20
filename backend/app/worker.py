@@ -1,5 +1,6 @@
 import signal
 import time
+from datetime import timedelta
 from pathlib import Path
 
 from sqlalchemy import select
@@ -7,15 +8,22 @@ from sqlalchemy.orm import Session
 
 from app.adapters.ansible import AnsibleActionExecutor, SubprocessAnsibleRunner
 from app.adapters.ansible.runner import AnsibleRunner
+from app.adapters.health import ActionServiceHealthCapability
+from app.adapters.http import HttpxJsonClient
+from app.adapters.loki import LokiLogsAdapter
 from app.adapters.mock import MockActionExecutor
+from app.adapters.prometheus import PrometheusMetricsAdapter
+from app.adapters.tickets import MockTicketAdapter
 from app.application import ActionService
 from app.application.workflow_service import WorkflowService
+from app.capabilities import IncidentCapabilities
+from app.capabilities.policy import CapabilityQueryPolicy
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
 from app.db.session import SessionLocal
 from app.domain.actions.executor import ActionExecutor
 from app.domain.actions.policy import ActionPolicyEngine
-from app.models import Host
+from app.models import Host, Service, ServiceDeployment
 from app.services.worker import WorkerService
 
 running = True
@@ -52,6 +60,75 @@ def build_action_service(
     return ActionService(ActionPolicyEngine(targets), executor)
 
 
+def build_incident_capabilities(
+    db: Session, settings: Settings, action_service: ActionService
+) -> IncidentCapabilities:
+    """Compose bounded read-only investigation capabilities from operator settings."""
+    services = frozenset(
+        db.scalars(select(Service.name).where(Service.enabled.is_(True)))
+    )
+    deployments = db.execute(
+        select(Service.name, Host.name)
+        .join(ServiceDeployment, ServiceDeployment.service_id == Service.id)
+        .join(Host, Host.id == ServiceDeployment.host_id)
+        .where(
+            Service.enabled.is_(True),
+            Host.enabled.is_(True),
+            ServiceDeployment.enabled.is_(True),
+        )
+        .order_by(Service.name, Host.name)
+    )
+    targets_by_service: dict[str, str] = {}
+    for service, target in deployments:
+        targets_by_service.setdefault(service, target)
+    policy = CapabilityQueryPolicy(
+        allowed_services=services,
+        max_time_range=timedelta(seconds=settings.capability_max_time_range_seconds),
+        max_log_entries=settings.capability_max_log_entries,
+        max_metric_series=settings.capability_max_metric_series,
+        minimum_step_seconds=settings.capability_minimum_step_seconds,
+    )
+
+    def client(base_url: str, token: str | None) -> HttpxJsonClient:
+        headers = {"Authorization": f"Bearer {token}"} if token else None
+        return HttpxJsonClient(
+            base_url,
+            timeout_seconds=settings.capability_timeout_seconds,
+            default_headers=headers,
+        )
+
+    prometheus_token = (
+        settings.prometheus_auth_token.get_secret_value()
+        if settings.prometheus_auth_token
+        else None
+    )
+    loki_token = (
+        settings.loki_auth_token.get_secret_value() if settings.loki_auth_token else None
+    )
+    metrics = (
+        PrometheusMetricsAdapter(client(settings.prometheus_base_url, prometheus_token))
+        if settings.prometheus_base_url
+        else None
+    )
+    logs = (
+        LokiLogsAdapter(
+            client(settings.loki_base_url, loki_token),
+            tenant=settings.loki_tenant,
+            allowed_labels=policy.allowed_log_labels,
+        )
+        if settings.loki_base_url
+        else None
+    )
+    return IncidentCapabilities(
+        policy=policy,
+        metrics=metrics,
+        logs=logs,
+        tickets=MockTicketAdapter(),
+        health=ActionServiceHealthCapability(action_service, targets_by_service),
+        timeout_seconds=settings.capability_timeout_seconds,
+    )
+
+
 def main() -> None:
     signal.signal(signal.SIGINT, stop_worker)
     signal.signal(signal.SIGTERM, stop_worker)
@@ -60,7 +137,10 @@ def main() -> None:
     while running:
         with SessionLocal() as db:
             action_service = build_action_service(db, settings)
-            if WorkflowService(db, action_service=action_service).run_next():
+            capabilities = build_incident_capabilities(db, settings, action_service)
+            if WorkflowService(
+                db, action_service=action_service, capabilities=capabilities
+            ).run_next():
                 continue
             handled = WorkerService(db, action_service, settings).run_once()
         if not handled:

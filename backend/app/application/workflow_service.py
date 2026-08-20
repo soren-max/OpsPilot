@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.application.action_service import ActionService
+from app.capabilities import IncidentCapabilities
 from app.core.errors import ConflictError, NotFoundError
 from app.db.base import utc_now
 from app.domain.audit.models import AuditEventType
@@ -39,6 +40,7 @@ class WorkflowService:
         investigator: IncidentInvestigator | None = None,
         checkpointer: BaseCheckpointSaver[str] | None = None,
         action_service: ActionService | None = None,
+        capabilities: IncidentCapabilities | None = None,
     ) -> None:
         self.db = db
         self.runs = WorkflowRunRepository(db)
@@ -46,6 +48,7 @@ class WorkflowService:
         self.investigator = investigator or DeterministicInvestigator()
         self.checkpointer = checkpointer or InMemorySaver()
         self.action_service = action_service
+        self.capabilities = capabilities
 
     def start(self, incident_id: str, actor: str, idempotency_key: str) -> WorkflowRunRecord:
         from app.application.incident_service import IncidentService
@@ -92,7 +95,7 @@ class WorkflowService:
         workflow.status = WorkflowRunStatus.RUNNING
         workflow.started_at = workflow.started_at or utc_now()
         runtime = IncidentWorkflowRuntime(
-            self.db, workflow, self.investigator, self.action_service
+            self.db, workflow, self.investigator, self.action_service, self.capabilities
         )
         graph = build_incident_graph(self.checkpointer)
         try:
@@ -113,7 +116,11 @@ class WorkflowService:
             workflow.finished_at = utc_now()
             workflow.last_error = self._safe_error(exc)
             runtime = IncidentWorkflowRuntime(
-                self.db, workflow, self.investigator, self.action_service
+                self.db,
+                workflow,
+                self.investigator,
+                self.action_service,
+                self.capabilities,
             )
             runtime.audit_workflow(
                 AuditEventType.WORKFLOW_FAILED,
