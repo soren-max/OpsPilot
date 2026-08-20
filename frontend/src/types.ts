@@ -211,6 +211,7 @@ export interface IncidentDiagnosis {
   id: string;
   root_cause: string;
   contributing_factors: string[];
+  evidence_ids: string[];
   confidence: number;
   created_at: string;
 }
@@ -283,5 +284,15 @@ export interface WorkflowRun {
   finished_at: string | null;
   last_checkpoint_at: string | null;
   last_error: string | null;
+  state_references: {
+    investigator_mode?: "deterministic" | "llm";
+    provider?: string | null;
+    model?: string | null;
+    prompt_version?: string | null;
+    decision_summary?: string;
+    uncertainty?: string | null;
+    insufficient_evidence?: boolean;
+    investigation_evidence_ids?: string[];
+  };
   created_at: string;
 }
