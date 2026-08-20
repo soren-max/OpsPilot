@@ -2,8 +2,9 @@
 
 ## Evidence Before Action
 
-An action reason is required, but a future workflow must also collect observable evidence before
-proposing a change. Milestone 1A creates the typed boundary; evidence enforcement is planned.
+An action reason is required, and the M3A/M3B workflow collects observable evidence before
+proposing a change. M3A adds bounded typed evidence collection; M3B requires a grounded diagnosis
+to reference only real Incident Evidence IDs before any action proposal is accepted.
 
 ## Least Privilege
 
@@ -20,9 +21,10 @@ checkpointing.
 
 ## Auditable by Design
 
-Action, risk, result, verification, and minimal audit event models exist. Future Agent, Tool,
-Approval, Execution, and Verification events will enter an incident audit trail. Secrets and raw
-model reasoning must never be stored as audit evidence.
+Action, risk, result, verification, and audit event models exist. Approval, Execution, and
+Verification events already enter the incident audit trail (M1C/M2); Agent and Tool events may
+extend it in future milestones. Secrets and raw model reasoning must never be stored as audit
+evidence.
 
 > An LLM is a decision assistant, not an authorization authority.
 

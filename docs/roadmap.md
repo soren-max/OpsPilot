@@ -20,3 +20,10 @@
 
 Harness and GitOps in M8/M9 are future enhancements. M1B includes no Harness SDK, production
 backend, or simulated implementation.
+
+## Current Pause Point
+
+**M3B represents the current stable portfolio milestone.** New core features are paused: the
+evidence-grounded investigation pipeline is complete, documented, and tested, and the boundary
+before mutating execution is explicit. The next engineering milestone is **M4 — Durable HITL +
+Postgres Checkpoint** (identity-bound approval and resumable state).
