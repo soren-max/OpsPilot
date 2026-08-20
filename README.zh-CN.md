@@ -8,7 +8,7 @@ OpsPilot 是一个开源的、以证据驱动（Evidence-driven）且由人控�
 SRE 与事故响应人员收集证据、形成明确的假设、提出结构化动作（Structured Action），并经由
 受限的基础设施适配器执行经过审批的变更——而不是通过任意 shell。
 
-当前里程碑（M3B）是一个稳定的项目收口点：项目完整展示了
+当前里程碑（M3.5）是面向演示就绪的稳定项目收口点：项目完整展示了
 **可观测性 → 证据 → LLM 调查器 → 证据约束（Evidence Grounding）→ 结构化动作 → 策略 →
 人工审批 → 执行器** 这条流水线，并刻意在「未获得持久化审批就执行变更动作」之前停下。
 持久化的审批与恢复是下一个里程碑（M4）。
@@ -120,29 +120,27 @@ LLM 是决策助手，不是授权主体。只读动作可以自动放行；服�
 
 参见 [安全模型](docs/zh-CN/safety-model.md)。
 
-## 示例事故流程
+## Demo
 
-一条确定性的演示路径贯穿整条流水线：
+无需 API Key、数据库、Prometheus、Loki、工单系统或网络即可运行完整的确定性演示：
 
-```text
-SERVICE_UP = 0
-+ error logs
-+ related ticket
-+ health unavailable
-        ↓
-证据收集                      （M3A：有界、类型化、保留来源）
-        ↓
-LLM 证据约束诊断               （M3B：严格 schema + Evidence ID 校验）
-        ↓
-restart_service 提议
-        ↓
-MEDIUM risk                  （确定性策略）
-        ↓
-WAITING_APPROVAL             ← M3 在变更动作之前停下
+```bash
+uv sync --project backend --extra dev --locked
+make demo
 ```
 
-> **当前 M3 行为：** 工作流在 `WAITING_APPROVAL` 停下，任何变更动作都不会被执行。
-> 持久化的审批与恢复在 **M4** 实现——不在本里程碑内。只读动作（例如状态检查）可以自动放行。
+输入为 `service unavailable`，证据包含 `SERVICE_UP = 0`、ERROR 日志、不可用的健康检查和
+关联工单。输出给出带 Evidence ID 引用的根因、`restart_service` 提议、`MEDIUM` 风险，并在
+`WAITING_APPROVAL` 停止。演示不会调用执行器；持久化审批与恢复属于 **M4**。
+
+参见[演示场景](demo/README.md)和[录制指南](docs/demo.md)。
+
+## Project Tour
+
+推荐阅读顺序：[架构](docs/zh-CN/architecture.md) → [安全模型](docs/zh-CN/safety-model.md) →
+[Incident 工作流](docs/zh-CN/design/langgraph-incident-workflow.md) →
+[可观测性能力](docs/zh-CN/design/observability-capabilities.md) →
+[LLM 调查器](docs/zh-CN/design/llm-investigator.md) → [路线图](docs/zh-CN/roadmap.md)。
 
 ## 快速开始
 
@@ -192,6 +190,7 @@ LLM 模式需要有效的 `OPENAI_API_KEY` 与经运维确认的模型配置。P
 | M2.1 Workflow Runtime Hardening | **已实现** |
 | M3A Observability Capabilities | **已实现** |
 | M3B Evidence-Grounded LLM Investigator | **已实现** |
+| M3.5 Portfolio & Demo Readiness | **已实现** |
 | M4 Durable HITL + Postgres Checkpoint | **计划中 —— 下一里程碑** |
 
 Worker 每次迭代从选中的 Mock 或 Ansible 后端与启用的 Target 白名单构建一个由运维配置的
@@ -221,7 +220,7 @@ M1B 已移除遗留的 SSH 与服务脚本运行时。Ansible 可以按运维自
 
 ### 当前暂停点（Current Pause Point）
 
-**M3B 是当前稳定的组合里程碑。** 项目在此刻意暂停新增核心功能：证据约束的调查流水线已
+**M3.5 是当前稳定的组合里程碑。** 项目在此刻意暂停新增核心功能：证据约束的调查流水线已
 完整、有文档、有测试，变更执行前的边界是显式的。下一个工程里程碑是
 **M4 —— Durable HITL + Postgres Checkpoint**。
 

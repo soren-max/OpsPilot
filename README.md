@@ -9,7 +9,7 @@ It is built to help SRE and incident responders collect evidence, form explicit 
 propose structured actions, and execute approved changes through constrained infrastructure
 adapters — never through an arbitrary shell.
 
-The current milestone (M3B) is a stable portfolio point: the project demonstrates a complete
+The current milestone (M3.5) is a demo-readiness portfolio point: the project demonstrates a complete
 **Observability → Evidence → LLM Investigator → Grounding Guard → Structured Action → Policy →
 Human Approval → Executor** pipeline, and deliberately **stops before mutating actions are
 executed without durable approval**. Durable approval/resume is the next milestone (M4).
@@ -127,30 +127,51 @@ Unknown actions, unknown targets, malformed parameters, and extra fields fail cl
 
 See [Safety Model](docs/safety-model.md).
 
-## Example Incident Flow
+## Demo
 
-A single deterministic demo path shows the whole pipeline:
+Run a complete deterministic walkthrough without an API key, database, Prometheus, Loki, ticket
+system, or network access:
 
-```text
-SERVICE_UP = 0
-+ error logs
-+ related ticket
-+ health unavailable
-        ↓
-Evidence collection            (M3A: bounded, typed, provenance-preserving)
-        ↓
-LLM grounded diagnosis         (M3B: strict schema + Evidence ID validation)
-        ↓
-restart_service proposal
-        ↓
-MEDIUM risk                    (deterministic policy)
-        ↓
-WAITING_APPROVAL               ← M3 stops here for mutating actions
+```bash
+uv sync --project backend --extra dev --locked
+make demo
 ```
 
-> **Current M3 behavior:** the workflow stops at `WAITING_APPROVAL` before any mutating action is
-> executed. Durable approval and resume are implemented in **M4** — not in this milestone.
-> Read-only actions (for example status checks) may proceed automatically.
+The input is `service unavailable`, with `SERVICE_UP = 0`, an error log, unavailable health, and
+a related ticket. The terminal result is:
+
+```text
+Incident Created
+Evidence Collected
+  - Metric [ev-service-up] SERVICE_UP = 0
+  - Log [ev-error-log] ERROR worker stopped accepting requests
+  - Health [ev-health] Health check is unavailable
+  - Ticket [ev-ticket] Related ticket reports a failed service start
+Investigation Result
+Diagnosis
+  root_cause=checkout-api is stopped after a failed service start
+  evidence_references=ev-service-up, ev-error-log, ev-health, ev-ticket
+Action Proposal
+  action=restart_service
+Risk Assessment
+  risk=MEDIUM
+WAITING_APPROVAL
+```
+
+The checked-in synthetic [incident scenarios](demo/README.md) validate grounded evidence
+references and pass the typed proposal through the real deterministic policy engine. The runner
+never invokes an executor and stops at `WAITING_APPROVAL`; durable approval and resume belong to
+**M4**. See the [recording guide](docs/demo.md) for terminal and architecture walkthroughs.
+
+## Project Tour
+
+Read [Architecture](docs/architecture.md) → [Safety Model](docs/safety-model.md) →
+[Incident Workflow](docs/design/langgraph-incident-workflow.md) →
+[Observability Capabilities](docs/design/observability-capabilities.md) →
+[LLM Investigator](docs/design/llm-investigator.md) → [Roadmap](docs/roadmap.md).
+
+The [documentation index](docs/README.md), [ADR index](docs/adr/README.md), and
+[interview preparation index](docs/interview/README.md) provide deeper navigation.
 
 ## Quick Start
 
@@ -201,6 +222,7 @@ Copy `.env.example` to `.env` and replace every placeholder before starting the 
 | M2.1 Workflow Runtime Hardening | **Implemented** |
 | M3A Observability Capabilities | **Implemented** |
 | M3B Evidence-Grounded LLM Investigator | **Implemented** |
+| M3.5 Portfolio & Demo Readiness | **Implemented** |
 | M4 Durable HITL + Postgres Checkpoint | **Planned — next milestone** |
 
 The worker builds one operator-configured `ActionService` per iteration from the selected Mock or
@@ -232,7 +254,7 @@ according to operator-owned inventory, but that is not part of the Agent/API con
 
 ### Current Pause Point
 
-**M3B represents the current stable portfolio milestone.** The project intentionally pauses new
+**M3.5 represents the current stable portfolio milestone.** The project intentionally pauses new
 core features here: the evidence-grounded investigation pipeline is complete, documented, and
 tested, and the boundary before mutating execution is explicit. The next engineering milestone is
 **M4 — Durable HITL + Postgres Checkpoint**.

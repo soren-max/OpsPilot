@@ -1,5 +1,45 @@
 # Architecture
 
+## Layer architecture
+
+```mermaid
+flowchart TB
+  Presentation[Presentation<br/>API / Worker / Demo CLI]
+  Workflow[Workflow<br/>LangGraph incident state machine]
+  Application[Application Services<br/>Incident / Workflow / Action]
+  Domain[Domain Model<br/>Incident / Evidence / Action / Policy]
+  Ports[Ports<br/>Investigator / Capabilities / ActionExecutor]
+  Adapters[Adapters<br/>Prometheus / Loki / Tickets / Health / OpenAI / Mock / Ansible]
+
+  Presentation --> Workflow --> Application --> Domain --> Ports --> Adapters
+```
+
+Dependencies point inward through typed ports: adapters provide infrastructure behavior, while
+the domain remains independent of HTTP, databases, model providers, and execution transports.
+
+## Reasoning, authorization, and execution
+
+```mermaid
+flowchart LR
+  Capabilities[Read-only Capabilities<br/>metrics / logs / health / tickets]
+  Evidence[(Grounded Evidence)]
+  LLM[LLM Investigator<br/>reasoning only]
+  Guard[Schema + Grounding Guard]
+  Proposal[Structured Action Proposal]
+  Policy[Deterministic Policy<br/>authorization]
+  Approval{Human Approval Boundary}
+  Executor[ActionExecutor<br/>execution]
+  Target[Target Infrastructure]
+
+  Capabilities --> Evidence --> LLM --> Guard --> Proposal --> Policy --> Approval
+  Approval -->|approved only| Executor --> Target
+  Approval -->|M3.5 demo stop| Waiting[WAITING_APPROVAL]
+```
+
+The LLM cannot authorize or execute. Capabilities are read-only evidence sources. Policy owns
+authorization, and the executor receives only structured actions that have crossed policy and
+approval boundaries. The M3.5 demo intentionally takes the `WAITING_APPROVAL` branch.
+
 ## Operating model
 
 OpsPilot separates three lifecycles with different authority and failure semantics.

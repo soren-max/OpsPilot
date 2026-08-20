@@ -1,0 +1,26 @@
+Incident Created
+  demo-service-unavailable: Checkout API is unavailable
+
+Evidence Collected
+  - Metric [ev-service-up] SERVICE_UP = 0
+  - Log    [ev-error-log] ERROR worker stopped accepting requests
+  - Health [ev-health] Health check is unavailable
+  - Ticket [ev-ticket] Related ticket reports a failed service start
+
+Investigation Result
+  category=service_unavailable
+
+Diagnosis
+  root_cause=checkout-api is stopped after a failed service start
+  evidence_references=ev-service-up, ev-error-log, ev-health, ev-ticket
+
+Action Proposal
+  action=restart_service
+  target=demo-checkout-01
+
+Risk Assessment
+  risk=MEDIUM
+  approval_required=true
+
+WAITING_APPROVAL
+Demo stopped before approval or execution (durable resume belongs to M4).
