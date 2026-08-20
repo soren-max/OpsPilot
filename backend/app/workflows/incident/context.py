@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.application.action_service import ActionService
 from app.application.incident_service import IncidentService, safe_audit_metadata
+from app.capabilities import IncidentCapabilities
 from app.db.base import utc_now
 from app.domain.actions.models import (
     ActionRequest,
@@ -23,7 +24,7 @@ from app.domain.incidents.models import IncidentStatus
 from app.repositories.incident_models import IncidentAuditEventRecord
 from app.repositories.incidents import AuditEventRepository
 from app.repositories.workflow_models import WorkflowRunRecord
-from app.schemas_incidents import DiagnosisCreate, HypothesisCreate
+from app.schemas_incidents import DiagnosisCreate, EvidenceCreate, HypothesisCreate
 from app.services.redaction import redact_text
 from app.workflows.incident.errors import ExecutionFailure, WorkflowInfrastructureFailure
 from app.workflows.incident.investigator import (
@@ -48,6 +49,7 @@ class IncidentWorkflowRuntime:
         workflow: WorkflowRunRecord,
         investigator: IncidentInvestigator,
         action_service: ActionService | None = None,
+        capabilities: IncidentCapabilities | None = None,
     ) -> None:
         self.db = db
         self.workflow = workflow
@@ -55,6 +57,7 @@ class IncidentWorkflowRuntime:
         self.incidents = IncidentService(db)
         self.audits = AuditEventRepository(db)
         self._action_service = action_service
+        self._capabilities = capabilities
         self._node_started_at: dict[str, float] = {}
 
     def load_incident(self) -> tuple[int, list[str]]:
@@ -88,6 +91,50 @@ class IncidentWorkflowRuntime:
             ),
             retrieved_knowledge_refs=tuple(retrieved_refs),
         )
+
+    def collect_context(self, evidence_ids: list[str]) -> list[str]:
+        if self._capabilities is None:
+            return evidence_ids
+        incident = self.incidents._require(self.workflow.incident_id)
+        collection = asyncio.run(
+            self._capabilities.collect(
+                incident.service,
+                incident.environment,
+                now=self.workflow.started_at or self.workflow.created_at,
+            )
+        )
+        collected_ids: list[str] = []
+        for item in collection.evidence:
+            evidence = self.incidents.add_evidence(
+                incident.id,
+                EvidenceCreate(
+                    evidence_type=item.evidence_type,
+                    source=item.source,
+                    source_reference=item.source_reference,
+                    summary=item.summary,
+                    excerpt=item.excerpt,
+                    observed_at=item.observed_at,
+                    collector=item.collector,
+                    metadata=item.metadata,
+                ),
+                "workflow",
+                self.workflow.id,
+            )
+            collected_ids.append(evidence.id)
+        if collection.failures:
+            for failure in collection.failures:
+                self._audit(
+                    AuditEventType.WORKFLOW_NODE_COMPLETED,
+                    "Capability collection completed with a partial failure",
+                    {
+                        "workflow_id": self.workflow.id,
+                        "node": "collect_context",
+                        "source": failure.capability,
+                        "result_status": failure.code,
+                    },
+                )
+            self.db.commit()
+        return list(dict.fromkeys([*evidence_ids, *collected_ids]))
 
     def investigate(self, retrieved_refs: list[str]) -> InvestigationResult:
         return self.investigator.investigate(self.investigation_context(retrieved_refs))

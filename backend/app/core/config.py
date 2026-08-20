@@ -1,6 +1,7 @@
 from functools import lru_cache
+from urllib.parse import urlsplit
 
-from pydantic import AliasChoices, Field, model_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,6 +35,16 @@ class Settings(BaseSettings):
     lock_ttl_seconds: int = Field(default=900, ge=30, le=86_400)
     worker_poll_seconds: float = Field(default=1.0, ge=0.1, le=60)
     workflow_checkpoint_backend: str = "memory"
+    prometheus_base_url: str | None = None
+    prometheus_auth_token: SecretStr | None = None
+    loki_base_url: str | None = None
+    loki_auth_token: SecretStr | None = None
+    loki_tenant: str | None = Field(default=None, max_length=120)
+    capability_timeout_seconds: float = Field(default=5.0, ge=0.1, le=30)
+    capability_max_time_range_seconds: int = Field(default=3600, ge=60, le=86_400)
+    capability_max_log_entries: int = Field(default=100, ge=1, le=1000)
+    capability_max_metric_series: int = Field(default=20, ge=1, le=100)
+    capability_minimum_step_seconds: int = Field(default=15, ge=1, le=3600)
     login_failure_limit: int = Field(default=5, ge=2, le=20)
     login_failure_window_seconds: int = Field(default=300, ge=10, le=3600)
     login_lockout_seconds: int = Field(default=300, ge=10, le=3600)
@@ -55,6 +66,25 @@ class Settings(BaseSettings):
         default=False,
         validation_alias=AliasChoices("DEFAULT_ADMIN_ENABLED", "OPSPILOT_DEFAULT_ADMIN_ENABLED"),
     )
+
+    @field_validator("prometheus_base_url", "loki_base_url", mode="before")
+    @classmethod
+    def validate_operator_base_url(cls, value: object) -> str | None:
+        if value is None or value == "":
+            return None
+        if not isinstance(value, str):
+            raise ValueError("Observability base URLs must be strings")
+        parsed = urlsplit(value)
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or parsed.username
+            or parsed.password
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError("Observability base URLs must be credential-free HTTP(S) origins")
+        return value.rstrip("/")
 
     @model_validator(mode="after")
     def validate_portable_execution(self) -> "Settings":

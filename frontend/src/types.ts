@@ -193,6 +193,10 @@ export interface IncidentEvidence {
   summary: string;
   excerpt: string | null;
   observed_at: string;
+  collected_at: string;
+  collector: string;
+  metadata: Record<string, unknown>;
+  fingerprint: string;
 }
 
 export interface IncidentHypothesis {

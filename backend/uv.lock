@@ -670,6 +670,7 @@ source = { editable = "." }
 dependencies = [
     { name = "alembic" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "langgraph" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic-settings" },
@@ -693,6 +694,7 @@ dev = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.14,<2" },
     { name = "fastapi", specifier = ">=0.115,<1" },
+    { name = "httpx", specifier = ">=0.28,<1" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.28,<1" },
     { name = "langgraph", specifier = ">=1.2,<2" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.14,<3" },
