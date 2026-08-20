@@ -21,7 +21,8 @@ Alert / User
 
 Incident, Evidence, Hypothesis, Diagnosis, append-only AuditEvent, timeline, optimistic locking,
 and the resolved-incident knowledge projection are implemented in M1C. M2 adds LangGraph
-orchestration over those application capabilities. LLM reasoning, runtime retrieval/RAG, and
+orchestration over those application capabilities. M3B adds evidence-grounded structured LLM
+reasoning behind an injected provider port. Runtime retrieval/RAG and
 multi-agent behavior remain planned.
 
 ```text

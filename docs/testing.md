@@ -24,11 +24,10 @@ in workflow runtime. M4 will add durable approval interrupt/resume tests against
 checkpointer.
 
 M3A adds table-driven query-policy tests; controlled MetricKind-to-PromQL and LogQuery-to-LogQL
-mapping tests; fake HTTP response tests for range, instant, malformed, oversized, and timeout
-behavior; fixture-backed Ticket and Health tests; Evidence normalization, provenance, and dedup
-tests; partial-failure isolation; and a deterministic workflow scenario that actively collects
-four evidence types before stopping a proposed restart at `WAITING_APPROVAL`. Frontend contract
-tests require typed source, observation time, collector, and provenance display.
+mapping tests; bounded response, timeout, provenance, partial-failure, and active collection tests.
+M3B adds strict schema, evidence grounding, prompt-injection, provider failure/retry, evaluation
+fixture, and workflow authorization-boundary tests. Default CI stays deterministic and uses mocked
+HTTP transports; optional real-provider tests require explicit local opt-in and credentials.
 
 ## Security Tests
 
