@@ -1,0 +1,41 @@
+schema_version: 1
+incident:
+  id: demo-high-error-rate
+  title: Catalog API error rate is elevated
+  severity: SEV2
+  created_at: "2026-01-15T11:00:00Z"
+service: catalog-api
+environment: production
+initial_symptoms:
+  - Five-minute error rate exceeds the demo threshold.
+  - Health endpoint reports a degraded worker pool.
+expected_evidence:
+  - id: ev-error-rate
+    type: metric
+    source: demo-metrics
+    summary: HTTP_ERROR_RATE = 0.37
+  - id: ev-timeout-log
+    type: log
+    source: demo-logs
+    summary: ERROR worker pool timed out repeatedly
+  - id: ev-degraded-health
+    type: health
+    source: demo-health
+    summary: Health check reports degraded workers
+  - id: ev-maintenance-ticket
+    type: ticket
+    source: demo-tickets
+    summary: Related ticket notes worker exhaustion in the demo environment
+expected_diagnosis:
+  category: high_error_rate
+  root_cause: catalog-api worker pool is exhausted and timing out
+  evidence_references:
+    - ev-error-rate
+    - ev-timeout-log
+    - ev-degraded-health
+expected_action_proposal:
+  type: restart_service
+  target: demo-catalog-01
+  reason: Restore the exhausted catalog-api worker pool.
+  risk: medium
+expected_workflow_state: WAITING_APPROVAL
