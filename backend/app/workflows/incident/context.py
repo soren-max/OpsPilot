@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.ai.errors import LLMFailure
 from app.application.action_service import ActionService
 from app.application.incident_service import IncidentService, safe_audit_metadata
 from app.capabilities import IncidentCapabilities
@@ -32,6 +33,7 @@ from app.workflows.incident.investigator import (
     InvestigationContext,
     InvestigationEvidence,
     InvestigationResult,
+    InvestigatorMetadata,
 )
 
 
@@ -84,8 +86,11 @@ class IncidentWorkflowRuntime:
                 InvestigationEvidence(
                     evidence_id=item.id,
                     evidence_type=item.evidence_type,
+                    source=item.source,
+                    observed_at=item.observed_at,
                     summary=item.summary,
                     excerpt=item.excerpt,
+                    metadata=item.evidence_metadata,
                 )
                 for item in incident.evidence
             ),
@@ -137,7 +142,57 @@ class IncidentWorkflowRuntime:
         return list(dict.fromkeys([*evidence_ids, *collected_ids]))
 
     def investigate(self, retrieved_refs: list[str]) -> InvestigationResult:
-        return self.investigator.investigate(self.investigation_context(retrieved_refs))
+        metadata = self.investigator.metadata
+        if metadata.mode == "llm":
+            self._audit(
+                AuditEventType.LLM_INVESTIGATION_STARTED,
+                "LLM investigation started",
+                self._investigator_audit_metadata(metadata),
+            )
+            self.db.commit()
+        try:
+            result = self.investigator.investigate(
+                self.investigation_context(retrieved_refs)
+            )
+        except LLMFailure as exc:
+            self._audit(
+                AuditEventType.LLM_INVESTIGATION_FAILED,
+                "LLM investigation failed",
+                {
+                    **self._investigator_audit_metadata(metadata),
+                    "result_status": exc.code,
+                },
+            )
+            self.db.commit()
+            raise
+        self.workflow.state_references = {
+            **self.workflow.state_references,
+            "investigator_mode": result.investigator_mode,
+            "provider": result.provider,
+            "model": result.model,
+            "prompt_version": result.prompt_version,
+            "latency_ms": result.latency_ms,
+            "input_tokens": result.input_tokens,
+            "output_tokens": result.output_tokens,
+            "decision_summary": result.decision_summary,
+            "uncertainty": result.uncertainty,
+            "insufficient_evidence": result.insufficient_evidence,
+            "investigation_evidence_ids": list(result.evidence_ids),
+        }
+        if metadata.mode == "llm":
+            self._audit(
+                AuditEventType.LLM_INVESTIGATION_COMPLETED,
+                "LLM investigation completed",
+                {
+                    **self._investigator_audit_metadata(metadata),
+                    "latency_ms": result.latency_ms,
+                    "input_tokens": result.input_tokens,
+                    "output_tokens": result.output_tokens,
+                    "result_status": "SUCCEEDED",
+                },
+            )
+        self.db.commit()
+        return result
 
     def record_hypothesis(self, result: InvestigationResult) -> str:
         if self.workflow.hypothesis_id:
@@ -246,8 +301,12 @@ class IncidentWorkflowRuntime:
         self.db.commit()
         return execution_id, status
 
-    def finalize(self, incident_version: int, *, successful: bool) -> int:
+    def finalize(
+        self, incident_version: int, *, successful: bool, inconclusive: bool = False
+    ) -> int:
         incident = self.incidents._require(self.workflow.incident_id)
+        if inconclusive:
+            return incident.version
         if successful and incident.status is not IncidentStatus.RESOLVED:
             incident = self.incidents.resolve(
                 incident.id, incident_version, "workflow", self.workflow.id
@@ -303,6 +362,15 @@ class IncidentWorkflowRuntime:
                 "Workflow execution requires an operator-configured ActionService"
             )
         return self._action_service
+
+    @staticmethod
+    def _investigator_audit_metadata(metadata: InvestigatorMetadata) -> dict[str, object]:
+        return {
+            "investigator_mode": metadata.mode,
+            "provider": metadata.provider,
+            "model": metadata.model,
+            "prompt_version": metadata.prompt_version,
+        }
 
     def _action_request(self, action_type: ActionType) -> ActionRequest:
         incident = self.incidents._require(self.workflow.incident_id)

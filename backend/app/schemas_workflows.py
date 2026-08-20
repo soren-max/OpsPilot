@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.repositories.workflow_models import WorkflowRunStatus
 
@@ -19,6 +19,7 @@ class WorkflowRunRead(BaseModel):
     finished_at: datetime | None
     last_checkpoint_at: datetime | None
     last_error: str | None
+    state_references: dict[str, object] = Field(default_factory=dict)
     created_at: datetime
 
 

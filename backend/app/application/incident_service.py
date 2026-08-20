@@ -62,6 +62,13 @@ AUDIT_METADATA_ALLOWLIST = frozenset(
         "node",
         "duration_ms",
         "result_status",
+        "investigator_mode",
+        "provider",
+        "model",
+        "prompt_version",
+        "latency_ms",
+        "input_tokens",
+        "output_tokens",
     }
 )
 
