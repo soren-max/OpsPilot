@@ -3,8 +3,9 @@
 ## What makes evidence grounded?
 
 Every normalized observation records its source, opaque source reference, observed time,
-collection time, collector, bounded content, metadata, and deduplication fingerprint. A future LLM
-diagnosis must return evidence IDs, which trace through Incident Evidence to the source system.
+collection time, collector, bounded content, metadata, and deduplication fingerprint. The M3B LLM
+diagnosis returns evidence IDs, which trace through Incident Evidence to the source system and are
+validated against the current incident context.
 
 ## Why not put raw logs into Graph State?
 

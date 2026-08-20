@@ -1,4 +1,6 @@
-# Roadmap
+# 路线图（Roadmap）
+
+[English](../roadmap.md) | [简体中文](roadmap.md)
 
 | Milestone | Status | Scope |
 | --- | --- | --- |
@@ -18,12 +20,10 @@
 | M10 Risk Reviewer & Evaluation | Planned | Advisory risk review and safety evaluation |
 | M11 Agent Observability | Planned | Workflow traces and operational telemetry |
 
-Harness and GitOps in M8/M9 are future enhancements. M1B includes no Harness SDK, production
-backend, or simulated implementation.
+M8/M9 中的 Harness 与 GitOps 是未来的增强。M1B 不包含 Harness SDK、生产后端或模拟实现。
 
-## Current Pause Point
+## 当前暂停点（Current Pause Point）
 
-**M3B represents the current stable portfolio milestone.** New core features are paused: the
-evidence-grounded investigation pipeline is complete, documented, and tested, and the boundary
-before mutating execution is explicit. The next engineering milestone is **M4 — Durable HITL +
-Postgres Checkpoint** (identity-bound approval and resumable state).
+**M3B 是当前稳定的组合里程碑。** 新核心功能在此暂停：证据约束的调查流水线已经完整、有文档、
+有测试，变更执行前的边界是显式的。下一个工程里程碑是 **M4 —— Durable HITL + Postgres
+Checkpoint**（身份绑定审批与可恢复状态）。

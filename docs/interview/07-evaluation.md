@@ -1,6 +1,6 @@
 # Evaluation
 
-Status: **Planned**
+Status: **Foundation in M3B; broader evaluation planned**
 
 ## Concept
 
@@ -9,7 +9,10 @@ repeatable incidents.
 
 ## Where in OpsPilot
 
-Current deterministic tests cover action safety. Incident and model evaluation are planned.
+Current deterministic tests cover action safety. M3B adds reusable `InvestigationEvalCase`
+fixtures, safety cases, and metrics (Evidence Precision, Evidence Recall, Action Accuracy,
+Grounding Validity, Unsupported Action Rate). Full incident datasets and large-scale model
+evaluation are planned for later milestones.
 
 ## Why
 

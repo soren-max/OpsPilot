@@ -29,6 +29,6 @@ Private chain-of-thought, raw prompts, authorization headers, and raw evidence b
 
 The first adapter uses OpenAI's Responses API with strict JSON Schema, `store=false`, a fixed
 operator-owned endpoint, no tools, bounded responses, and typed timeout/rate-limit/malformed errors.
-See the [official Responses API reference](https://developers.openai.com/api/reference/java/resources/beta/subresources/responses).
+See the [official Responses API reference](https://platform.openai.com/docs/api-reference/responses).
 
 M3B does not add durable HITL, RAG, MCP, arbitrary tool use, or autonomous remediation.
