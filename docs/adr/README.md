@@ -1,0 +1,14 @@
+# Architecture Decision Records
+
+ADRs record stable architectural choices. This index summarizes them without changing their
+original content.
+
+| ADR | Title | Status | Summary |
+| --- | --- | --- | --- |
+| [0001](0001-structured-actions-over-arbitrary-shell.md) | Structured Actions over Arbitrary Shell | Accepted | Typed actions replace model-generated command strings. |
+| [0002](0002-deterministic-policy-before-llm-risk-review.md) | Deterministic Policy before LLM Risk Review | Accepted | Code-based authorization runs before any probabilistic risk advice. |
+| [0003](0003-ansible-as-infrastructure-execution-adapter.md) | Ansible as Infrastructure Execution Adapter | Accepted | Fixed playbook mappings isolate transport details from the domain. |
+| [0004](0004-separate-remediation-from-governed-change.md) | Separate Remediation from Governed Change | Accepted | Bounded recovery and deployment/change require different governance. |
+| [0005](0005-separate-domain-state-from-workflow-checkpoint.md) | Separate Domain State from Workflow Checkpoint | Accepted | Business facts and orchestration position have distinct sources of truth. |
+| [0006](0006-typed-observability-queries-over-arbitrary-query-language.md) | Typed Observability Queries over Arbitrary Query Languages | Accepted for M3A | Application-owned queries bound observability access and preserve provenance. |
+| [0007](0007-llm-reasoning-with-deterministic-authorization.md) | LLM Reasoning with Deterministic Authorization | Accepted | Models reason over evidence; guards, policy, and HITL retain authority. |

@@ -7,6 +7,20 @@ translation of this index lives under `../zh-CN/interview/`. Note: two files sha
 prefix (`08-incident-domain.md` and `08-portable-execution-boundary.md`); this is a historical
 numbering quirk and the files are intentionally not renamed.
 
+## Interview Preparation Index
+
+| Topic | Start here | Core point |
+| --- | --- | --- |
+| Architecture | [Agent Workflow](03-agent-workflow.md) | Explicit orchestration and narrow boundaries replace an open-ended agent loop. |
+| Agent Workflow | [Agent Workflow](03-agent-workflow.md) | State transitions make decisions observable and testable. |
+| LangGraph | [LangGraph Incident Orchestration](11-langgraph.md) | Checkpoint state is distinct from durable domain state. |
+| Evidence Grounding | [Evidence Grounding](14-evidence-grounding.md) | Conclusions cite incident-local, validated Evidence IDs. |
+| Prompt Injection | [Prompt Injection](17-prompt-injection.md) | Untrusted evidence cannot bypass schema, grounding, policy, or approval. |
+| Evaluation | [Agent Evaluation](18-agent-evaluation.md) | Deterministic fixtures cover grounding, action accuracy, and safety. |
+| Execution Safety | [Agent Safety](04-agent-safety.md) | Structured actions and fail-closed policy constrain authority. |
+| Observability | [Observability Capabilities](13-observability-capabilities.md) | Typed ports replace arbitrary PromQL and LogQL. |
+| Ansible Boundary | [Executor and Ansible](06-executor-and-ansible.md) | Fixed mappings keep transport and playbook selection outside model control. |
+
 ## Agent Workflow
 
 - [Agent Workflow](03-agent-workflow.md) — **Implemented in M2**

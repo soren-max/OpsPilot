@@ -4,6 +4,20 @@
 
 本目录是 OpsPilot 的中文文档索引。英文文档是 canonical（权威）版本，中文核心文档跟踪主要架构变更，并随里程碑推进与英文保持同步。
 
+## Project Tour
+
+新人和面试复盘建议按以下顺序阅读：
+
+1. [架构](architecture.md)
+2. [安全模型](safety-model.md)
+3. [Incident 工作流](design/langgraph-incident-workflow.md)
+4. [可观测性能力](design/observability-capabilities.md)
+5. [LLM 调查器](design/llm-investigator.md)
+6. [路线图](roadmap.md)
+
+可运行演示与录制方式见英文 [Demo Guide](../demo.md)，ADR 汇总见英文
+[ADR Index](../adr/README.md)。
+
 ## 核心文档
 
 - [架构（Architecture）](architecture.md) — 系统分层总览：LangGraph Incident 工作流、类型化能力端口、Incident Evidence、LLM 调查器与 Action Safety Core（对应英文 [architecture.md](../architecture.md)）。

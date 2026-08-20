@@ -7,6 +7,19 @@ written and maintained in English first, and Simplified Chinese mirrors live und
 for the core docs. See the [Translation Policy](translation-policy.md) for how the two trees stay
 in sync and which docs are intentionally English-only.
 
+## Project Tour
+
+New readers can follow this path for a concise architecture and interview walkthrough:
+
+1. [Architecture](architecture.md) — layers, boundaries, and component responsibilities.
+2. [Safety Model](safety-model.md) — how authority stays deterministic and human-controlled.
+3. [Incident Workflow](design/langgraph-incident-workflow.md) — explicit LangGraph state flow.
+4. [Observability Capabilities](design/observability-capabilities.md) — typed evidence sources.
+5. [LLM Investigator](design/llm-investigator.md) — grounded reasoning without authority.
+6. [Roadmap](roadmap.md) — implemented scope and the M4 boundary.
+
+For a runnable tour, use the [Offline Demo and Recording Guide](demo.md).
+
 ## Architecture
 
 - [Architecture](architecture.md) — system overview and component boundaries (简体中文: [zh-CN/architecture.md](zh-CN/architecture.md))
@@ -40,6 +53,8 @@ in sync and which docs are intentionally English-only.
 ## Architecture Decision Records (ADR)
 
 All ADRs are English only.
+
+- [ADR index](adr/README.md) — titles, statuses, and one-line summaries
 
 - [ADR 0001: Structured Actions over Arbitrary Shell](adr/0001-structured-actions-over-arbitrary-shell.md)
 - [ADR 0002: Deterministic Policy before LLM Risk Review](adr/0002-deterministic-policy-before-llm-risk-review.md)
