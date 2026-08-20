@@ -3,13 +3,11 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import time
-import uuid
 from dataclasses import dataclass
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.adapters.mock import MockActionExecutor
 from app.application.action_service import ActionService
 from app.application.incident_service import IncidentService, safe_audit_metadata
 from app.db.base import utc_now
@@ -20,7 +18,6 @@ from app.domain.actions.models import (
     ServiceActionParams,
     TargetEnvironment,
 )
-from app.domain.actions.policy import ActionPolicyEngine
 from app.domain.audit.models import ActorType, AuditEventType
 from app.domain.incidents.models import IncidentStatus
 from app.repositories.incident_models import IncidentAuditEventRecord
@@ -156,15 +153,30 @@ class IncidentWorkflowRuntime:
 
     def assess_risk(self, action_type: ActionType) -> RiskAssessment:
         action = self._action_request(action_type)
-        return self._service(action.target).policy.assess(action)
+        return self._service().policy.assess(action)
 
     def execute(self, action_type: ActionType) -> tuple[str, str]:
         if self.workflow.execution_task_id:
-            status = str(self.workflow.state_references.get("verification_status", "SUCCEEDED"))
-            return self.workflow.execution_task_id, status
+            status = self.workflow.state_references.get("verification_status")
+            if status in {"SUCCEEDED", "FAILED"}:
+                return self.workflow.execution_task_id, str(status)
+            raise WorkflowInfrastructureFailure(
+                "Action execution state is indeterminate; manual reconciliation is required"
+            )
         action = self._action_request(action_type)
+        action_fingerprint = self.workflow.proposed_action_id
+        if action_fingerprint is None:
+            raise WorkflowInfrastructureFailure("Action fingerprint is missing")
+        self.workflow.execution_task_id = action_fingerprint
+        self.workflow.state_references = {
+            "workflow_id": self.workflow.id,
+            "action_fingerprint": action_fingerprint,
+            "execution_task_id": action_fingerprint,
+            "execution_status": "STARTED",
+        }
+        self.db.commit()
         try:
-            outcome = asyncio.run(self._service(action.target).execute(action))
+            outcome = asyncio.run(self._service().execute(action))
         except (ConnectionError, TimeoutError) as exc:
             raise WorkflowInfrastructureFailure(
                 "Action capability is temporarily unavailable"
@@ -173,11 +185,17 @@ class IncidentWorkflowRuntime:
             raise ExecutionFailure("Action execution failed") from exc
         if outcome.result is None:
             raise ExecutionFailure(outcome.assessment.reason)
-        execution_id = self.workflow.proposed_action_id or str(uuid.uuid4())
+        execution_id = action_fingerprint
         verification = outcome.verification
         status = "SUCCEEDED" if verification is not None and verification.verified else "FAILED"
         self.workflow.execution_task_id = execution_id
-        self.workflow.state_references = {"verification_status": status}
+        self.workflow.state_references = {
+            "workflow_id": self.workflow.id,
+            "action_fingerprint": action_fingerprint,
+            "execution_task_id": execution_id,
+            "execution_status": "COMPLETED",
+            "verification_status": status,
+        }
         self.db.commit()
         return execution_id, status
 
@@ -232,10 +250,12 @@ class IncidentWorkflowRuntime:
         )
         self.db.commit()
 
-    def _service(self, target: str) -> ActionService:
-        return self._action_service or ActionService(
-            ActionPolicyEngine(frozenset({target})), MockActionExecutor()
-        )
+    def _service(self) -> ActionService:
+        if self._action_service is None:
+            raise WorkflowInfrastructureFailure(
+                "Workflow execution requires an operator-configured ActionService"
+            )
+        return self._action_service
 
     def _action_request(self, action_type: ActionType) -> ActionRequest:
         incident = self.incidents._require(self.workflow.incident_id)

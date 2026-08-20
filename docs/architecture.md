@@ -55,7 +55,12 @@ Harness and GitOps; neither is implemented in M1B.
 - Logical Targets contain identity, environment, description, enabled state, labels, and service
   deployments. Connection data belongs to operator-owned Ansible inventory.
 - Playbook mapping is application code; dependency injection selects Mock or Ansible.
-- There is no global executor factory.
+- Worker bootstrap is the composition root: each polling iteration derives the enabled Target
+  allowlist, constructs one operator-selected Mock or Ansible `ActionService`, and shares it
+  between `WorkflowService` and `WorkerService`.
+- Workflow runtime never imports or implicitly selects an executor implementation. A workflow
+  that reaches policy or execution without an injected `ActionService` fails closed as an
+  infrastructure configuration failure.
 
 Ansible may internally use SSH according to operator-owned inventory. That is an implementation
 detail, not part of the OpsPilot application, Agent, API, or ActionRequest contract.
@@ -74,4 +79,6 @@ the reusable Action domain contains no Incident ORM or foreign key.
 The Incident database is the domain source of truth. LangGraph checkpoints only record execution
 position and workflow-local references. `WorkflowRun` is durable OpsPilot metadata and uses a
 stable graph thread identifier equal to its workflow ID. M2's in-memory checkpointer is limited to
-development and tests; durable checkpoint and approval resume are deferred to M4.
+development and tests. `WorkflowService` accepts LangGraph's existing `BaseCheckpointSaver`
+directly instead of wrapping it in a second application-specific checkpoint port. Durable
+Postgres checkpoint and approval resume remain deferred to M4.

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import cast
 
+from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.checkpoint.memory import InMemorySaver
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -18,7 +20,6 @@ from app.repositories.workflow_models import (
 from app.repositories.workflows import WorkflowEvaluationRepository, WorkflowRunRepository
 from app.schemas_workflows import WorkflowTimelineItem
 from app.services.redaction import redact_text
-from app.workflows.incident.checkpoint import CheckpointBackend, MemoryCheckpointBackend
 from app.workflows.incident.context import IncidentWorkflowContext, IncidentWorkflowRuntime
 from app.workflows.incident.errors import (
     DomainFailure,
@@ -36,14 +37,14 @@ class WorkflowService:
         db: Session,
         *,
         investigator: IncidentInvestigator | None = None,
-        checkpoint_backend: CheckpointBackend | None = None,
+        checkpointer: BaseCheckpointSaver[str] | None = None,
         action_service: ActionService | None = None,
     ) -> None:
         self.db = db
         self.runs = WorkflowRunRepository(db)
         self.evaluations = WorkflowEvaluationRepository(db)
         self.investigator = investigator or DeterministicInvestigator()
-        self.checkpoint_backend = checkpoint_backend or MemoryCheckpointBackend()
+        self.checkpointer = checkpointer or InMemorySaver()
         self.action_service = action_service
 
     def start(self, incident_id: str, actor: str, idempotency_key: str) -> WorkflowRunRecord:
@@ -93,7 +94,7 @@ class WorkflowService:
         runtime = IncidentWorkflowRuntime(
             self.db, workflow, self.investigator, self.action_service
         )
-        graph = build_incident_graph(self.checkpoint_backend.create())
+        graph = build_incident_graph(self.checkpointer)
         try:
             runtime.audit_workflow(
                 AuditEventType.WORKFLOW_STARTED, "Incident workflow started", "RUNNING"
@@ -197,7 +198,10 @@ class WorkflowService:
         workflow.current_node = state["current_node"]
         workflow.last_error = state["last_error"]
         workflow.state_references = {
+            **workflow.state_references,
+            "workflow_id": workflow.id,
             "diagnosis_id": state["diagnosis_id"],
+            "action_fingerprint": workflow.proposed_action_id,
             "execution_task_id": state["execution_task_id"],
             "verification_status": state["verification_status"],
         }

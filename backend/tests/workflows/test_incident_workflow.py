@@ -26,7 +26,12 @@ from app.workflows.incident.routing import (
 from app.workflows.incident.state import initial_state
 
 
-def create_incident(db: Session, evidence_summary: str | None = None) -> str:
+def create_incident(
+    db: Session,
+    evidence_summary: str | None = None,
+    *,
+    target: str = "mock-service",
+) -> str:
     service = IncidentService(db)
     incident = service.create_incident(
         IncidentCreate(
@@ -34,7 +39,7 @@ def create_incident(db: Session, evidence_summary: str | None = None) -> str:
             summary="A deterministic test incident",
             severity=Severity.HIGH,
             environment="test-mock",
-            service="mock-service",
+            service=target,
             source="pytest",
         ),
         "tester",
@@ -53,6 +58,10 @@ def create_incident(db: Session, evidence_summary: str | None = None) -> str:
             "tester",
         )
     return incident.id
+
+
+def mock_action_service(*targets: str) -> ActionService:
+    return ActionService(ActionPolicyEngine(frozenset(targets)), MockActionExecutor())
 
 
 def test_graph_topology_is_explicit() -> None:
@@ -121,7 +130,7 @@ def test_no_action_workflow_resolves_incident_and_persists_trace(db: Session) ->
 
 def test_mutating_workflow_stops_at_approval_boundary(db: Session) -> None:
     incident_id = create_incident(db, "service unavailable")
-    service = WorkflowService(db)
+    service = WorkflowService(db, action_service=mock_action_service("mock-service"))
     workflow = service.start(incident_id, "operator", "approval-1")
 
     result = service.run(workflow.id)
@@ -132,6 +141,20 @@ def test_mutating_workflow_stops_at_approval_boundary(db: Session) -> None:
     assert IncidentService(db)._require(incident_id).status is IncidentStatus.INVESTIGATING
     event_types = [item.event_type for item in service.runs.list_audit_events(result.id)]
     assert AuditEventType.WORKFLOW_PAUSED in event_types
+
+
+def test_missing_action_service_fails_closed_before_execution(db: Session) -> None:
+    incident_id = create_incident(db, "read-only-check requested")
+    service = WorkflowService(db)
+    workflow = service.start(incident_id, "operator", "missing-action-service-1")
+
+    result = service.run(workflow.id)
+
+    assert result.status is WorkflowRunStatus.FAILED
+    assert result.execution_task_id is None
+    assert result.last_error is not None
+    assert result.last_error.startswith("WORKFLOW_INFRASTRUCTURE_FAILURE:")
+    assert "operator-configured ActionService" in result.last_error
 
 
 def test_read_only_workflow_executes_through_action_core(db: Session) -> None:

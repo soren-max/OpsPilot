@@ -15,7 +15,13 @@ deprecated migration baseline.
 
 M2 tests graph topology, JSON state, node routing, deterministic happy/blocked/waiting/failure
 paths, idempotent replay, WorkflowRun persistence, audit trace, RBAC API behavior, and migration
-round trips. M4 will add durable approval interrupt/resume tests against a persistent checkpointer.
+round trips. Runtime integration tests prove that configured Mock and Ansible adapters are invoked,
+the enabled Target allowlist and deterministic policy still gate execution, missing
+`ActionService` fails closed, `WAITING_APPROVAL` never calls a mutating adapter, and execute-node
+retries do not dispatch the same action twice. Architecture tests prevent Domain-to-LangGraph or
+executor-implementation imports, direct Ansible/SQLAlchemy use in nodes, and implicit Mock imports
+in workflow runtime. M4 will add durable approval interrupt/resume tests against a persistent
+checkpointer.
 
 ## Security Tests
 

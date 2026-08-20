@@ -63,9 +63,15 @@ See [Safety Model](docs/safety-model.md).
   routing, WorkflowRun metadata, deterministic investigation, audit trace, and API/UI progress.
 - **Planned:** LLM integration, metrics, logs, tickets, durable HITL, MCP, RAG, and incident lab.
 
-M2 uses a pluggable checkpoint port with an in-memory development/test implementation. Stable
-LangGraph threads use `thread_id = workflow_id`, but process restarts lose memory checkpoints.
-Production-grade Postgres checkpoint persistence and authenticated approval/resume belong to M4.
+The worker builds one operator-configured `ActionService` per iteration from the selected Mock or
+Ansible backend and the enabled Target allowlist. It injects that same policy/executor boundary
+into both ordinary Operations and LangGraph workflows; workflow code never selects a backend and
+fails closed if the dependency is absent.
+
+M2 injects LangGraph's own `BaseCheckpointSaver` port and uses `InMemorySaver` for development and
+tests. Stable LangGraph threads use `thread_id = workflow_id`, but process restarts lose memory
+checkpoints. Production-grade Postgres checkpoint persistence and authenticated approval/resume
+belong to M4.
 
 The legacy SSH and service-script runtime has been removed in M1B. Ansible may use SSH internally
 according to operator-owned inventory, but that is not part of the Agent/API contract.
