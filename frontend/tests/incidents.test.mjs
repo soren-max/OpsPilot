@@ -22,6 +22,16 @@ test("incident UI exposes the durable lifecycle without a chat surface", () => {
   assert.match(app, /incidents\/:incidentId\?/);
 });
 
+test("incident evidence shows typed sources and provenance", () => {
+  assert.match(page, /Collected Evidence/);
+  assert.match(page, /METRIC: "Metric"/);
+  assert.match(page, /LOG: "Log"/);
+  assert.match(page, /TICKET: "Ticket"/);
+  assert.match(page, /SERVICE_STATUS: "Health"/);
+  assert.match(page, /source_reference/);
+  assert.match(page, /collector/);
+});
+
 test("incident API client reads lists, detail, and timeline", () => {
   assert.match(api, /\/incidents\?environment=/);
   assert.match(api, /\/incidents\/\$\{incidentId\}/);
