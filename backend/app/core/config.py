@@ -45,6 +45,45 @@ class Settings(BaseSettings):
     capability_max_log_entries: int = Field(default=100, ge=1, le=1000)
     capability_max_metric_series: int = Field(default=20, ge=1, le=100)
     capability_minimum_step_seconds: int = Field(default=15, ge=1, le=3600)
+    llm_mode: str = Field(
+        default="deterministic",
+        validation_alias=AliasChoices("LLM_MODE", "OPSPILOT_LLM_MODE"),
+    )
+    llm_provider: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LLM_PROVIDER", "OPSPILOT_LLM_PROVIDER"),
+    )
+    llm_model: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LLM_MODEL", "OPSPILOT_LLM_MODEL"),
+    )
+    llm_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LLM_API_KEY", "OPSPILOT_LLM_API_KEY"),
+    )
+    llm_timeout_seconds: float = Field(
+        default=30,
+        ge=1,
+        le=120,
+        validation_alias=AliasChoices(
+            "LLM_TIMEOUT_SECONDS", "OPSPILOT_LLM_TIMEOUT_SECONDS"
+        ),
+    )
+    llm_max_retries: int = Field(
+        default=1,
+        ge=0,
+        le=3,
+        validation_alias=AliasChoices("LLM_MAX_RETRIES", "OPSPILOT_LLM_MAX_RETRIES"),
+    )
+    llm_mutating_action_min_confidence: float = Field(
+        default=0.8,
+        ge=0,
+        le=1,
+        validation_alias=AliasChoices(
+            "LLM_MUTATING_ACTION_MIN_CONFIDENCE",
+            "OPSPILOT_LLM_MUTATING_ACTION_MIN_CONFIDENCE",
+        ),
+    )
     login_failure_limit: int = Field(default=5, ge=2, le=20)
     login_failure_window_seconds: int = Field(default=300, ge=10, le=3600)
     login_lockout_seconds: int = Field(default=300, ge=10, le=3600)
@@ -103,6 +142,21 @@ class Settings(BaseSettings):
                 "M2 supports the memory workflow checkpointer only; "
                 "durable Postgres is planned for M4"
             )
+        if self.llm_mode not in {"deterministic", "llm"}:
+            raise ValueError("LLM_MODE must be deterministic or llm")
+        if self.llm_mode == "llm":
+            if self.llm_provider != "openai":
+                raise ValueError("LLM_PROVIDER must be openai in M3B")
+            missing_llm = [
+                name
+                for name, value in {
+                    "LLM_MODEL": self.llm_model,
+                    "LLM_API_KEY": self.llm_api_key,
+                }.items()
+                if not value
+            ]
+            if missing_llm:
+                raise ValueError("LLM mode requires: " + ", ".join(missing_llm))
         if self.production_operations_enabled and not self.write_operations_enabled:
             raise ValueError(
                 "OPSPILOT_PRODUCTION_OPERATIONS_ENABLED requires write operations"

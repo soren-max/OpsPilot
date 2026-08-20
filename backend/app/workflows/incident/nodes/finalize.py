@@ -13,17 +13,22 @@ def finalize(
         state["risk_level"] != RiskLevel.FORBIDDEN.value
         and state["verification_status"] == "SUCCEEDED"
     )
+    inconclusive = state["insufficient_evidence"]
     version = traced_node(
         runtime,
         "finalize",
         lambda: workflow_runtime(runtime).finalize(
-            state["incident_version"], successful=successful
+            state["incident_version"],
+            successful=successful,
+            inconclusive=inconclusive,
         ),
     )
     return {
         "incident_version": version,
         "workflow_status": (
-            WorkflowStatus.SUCCEEDED.value if successful else WorkflowStatus.FAILED.value
+            WorkflowStatus.SUCCEEDED.value
+            if successful or inconclusive
+            else WorkflowStatus.FAILED.value
         ),
         "current_node": "finalize",
         "last_error": (

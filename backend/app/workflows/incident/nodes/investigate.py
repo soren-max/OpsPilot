@@ -26,5 +26,7 @@ def investigate(
         "investigation_root_cause": result.root_cause,
         "investigation_confidence": result.confidence,
         "investigation_evidence_ids": list(result.evidence_ids),
+        "insufficient_evidence": result.insufficient_evidence,
+        "uncertainty": result.uncertainty,
         "current_node": "investigate",
     }

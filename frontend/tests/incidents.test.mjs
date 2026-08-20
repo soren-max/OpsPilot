@@ -32,6 +32,16 @@ test("incident evidence shows typed sources and provenance", () => {
   assert.match(page, /collector/);
 });
 
+test("incident workflow shows grounded investigation without model internals", () => {
+  assert.match(page, /Investigator/);
+  assert.match(page, /Grounded decision/);
+  assert.match(page, /decision_summary/);
+  assert.match(page, /uncertainty/);
+  assert.match(page, /investigation_evidence_ids/);
+  assert.match(page, /#evidence-/);
+  assert.doesNotMatch(page, /chain.of.thought|raw prompt|raw model response/i);
+});
+
 test("incident API client reads lists, detail, and timeline", () => {
   assert.match(api, /\/incidents\?environment=/);
   assert.match(api, /\/incidents\/\$\{incidentId\}/);

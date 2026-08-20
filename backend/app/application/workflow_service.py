@@ -7,6 +7,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.ai.errors import LLMFailure
 from app.application.action_service import ActionService
 from app.capabilities import IncidentCapabilities
 from app.core.errors import ConflictError, NotFoundError
@@ -242,6 +243,10 @@ class WorkflowService:
         classified: WorkflowFailure
         if isinstance(exc, WorkflowFailure):
             classified = exc
+        elif isinstance(exc, LLMFailure):
+            code = exc.code
+            safe = redact_text(str(exc)) or "LLM investigation failure"
+            return f"{code}: {safe}"[:1000]
         elif isinstance(exc, (ConflictError, NotFoundError, ValueError)):
             classified = DomainFailure(str(exc))
         else:

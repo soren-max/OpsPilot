@@ -34,6 +34,8 @@ class IncidentWorkflowState(TypedDict):
     investigation_root_cause: str | None
     investigation_confidence: float | None
     investigation_evidence_ids: list[str]
+    insufficient_evidence: bool
+    uncertainty: str | None
 
 
 def initial_state(incident_id: str, workflow_id: str) -> IncidentWorkflowState:
@@ -60,4 +62,6 @@ def initial_state(incident_id: str, workflow_id: str) -> IncidentWorkflowState:
         investigation_root_cause=None,
         investigation_confidence=None,
         investigation_evidence_ids=[],
+        insufficient_evidence=False,
+        uncertainty=None,
     )

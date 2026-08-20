@@ -166,6 +166,15 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
               <article key={value.id} className="incident-card">
                 <strong>{value.root_cause}</strong>
                 <small>置信度 {Math.round(value.confidence * 100)}%</small>
+                {value.evidence_ids.length ? (
+                  <small>
+                    Evidence: {value.evidence_ids.map((id) => (
+                      <a key={id} href={`#evidence-${id}`} className="mono">
+                        {id.slice(0, 8)}
+                      </a>
+                    ))}
+                  </small>
+                ) : null}
               </article>
             ))
           ) : (
@@ -180,7 +189,7 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
         {item.evidence.length ? (
           <div className="incident-card-list">
             {item.evidence.map((value) => (
-              <article key={value.id} className="incident-card">
+              <article key={value.id} id={`evidence-${value.id}`} className="incident-card">
                 <span>
                   {evidenceLabels[value.evidence_type] ?? value.evidence_type} · {value.source}
                 </span>
@@ -212,6 +221,8 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
               <tr>
                 <th>状态</th>
                 <th>当前节点</th>
+                <th>Investigator</th>
+                <th>Grounded decision</th>
                 <th>启动时间</th>
                 <th>耗时</th>
                 <th>最后错误</th>
@@ -230,6 +241,23 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
                       <StatusBadge status={workflow.status} />
                     </td>
                     <td className="mono">{workflow.current_node ?? "queued"}</td>
+                    <td>
+                      {workflow.state_references.investigator_mode ?? "deterministic"}
+                      {workflow.state_references.model
+                        ? ` / ${workflow.state_references.model}`
+                        : ""}
+                    </td>
+                    <td>
+                      {workflow.state_references.decision_summary ?? "—"}
+                      {workflow.state_references.uncertainty ? (
+                        <small>Uncertainty: {workflow.state_references.uncertainty}</small>
+                      ) : null}
+                      {workflow.state_references.investigation_evidence_ids?.map((id) => (
+                        <a key={id} href={`#evidence-${id}`} className="mono">
+                          {id.slice(0, 8)}
+                        </a>
+                      ))}
+                    </td>
                     <td>{workflow.started_at ? formatDate(workflow.started_at) : "尚未启动"}</td>
                     <td>{duration === null ? "—" : `${Math.round(duration / 1000)}s`}</td>
                     <td>{workflow.last_error ?? "—"}</td>

@@ -1,16 +1,29 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Protocol
 
 from app.domain.actions.models import ActionType
 from app.domain.incidents.evidence import EvidenceType
+from app.domain.incidents.models import JsonValue
 
 
 @dataclass(frozen=True)
 class InvestigationEvidence:
     evidence_id: str
     evidence_type: EvidenceType
+    source: str
+    observed_at: datetime
     summary: str
     excerpt: str | None
+    metadata: dict[str, JsonValue]
+
+
+@dataclass(frozen=True)
+class InvestigatorMetadata:
+    mode: str
+    provider: str | None = None
+    model: str | None = None
+    prompt_version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -30,14 +43,34 @@ class InvestigationResult:
     confidence: float
     evidence_ids: tuple[str, ...]
     action_type: ActionType | None
+    insufficient_evidence: bool = False
+    uncertainty: str | None = None
+    investigator_mode: str = "deterministic"
+    provider: str | None = None
+    model: str | None = None
+    prompt_version: str | None = None
+    latency_ms: int | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
 
 
 class IncidentInvestigator(Protocol):
+    mode: str
+
+    @property
+    def metadata(self) -> InvestigatorMetadata: ...
+
     def investigate(self, context: InvestigationContext) -> InvestigationResult: ...
 
 
 class DeterministicInvestigator:
     """M2 fixture implementation; no model call or hidden reasoning is involved."""
+
+    mode = "deterministic"
+
+    @property
+    def metadata(self) -> InvestigatorMetadata:
+        return InvestigatorMetadata(mode=self.mode)
 
     def investigate(self, context: InvestigationContext) -> InvestigationResult:
         unavailable = [

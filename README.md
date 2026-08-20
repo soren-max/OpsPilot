@@ -27,8 +27,11 @@ whether anything can run.
 ```mermaid
 flowchart TD
   User[User / Alert] --> Workflow[LangGraph Incident Workflow - Implemented]
-  Workflow --> Capabilities[Capabilities - Planned]
-  Capabilities --> Action[Structured Action - Implemented]
+  Workflow --> Capabilities[Prometheus / Loki / Ticket / Health - Implemented]
+  Capabilities --> Evidence[Durable Evidence + provenance]
+  Evidence --> Investigator[LLM Investigator - Implemented]
+  Investigator --> Guard[Structured Output + Grounding Guard]
+  Guard --> Action[Structured Action Proposal]
   Action --> Policy[Deterministic Policy - Implemented]
   Policy --> Approval[Human Approval Boundary - Partial]
   Approval --> Executor[ActionExecutor - Implemented]
@@ -65,7 +68,9 @@ See [Safety Model](docs/safety-model.md).
   runtime wiring.
 - **Implemented:** M3A typed and bounded Prometheus, Loki, Ticket, and Service Health capability
   ports with provenance-preserving Incident Evidence collection.
-- **Planned:** M3B LLM Investigator, durable HITL, MCP, RAG, and incident lab.
+- **Implemented:** M3B provider-neutral structured reasoning, bounded evidence context, grounded
+  LLM investigation, prompt-injection defenses, and deterministic evaluation fixtures.
+- **Planned:** durable HITL, MCP, RAG, and incident lab.
 
 The worker builds one operator-configured `ActionService` per iteration from the selected Mock or
 Ansible backend and the enabled Target allowlist. It injects that same policy/executor boundary
