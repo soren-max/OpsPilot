@@ -18,6 +18,7 @@ from app.core.errors import AppError, ForbiddenError
 from app.core.logging import configure_logging
 from app.db.session import SessionLocal
 from app.services.audit import write_audit
+from app.workflows.checkpoint import get_workflow_checkpointer
 
 settings = get_settings()
 configure_logging(settings.log_level, settings.log_file)
@@ -31,6 +32,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         settings.selected_executor,
         settings.dry_run_only,
     )
+    get_workflow_checkpointer()
     db = SessionLocal()
     try:
         seed_default_admin(db, settings)

@@ -9,10 +9,21 @@ It is built to help SRE and incident responders collect evidence, form explicit 
 propose structured actions, and execute approved changes through constrained infrastructure
 adapters — never through an arbitrary shell.
 
-The current milestone (M3.5) is a demo-readiness portfolio point: the project demonstrates a complete
+The current milestone (M5) demonstrates a complete
 **Observability → Evidence → LLM Investigator → Grounding Guard → Structured Action → Policy →
-Human Approval → Executor** pipeline, and deliberately **stops before mutating actions are
-executed without durable approval**. Durable approval/resume is the next milestone (M4).
+Durable Human Approval → Ansible → Verification** pipeline against a reproducible local Lab.
+The default walkthrough is deterministic and requires no model API key.
+
+## Live Incident Lab
+
+In about 30 seconds of terminal output, `make lab-demo` explains the operational story:
+
+**Fault → real Prometheus/Loki/Health Evidence → deterministic investigation → approval → fixed
+Ansible remediation → verified recovery.**
+
+The existing fixture demo (`make demo`) is the fastest zero-service walkthrough. The Live Lab
+(`make lab-demo`) starts disposable Docker services and proves the actual integration boundaries.
+See [lab/README.md](lab/README.md). Neither mode is presented as production deployment.
 
 ## Why OpsPilot
 

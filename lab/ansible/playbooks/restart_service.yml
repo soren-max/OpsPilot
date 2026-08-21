@@ -1,0 +1,10 @@
+---
+- name: Restart the fixed OpsPilot lab web process
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Request restart through the lab control boundary
+      ansible.builtin.uri:
+        url: "{{ control_url }}/restart"
+        method: POST
+        status_code: 200

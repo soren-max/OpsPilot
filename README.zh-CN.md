@@ -8,10 +8,18 @@ OpsPilot 是一个开源的、以证据驱动（Evidence-driven）且由人控�
 SRE 与事故响应人员收集证据、形成明确的假设、提出结构化动作（Structured Action），并经由
 受限的基础设施适配器执行经过审批的变更——而不是通过任意 shell。
 
-当前里程碑（M3.5）是面向演示就绪的稳定项目收口点：项目完整展示了
+当前里程碑（M5）把完整流水线接入可重复运行的本地 Docker Lab：
 **可观测性 → 证据 → LLM 调查器 → 证据约束（Evidence Grounding）→ 结构化动作 → 策略 →
-人工审批 → 执行器** 这条流水线，并刻意在「未获得持久化审批就执行变更动作」之前停下。
-持久化的审批与恢复是下一个里程碑（M4）。
+持久化人工审批 → Ansible → 验证**。默认演示使用确定性调查器，不需要模型 API Key。
+
+## Live Incident Lab
+
+运行 `make lab-demo`，终端会依次展示：
+
+**故障 → 真实 Prometheus/Loki/Health 证据 → 确定性调查 → 审批 → 固定 Ansible 修复 → 恢复验证。**
+
+`make demo` 是无需容器的 fixture 演示；`make lab-demo` 会启动一次性的真实本地服务和遥测
+组件。详细说明见 [lab/README.md](lab/README.md)。两者都不是生产部署方案。
 
 ## 为什么需要 OpsPilot
 

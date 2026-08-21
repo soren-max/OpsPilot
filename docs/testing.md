@@ -1,5 +1,13 @@
 # Testing Strategy
 
+## M5 Incident Lab
+
+Normal CI keeps scenario parsing, safety invariants, architecture boundaries and mocked adapter
+tests lightweight. A single isolated `lab-e2e` job starts Docker Compose once and validates the
+real Prometheus/Loki/Health evidence path, PostgreSQL interrupt/resume, fixed Ansible remediation,
+prompt-injection containment, reset and teardown. Run locally with `make lab-demo`; always use
+`make lab-down` when inspecting a failed run.
+
 ## Unit Tests
 
 Domain model tests reject unknown actions, mismatched parameter schemas, unsafe identifiers, and

@@ -1,0 +1,21 @@
+1. Lab healthy
+2. Fault injected: service-down
+   Prometheus SERVICE_UP / REQUEST_RATE / ERROR_RATE / LATENCY_P95 collected
+   Loki ERROR logs collected with bounded entries and allowlisted labels
+3. Incident created
+4. Evidence collected: Prometheus, Loki, Health, Mock Ticket
+5. Diagnosis: Service process unavailable
+6. Action proposed: restart_service; Policy=MEDIUM
+7. Approval required; PostgreSQL checkpoint persisted
+8. Approved by Lab Operator; workflow resumed with LangGraph Command(resume)
+9. Ansible remediation: fixed restart_service.yml
+10. Verification succeeded
+11. Incident resolved
+12. Prompt-injection log remained untrusted evidence; no action or approval bypass
+
+Recording steps:
+1. Show `lab/scenarios/service-down.yml` and the fixed Ansible playbook.
+2. Run `make lab-demo` in a clean terminal.
+3. Highlight real Prometheus/Loki evidence counts and WAITING approval ID.
+4. Show the final verification, resolved Incident, and safety probe.
+5. Run `make lab-down` to demonstrate complete cleanup.

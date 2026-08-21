@@ -1,0 +1,144 @@
+name: opspilot-lab
+
+x-lab-service: &lab-service
+  build:
+    context: ./services
+  restart: unless-stopped
+  labels:
+    com.opspilot.lab: "true"
+    com.opspilot.environment: lab
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: opspilot
+      POSTGRES_PASSWORD: lab-only-password
+      POSTGRES_DB: opspilot_lab
+    ports:
+      - "127.0.0.1:55433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opspilot -d opspilot_lab"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  dependency:
+    <<: *lab-service
+    environment:
+      LAB_ROLE: dependency
+    labels:
+      com.opspilot.lab: "true"
+      com.opspilot.environment: lab
+      com.opspilot.service: dependency
+    ports:
+      - "127.0.0.1:18083:8081"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+
+  web-01:
+    <<: *lab-service
+    environment:
+      LAB_ROLE: web-01
+      LAB_DEPENDENCY_URL: http://dependency:8080/health
+    labels:
+      com.opspilot.lab: "true"
+      com.opspilot.environment: lab
+      com.opspilot.service: web-01
+    ports:
+      - "127.0.0.1:18080:8080"
+      - "127.0.0.1:18081:8081"
+    depends_on:
+      dependency:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/control/status')"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+
+  web-02:
+    <<: *lab-service
+    environment:
+      LAB_ROLE: web-02
+      LAB_DEPENDENCY_URL: http://dependency:8080/health
+    labels:
+      com.opspilot.lab: "true"
+      com.opspilot.environment: lab
+      com.opspilot.service: web-02
+    ports:
+      - "127.0.0.1:18082:8080"
+    depends_on:
+      dependency:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=1h"]
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "127.0.0.1:19090:9090"
+    depends_on:
+      web-01:
+        condition: service_healthy
+      web-02:
+        condition: service_started
+
+  loki:
+    image: grafana/loki:3.5.5
+    command: ["-config.file=/etc/loki/local-config.yml"]
+    volumes:
+      - ./loki/loki.yml:/etc/loki/local-config.yml:ro
+      - loki_data:/loki
+    ports:
+      - "127.0.0.1:13100:3100"
+
+  promtail:
+    image: grafana/promtail:3.5.5
+    command: ["-config.file=/etc/promtail/config.yml"]
+    volumes:
+      - ./promtail/promtail.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+
+  lab-runner:
+    profiles: ["demo"]
+    build:
+      context: ..
+      dockerfile: lab/runner.Dockerfile
+    environment:
+      OPSPILOT_DATABASE_URL: postgresql+psycopg://opspilot:lab-only-password@postgres:5432/opspilot_lab
+      OPSPILOT_WORKFLOW_CHECKPOINT_BACKEND: postgres
+      OPSPILOT_SECRET_KEY: lab-only-secret-key-at-least-32-characters
+      OPSPILOT_EXECUTOR: ansible
+      OPSPILOT_DRY_RUN_ONLY: "false"
+      OPSPILOT_EXECUTION_ACKNOWLEDGED: "true"
+      OPSPILOT_ANSIBLE_INVENTORY_PATH: /workspace/lab/ansible/inventory.ini
+      OPSPILOT_ANSIBLE_PLAYBOOK_DIRECTORY: /workspace/lab/ansible/playbooks
+      OPSPILOT_ANSIBLE_BINARY_PATH: /src/.venv/bin/ansible-playbook
+      OPSPILOT_PROMETHEUS_BASE_URL: http://prometheus:9090
+      OPSPILOT_LOKI_BASE_URL: http://loki:3100
+      LAB_CONTROL_BASE: http://web-01:8081
+      LAB_DEPENDENCY_CONTROL_BASE: http://dependency:8081
+    volumes:
+      - ../:/workspace:ro
+    working_dir: /workspace/backend
+    command: ["sh", "-c", "python -m alembic upgrade head && python -m app.lab demo"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
+      promtail:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  loki_data:
