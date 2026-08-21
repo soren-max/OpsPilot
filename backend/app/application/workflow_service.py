@@ -3,12 +3,13 @@ from __future__ import annotations
 from typing import cast
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
-from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import Command
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.ai.errors import LLMFailure
 from app.application.action_service import ActionService
+from app.application.approval_service import ApprovalService
 from app.capabilities import IncidentCapabilities
 from app.core.errors import ConflictError, NotFoundError
 from app.db.base import utc_now
@@ -22,6 +23,7 @@ from app.repositories.workflow_models import (
 from app.repositories.workflows import WorkflowEvaluationRepository, WorkflowRunRepository
 from app.schemas_workflows import WorkflowTimelineItem
 from app.services.redaction import redact_text
+from app.workflows.checkpoint import get_workflow_checkpointer
 from app.workflows.incident.context import IncidentWorkflowContext, IncidentWorkflowRuntime
 from app.workflows.incident.errors import (
     DomainFailure,
@@ -47,7 +49,7 @@ class WorkflowService:
         self.runs = WorkflowRunRepository(db)
         self.evaluations = WorkflowEvaluationRepository(db)
         self.investigator = investigator or DeterministicInvestigator()
-        self.checkpointer = checkpointer or InMemorySaver()
+        self.checkpointer = checkpointer or get_workflow_checkpointer()
         self.action_service = action_service
         self.capabilities = capabilities
 
@@ -109,7 +111,19 @@ class WorkflowService:
                 context=IncidentWorkflowContext(runtime=runtime),
             )
             state = cast(IncidentWorkflowState, result)
-            self._apply_result(workflow, state, runtime)
+            approval_id = workflow.state_references.get("approval_id")
+            if isinstance(approval_id, str):
+                workflow.status = WorkflowRunStatus.WAITING
+                workflow.current_node = "approval_required"
+                workflow.last_checkpoint_at = utc_now()
+                workflow.state_references = {
+                    **workflow.state_references,
+                    "diagnosis_id": state["diagnosis_id"],
+                    "action_type": state["proposed_action_type"],
+                    "risk_level": state["risk_level"],
+                }
+            else:
+                self._apply_result(workflow, state, runtime)
         except Exception as exc:
             self.db.rollback()
             workflow = self._require(workflow_id)
@@ -128,6 +142,48 @@ class WorkflowService:
                 "Incident workflow failed",
                 workflow.last_error,
             )
+        self.db.commit()
+        return workflow
+
+    def resume(self, approval_id: str) -> WorkflowRunRecord:
+        approval_service = ApprovalService(self.db)
+        approval = approval_service.get(approval_id)
+        workflow = self._require(approval.workflow_run_id)
+        if approval.resumed_at is not None or workflow.status in {
+            WorkflowRunStatus.SUCCEEDED,
+            WorkflowRunStatus.FAILED,
+        }:
+            return workflow
+        if workflow.status is not WorkflowRunStatus.WAITING:
+            raise ConflictError("WORKFLOW_NOT_WAITING", "Workflow is not waiting for approval")
+        if approval.decision is None:
+            raise ConflictError("APPROVAL_PENDING", "Approval request has not been resolved")
+        if workflow.proposed_action_id != approval.action_fingerprint:
+            raise ConflictError("APPROVAL_ACTION_MISMATCH", "Approval does not match the action")
+        workflow.status = WorkflowRunStatus.RUNNING
+        runtime = IncidentWorkflowRuntime(
+            self.db, workflow, self.investigator, self.action_service, self.capabilities
+        )
+        graph = build_incident_graph(self.checkpointer)
+        try:
+            result = graph.invoke(
+                Command(
+                    resume={
+                        "approval_id": approval.id,
+                        "decision": approval.decision.value,
+                    }
+                ),
+                config={"configurable": {"thread_id": workflow.id}},
+                context=IncidentWorkflowContext(runtime=runtime),
+            )
+            self._apply_result(workflow, cast(IncidentWorkflowState, result), runtime)
+            approval_service.mark_resumed(approval.id)
+        except Exception as exc:
+            self.db.rollback()
+            workflow = self._require(workflow.id)
+            workflow.status = WorkflowRunStatus.FAILED
+            workflow.finished_at = utc_now()
+            workflow.last_error = self._safe_error(exc)
         self.db.commit()
         return workflow
 
@@ -210,6 +266,7 @@ class WorkflowService:
             "workflow_id": workflow.id,
             "diagnosis_id": state["diagnosis_id"],
             "action_fingerprint": workflow.proposed_action_id,
+            "approval_id": state["approval_id"],
             "execution_task_id": state["execution_task_id"],
             "verification_status": state["verification_status"],
         }

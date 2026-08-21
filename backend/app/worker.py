@@ -60,7 +60,12 @@ def build_action_service(
             runner=runner,
             playbook_root=playbook_root,
         )
-    targets = frozenset(db.scalars(select(Host.name).where(Host.enabled.is_(True))))
+    targets = frozenset(
+        [
+            *db.scalars(select(Host.name).where(Host.enabled.is_(True))),
+            *db.scalars(select(Service.name).where(Service.enabled.is_(True))),
+        ]
+    )
     return ActionService(ActionPolicyEngine(targets), executor)
 
 
@@ -68,9 +73,7 @@ def build_incident_capabilities(
     db: Session, settings: Settings, action_service: ActionService
 ) -> IncidentCapabilities:
     """Compose bounded read-only investigation capabilities from operator settings."""
-    services = frozenset(
-        db.scalars(select(Service.name).where(Service.enabled.is_(True)))
-    )
+    services = frozenset(db.scalars(select(Service.name).where(Service.enabled.is_(True))))
     deployments = db.execute(
         select(Service.name, Host.name)
         .join(ServiceDeployment, ServiceDeployment.service_id == Service.id)
@@ -106,9 +109,7 @@ def build_incident_capabilities(
         if settings.prometheus_auth_token
         else None
     )
-    loki_token = (
-        settings.loki_auth_token.get_secret_value() if settings.loki_auth_token else None
-    )
+    loki_token = settings.loki_auth_token.get_secret_value() if settings.loki_auth_token else None
     metrics = (
         PrometheusMetricsAdapter(client(settings.prometheus_base_url, prometheus_token))
         if settings.prometheus_base_url

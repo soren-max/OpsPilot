@@ -18,6 +18,6 @@ def failure(
     return {
         "incident_version": version,
         "workflow_status": WorkflowStatus.FAILED.value,
-        "last_error": "VERIFICATION_FAILED",
+        "last_error": state["last_error"] or "VERIFICATION_FAILED",
         "current_node": "failure",
     }

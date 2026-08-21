@@ -20,3 +20,7 @@ def route_after_risk(
 
 def route_after_verify(state: IncidentWorkflowState) -> Literal["finalize", "failure"]:
     return "finalize" if state["verification_status"] == "SUCCEEDED" else "failure"
+
+
+def route_after_approval(state: IncidentWorkflowState) -> Literal["execute", "failure"]:
+    return "execute" if state["approval_decision"] == "APPROVE" else "failure"

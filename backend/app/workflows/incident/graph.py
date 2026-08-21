@@ -19,6 +19,7 @@ from app.workflows.incident.nodes import (
     verify,
 )
 from app.workflows.incident.routing import (
+    route_after_approval,
     route_after_diagnosis,
     route_after_risk,
     route_after_verify,
@@ -62,7 +63,7 @@ def incident_graph_builder() -> StateGraph[
     graph.add_conditional_edges("diagnose", route_after_diagnosis)
     graph.add_edge("propose_action", "assess_risk")
     graph.add_conditional_edges("assess_risk", route_after_risk)
-    graph.add_edge("approval_required", END)
+    graph.add_conditional_edges("approval_required", route_after_approval)
     graph.add_edge("execute", "verify")
     graph.add_conditional_edges("verify", route_after_verify)
     graph.add_edge("failure", END)
