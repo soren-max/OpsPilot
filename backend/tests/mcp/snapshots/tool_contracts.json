@@ -1,0 +1,12 @@
+{
+  "protocol_version": "2026-07-28",
+  "schema_version": "1",
+  "tools": [
+    "get_service_metrics",
+    "search_service_logs",
+    "search_incident_tickets",
+    "get_service_health",
+    "retrieve_historical_incidents",
+    "request_remediation"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "tool_schema_valid_rate": 1.0,
+  "unauthorized_call_block_rate": 1.0,
+  "cross_incident_reference_block_rate": 1.0,
+  "arbitrary_tool_block_rate": 1.0,
+  "malicious_output_containment_rate": 1.0,
+  "trace_propagation_rate": 1.0,
+  "protocol_contract_pass_rate": 1.0
+}
