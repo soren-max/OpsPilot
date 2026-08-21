@@ -8,7 +8,7 @@ OpsPilot 是一个开源的、以证据驱动（Evidence-driven）且由人控�
 SRE 与事故响应人员收集证据、形成明确的假设、提出结构化动作（Structured Action），并经由
 受限的基础设施适配器执行经过审批的变更——而不是通过任意 shell。
 
-当前里程碑（M6）在完整流水线上增加带来源的历史 Incident Memory：
+当前里程碑（M7）在完整流水线上增加 MCP `2026-07-28` capability interoperability plane：
 **可观测性 → 证据 → LLM 调查器 → 证据约束（Evidence Grounding）→ 结构化动作 → 策略 →
 持久化人工审批 → Ansible → 验证**。默认演示使用确定性调查器，不需要模型 API Key。
 
@@ -104,9 +104,15 @@ ActionRequest -> ActionPolicyEngine -> approval boundary -> ActionExecutor -> ve
 - 依赖注入端口背后的 Mock 与固定映射 Ansible 执行器（`M1A`/`M1B`）
 - 审计 / 评估基础：评估夹具、安全用例、CI 中的 secret 扫描
 
+## MCP Capability Plane
+
+M7 使用官方 Python SDK，以 MCP `2026-07-28` 通过 stdio 和无状态 Streamable HTTP 暴露固定
+allowlist 的 typed observability 与 historical-memory 工具。MCP annotations 只是提示；Policy、
+Evidence ownership、durable HITL 和固定 Executor 仍是唯一安全边界。唯一写操作工具只创建
+remediation proposal 并返回 approval reference，不能直接执行。运行 `make mcp-demo` 验证互操作。
+
 **计划中（Planned，尚未实现）：**
 
-- MCP 能力边界（`M7`）
 - Harness 多后端执行（`M8`）
 - GitOps 受治理变更工作流（`M9`）
 - 高级评估与智能体可观测性（`M10`/`M11`）
@@ -223,7 +229,7 @@ M1B 已移除遗留的 SSH 与服务脚本运行时。Ansible 可以按运维自
 | **M4 Durable HITL + Postgres Checkpoint** | **下一里程碑** |
 | M5 Incident Lab | 未来 |
 | M6 Playbook Memory / RAG | 未来 |
-| M7 MCP | 未来 |
+| M7 MCP Capability Boundary | **已实现** |
 | M8 Harness Multi-backend Execution | 未来 |
 | M9 GitOps | 未来 |
 | M10 Risk Reviewer / Evaluation | 未来 |

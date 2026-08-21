@@ -12,7 +12,7 @@
 | M4 Durable HITL + Checkpoint | Done | Identity-bound approval and resumable state |
 | M5 Local Incident Lab | Done | Reproducible live telemetry, failure, approval, and recovery scenarios |
 | M6 Historical Incident Memory / RAG | Done | Hybrid retrieval with provenance and eval |
-| M7 MCP Capability Boundary | Planned | Optional interoperable capability boundary |
+| M7 MCP Capability Boundary | Done | MCP 2026-07-28 typed interoperability and governed proposals |
 | M8 Multi-backend Execution | Planned | Ansible plus a future Harness backend |
 | M9 GitOps Change Workflow | Planned | Governed configuration and deployment change |
 | M10 Risk Reviewer & Evaluation | Planned | Advisory risk review and safety evaluation |
@@ -35,4 +35,4 @@ Postgres Checkpoint** (identity-bound approval and resumable state).
 - Approval API and incident approval UI
 - Offline approve/resume/mock-execute/verify demo
 
-Next: **M7 MCP Capability Boundary**.
+Next: **M8 Multi-backend Governed Execution**.

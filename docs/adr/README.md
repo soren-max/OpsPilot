@@ -14,3 +14,4 @@ original content.
 | [0007](0007-llm-reasoning-with-deterministic-authorization.md) | LLM Reasoning with Deterministic Authorization | Accepted | Models reason over evidence; guards, policy, and HITL retain authority. |
 | [0008](0008-durable-human-approval-boundary.md) | Durable Human Approval Boundary | Accepted | Approval identity and checkpoint continuation remain auditable and separate. |
 | [0009](0009-historical-incident-memory-is-context-not-evidence.md) | Historical Incident Memory Is Context, Not Evidence | Accepted | Retrieved precedent can inform reasoning but cannot prove facts or authorize action. |
+| [0010](0010-mcp-is-an-interoperability-boundary-not-an-authorization-boundary.md) | MCP Is an Interoperability Boundary | Accepted | Protocol interoperability cannot bypass typed ports, Policy, or HITL. |
