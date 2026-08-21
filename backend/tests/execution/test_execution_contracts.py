@@ -26,6 +26,7 @@ from app.domain.execution import (
     ExecutionProfile,
     ExecutionStatus,
 )
+from app.execution.errors import IndeterminateDispatch
 from app.execution.router import ExecutionRouter
 
 
@@ -119,6 +120,12 @@ class RecordingHarnessClient:
         return {"data": {"pipelineExecutionSummary": {"status": "Success"}}}
 
 
+class AcceptedWithoutHandleClient(RecordingHarnessClient):
+    async def post(self, path: str, *, params: Mapping[str, str], body: str) -> object:
+        del path, params, body
+        return {"data": {"status": "accepted"}}
+
+
 @pytest.mark.asyncio
 async def test_harness_uses_only_allowlisted_profile_and_typed_inputs() -> None:
     client = RecordingHarnessClient()
@@ -137,6 +144,24 @@ async def test_harness_uses_only_allowlisted_profile_and_typed_inputs() -> None:
     assert "execution-123" in client.body
     assert result.backend_execution_id == "provider-123"
     assert result.initial_status is ExecutionStatus.SUBMITTED
+
+
+@pytest.mark.asyncio
+async def test_harness_accept_without_handle_is_indeterminate() -> None:
+    backend = HarnessPipelineExecutionBackend(
+        AcceptedWithoutHandleClient(),
+        account_id="account",
+        org_id="org",
+        project_id="project",
+    )
+    context = ExecutionContext(
+        execution_id="execution-unknown",
+        incident_id="incident-123",
+        workflow_id="workflow-123",
+        profile=profile(),
+    )
+    with pytest.raises(IndeterminateDispatch):
+        await backend.submit(request(), context)
 
 
 @pytest.mark.parametrize(

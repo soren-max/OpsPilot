@@ -139,12 +139,17 @@ class HarnessPipelineExecutionBackend:
             span.set_attribute("execution.id", context.execution_id)
             span.set_attribute("backend.type", BackendType.HARNESS.value)
             span.set_attribute("cicd.pipeline.name", pipeline)
-            response = await self.client.post(
-                f"/pipeline/api/pipeline/execute/{pipeline}",
-                params=self._params(),
-                body=payload,
-            )
-        provider_id = self._provider_execution_id(response)
+            try:
+                response = await self.client.post(
+                    f"/pipeline/api/pipeline/execute/{pipeline}",
+                    params=self._params(),
+                    body=payload,
+                )
+                provider_id = self._provider_execution_id(response)
+            except MalformedBackendResponse as exc:
+                raise IndeterminateDispatch(
+                    "Harness may have accepted dispatch but returned no usable execution ID"
+                ) from exc
         return ExecutionSubmission(
             execution_id=context.execution_id,
             backend_type=BackendType.HARNESS,

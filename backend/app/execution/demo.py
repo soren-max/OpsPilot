@@ -13,7 +13,7 @@ from app.domain.actions.models import (
     TargetEnvironment,
 )
 from app.domain.actions.policy import ActionPolicyEngine
-from app.domain.execution import BackendType, ExecutionContext, ExecutionProfile
+from app.domain.execution import BackendType, ExecutionBackend, ExecutionContext, ExecutionProfile
 from app.execution.router import ExecutionRouter
 
 
@@ -67,13 +67,11 @@ async def run() -> None:
         },
     )
     policy = ActionPolicyEngine(frozenset({"demo-service"}))
-    for index, (request, backend) in enumerate(
-        (
-            (action(TargetEnvironment.TEST), ansible),
-            (action(TargetEnvironment.PRODUCTION), harness),
-        ),
-        start=1,
-    ):
+    scenarios: tuple[tuple[ActionRequest, ExecutionBackend], ...] = (
+        (action(TargetEnvironment.TEST), ansible),
+        (action(TargetEnvironment.PRODUCTION), harness),
+    )
+    for index, (request, backend) in enumerate(scenarios, start=1):
         assessment = policy.assess(request, approval_granted=True)
         route = router.route(request, assessment)
         profile = lab if route.profile_name == lab.name else production
