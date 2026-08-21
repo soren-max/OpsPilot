@@ -1,5 +1,12 @@
 # Testing Strategy
 
+## M8 Governed Execution Plane
+
+Execution tests cover strict backend contracts, deterministic routing, profile allowlists, Harness
+trigger/status contracts, outbox uniqueness and `SKIP LOCKED` claims, expired-lease recovery,
+indeterminate dispatch without retry, reconciliation, independent verification, architecture,
+safe telemetry, API reads, and the frontend timeline. Real Harness credentials are not required.
+
 ## M7 MCP Capability Boundary
 
 `backend/tests/mcp` covers official SDK discovery, schemas, structured tool calls, resources,

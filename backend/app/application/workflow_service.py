@@ -16,6 +16,7 @@ from app.db.base import utc_now
 from app.domain.audit.models import AuditEventType
 from app.domain.incidents.memory import KnowledgeRetriever
 from app.domain.incidents.models import IncidentStatus
+from app.execution.service import ExecutionDispatcher, ExecutionPlaneService
 from app.repositories.workflow_models import (
     WorkflowEvaluationRecord,
     WorkflowRunRecord,
@@ -28,6 +29,7 @@ from app.workflows.checkpoint import get_workflow_checkpointer
 from app.workflows.incident.context import IncidentWorkflowContext, IncidentWorkflowRuntime
 from app.workflows.incident.errors import (
     DomainFailure,
+    ExecutionPending,
     WorkflowFailure,
     WorkflowInfrastructureFailure,
 )
@@ -46,6 +48,8 @@ class WorkflowService:
         action_service: ActionService | None = None,
         capabilities: IncidentCapabilities | None = None,
         knowledge_retriever: KnowledgeRetriever | None = None,
+        execution_plane: ExecutionPlaneService | None = None,
+        execution_dispatcher: ExecutionDispatcher | None = None,
     ) -> None:
         self.db = db
         self.runs = WorkflowRunRepository(db)
@@ -55,6 +59,8 @@ class WorkflowService:
         self.action_service = action_service
         self.capabilities = capabilities
         self.knowledge_retriever = knowledge_retriever
+        self.execution_plane = execution_plane
+        self.execution_dispatcher = execution_dispatcher
 
     def start(self, incident_id: str, actor: str, idempotency_key: str) -> WorkflowRunRecord:
         from app.application.incident_service import IncidentService
@@ -107,6 +113,8 @@ class WorkflowService:
             self.action_service,
             self.capabilities,
             self.knowledge_retriever,
+            execution_plane=self.execution_plane,
+            execution_dispatcher=self.execution_dispatcher,
         )
         graph = build_incident_graph(self.checkpointer)
         try:
@@ -132,6 +140,12 @@ class WorkflowService:
                 }
             else:
                 self._apply_result(workflow, state, runtime)
+        except ExecutionPending:
+            self.db.rollback()
+            workflow = self._require(workflow_id)
+            workflow.status = WorkflowRunStatus.WAITING
+            workflow.current_node = "execution_pending"
+            workflow.last_checkpoint_at = utc_now()
         except Exception as exc:
             self.db.rollback()
             workflow = self._require(workflow_id)
@@ -145,6 +159,8 @@ class WorkflowService:
                 self.action_service,
                 self.capabilities,
                 self.knowledge_retriever,
+                execution_plane=self.execution_plane,
+                execution_dispatcher=self.execution_dispatcher,
             )
             runtime.audit_workflow(
                 AuditEventType.WORKFLOW_FAILED,
@@ -177,6 +193,8 @@ class WorkflowService:
             self.action_service,
             self.capabilities,
             self.knowledge_retriever,
+            execution_plane=self.execution_plane,
+            execution_dispatcher=self.execution_dispatcher,
         )
         graph = build_incident_graph(self.checkpointer)
         try:
@@ -191,6 +209,13 @@ class WorkflowService:
                 context=IncidentWorkflowContext(runtime=runtime),
             )
             self._apply_result(workflow, cast(IncidentWorkflowState, result), runtime)
+            approval_service.mark_resumed(approval.id)
+        except ExecutionPending:
+            self.db.rollback()
+            workflow = self._require(workflow.id)
+            workflow.status = WorkflowRunStatus.WAITING
+            workflow.current_node = "execution_pending"
+            workflow.last_checkpoint_at = utc_now()
             approval_service.mark_resumed(approval.id)
         except Exception as exc:
             self.db.rollback()

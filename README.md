@@ -9,7 +9,12 @@ It is built to help SRE and incident responders collect evidence, form explicit 
 propose structured actions, and execute approved changes through constrained infrastructure
 adapters — never through an arbitrary shell.
 
-The current milestone (M7) adds an MCP `2026-07-28` interoperability plane to the complete
+The current milestone (M8) adds a governed multi-backend execution plane. Mock and Ansible remain,
+while allowlisted Harness CD pipelines add asynchronous delivery with a transactional outbox,
+indeterminate-dispatch recovery, reconciliation, and independent verification. LLM and MCP callers
+cannot select a backend or pipeline.
+
+M7 added an MCP `2026-07-28` interoperability plane to the complete
 **Observability → Evidence → LLM Investigator → Grounding Guard → Structured Action → Policy →
 Durable Human Approval → Ansible → Verification** pipeline against a reproducible local Lab.
 The default walkthrough is deterministic and requires no model API key.
@@ -269,8 +274,8 @@ according to operator-owned inventory, but that is not part of the Agent/API con
 | M5 Incident Lab | Future |
 | M6 Playbook Memory / RAG | Future |
 | M7 MCP Capability Boundary | **Implemented** |
-| M8 Harness Multi-backend Execution | Future |
-| M9 GitOps | Future |
+| M8 Harness Multi-backend Execution | **Implemented** |
+| M9 GitOps | **Next** |
 | M10 Risk Reviewer / Evaluation | Future |
 | M11 Agent Observability | Future |
 

@@ -1,5 +1,9 @@
 # 测试策略（Testing Strategy）
 
+M8 测试覆盖 deterministic routing、profile allowlist、outbox 幂等与 lease、worker crash、
+UNKNOWN recovery、Harness contract/status mapping、reconciliation、独立 verification、OTel、API
+与前端。默认 CI 不需要真实 Harness SaaS。
+
 [English](../testing.md) | [简体中文](testing.md)
 
 ## 单元测试

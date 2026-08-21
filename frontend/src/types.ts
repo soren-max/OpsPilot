@@ -337,3 +337,28 @@ export interface ApprovalRequest {
   reason: string | null;
   resumed_at: string | null;
 }
+
+export interface ExecutionRecord {
+  id: string;
+  incident_id: string;
+  workflow_id: string;
+  action_fingerprint: string;
+  backend_type: "mock" | "ansible" | "harness";
+  backend_profile: string;
+  status: string;
+  provider_execution_id: string | null;
+  attempt: number;
+  submitted_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  last_reconciled_at: string | null;
+  failure_category: string | null;
+  safe_failure_message: string | null;
+  trace_id: string | null;
+  version: number;
+  safe_provider_status: string | null;
+  verification_status: string | null;
+  artifact_digest: string | null;
+  git_commit_sha: string | null;
+  created_at: string;
+}
