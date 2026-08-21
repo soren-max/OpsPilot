@@ -157,7 +157,11 @@ def run_demo(scenario: DemoScenario) -> DemoResult:
     execution = asyncio.run(
         ActionService(policy, MockActionExecutor()).execute(request, approval_granted=True)
     )
-    if execution.result is None or execution.verification is None:
+    if (
+        execution.result is None
+        or execution.verification is None
+        or not execution.verification.verified
+    ):
         raise ValueError("approved demo action must execute and verify")
     result = DemoResult(
         incident_id=scenario.incident.id,
@@ -168,7 +172,7 @@ def run_demo(scenario: DemoScenario) -> DemoResult:
         risk=assessment.risk_level.value,
         approval_status="APPROVED",
         checkpoint_id=checkpoint_id,
-        verification_status="SUCCEEDED" if execution.verification.verified else "FAILED",
+        verification_status="SUCCEEDED",
         final_state=DemoFinalState.SUCCEEDED,
     )
     if result.final_state.value != scenario.expected_workflow_state:
