@@ -65,6 +65,35 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
 
+  memory-e2e:
+    runs-on: ubuntu-latest
+    services:
+      qdrant:
+        image: qdrant/qdrant:v1.15.4
+        ports:
+          - 6333:6333
+        options: >-
+          --health-cmd "bash -c ': > /dev/tcp/127.0.0.1/6333'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      OPSPILOT_MEMORY_E2E: "1"
+      OPSPILOT_QDRANT_BASE_URL: http://127.0.0.1:6333
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        run: python -m pip install --disable-pip-version-check uv
+      - name: Install backend
+        run: uv sync --project backend --extra dev --locked
+      - name: Validate hybrid index and retrieval
+        run: uv run --project backend pytest backend/tests/memory/test_qdrant_adapter.py
+      - name: Run offline retrieval benchmark
+        run: uv run --project backend python -m app.memory.eval
+
   security:
     runs-on: ubuntu-latest
     steps:

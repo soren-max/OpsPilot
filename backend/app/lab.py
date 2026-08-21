@@ -36,7 +36,9 @@ from app.core.enums import EnvironmentLevel
 from app.db.session import SessionLocal
 from app.domain.approvals import ApprovalActor
 from app.domain.incidents.evidence import EvidenceType
+from app.domain.incidents.knowledge import IncidentKnowledgeRecord
 from app.domain.incidents.models import IncidentStatus, Severity
+from app.memory.factory import build_memory_store
 from app.models import Environment, Host, Service, ServiceDeployment
 from app.repositories.workflow_models import WorkflowRunStatus
 from app.schemas_incidents import IncidentCreate
@@ -284,6 +286,26 @@ def demo() -> None:
     with SessionLocal() as db:
         settings = get_settings()
         action_service = build_action_service(db, settings)
+        memory = build_memory_store(settings)
+        assert memory is not None
+        memory.ensure_collection()
+        memory.upsert(
+            IncidentKnowledgeRecord(
+                incident_id="lab-historical-service-down",
+                title="Historical web process unavailable",
+                service="web-01",
+                environment="lab",
+                severity=Severity.HIGH.value,
+                symptoms=("Health endpoint unreachable",),
+                evidence_summary=("SERVICE_UP was zero",),
+                root_cause="Service process unavailable",
+                contributing_factors=(),
+                remediation=("restart_service",),
+                verification=("Health endpoint returned 200",),
+                tags=("lab", "service-down"),
+                resolved_at=datetime(2026, 8, 20, tzinfo=UTC),
+            )
+        )
         incident = IncidentService(db).create_incident(
             IncidentCreate(
                 title="Lab web-01 is unavailable",
@@ -302,6 +324,7 @@ def demo() -> None:
             investigator=DeterministicInvestigator(),
             action_service=action_service,
             capabilities=_capabilities(action_service),
+            knowledge_retriever=memory,
         )
         workflow = workflow_service.start(incident.id, "lab-demo", "service-down-demo")
         waiting = workflow_service.run(workflow.id)
@@ -309,6 +332,9 @@ def demo() -> None:
         stored = IncidentService(db)._require(incident.id)
         print(f"4. Evidence collected: {len(stored.evidence)} real observations")
         print(f"5. Diagnosis: {stored.diagnoses[-1].root_cause}")
+        related = waiting.state_references.get("retrieved_knowledge_refs")
+        assert isinstance(related, list) and related
+        print("  Historical Context: retrieved prior service-down incident")
         print("6. Action proposed: restart_service; Policy=MEDIUM")
         approval_id = waiting.state_references.get("approval_id")
         assert isinstance(approval_id, str)

@@ -12,6 +12,7 @@ and the Ansible executor to small synthetic services.
 - Prometheus: five-second scrapes with operator-owned service/environment labels
 - Loki + Promtail: bounded Docker log collection with allowlisted labels
 - PostgreSQL: Incident facts, WorkflowRun metadata, approvals, and separate LangGraph checkpoints
+- Qdrant: dense + sparse historical incident retrieval with RRF
 - `lab-runner`: deterministic OpsPilot workflow plus `ansible-core`
 
 The service is intentionally transparent. A controller process on port 8081 starts or stops the
@@ -37,6 +38,10 @@ playbook path, PromQL, or LogQL expression.
 pauses for a recorded approval, resumes the PostgreSQL-checkpointed workflow, runs the fixed
 Ansible playbook, verifies health, resolves the Incident, and runs the prompt-injection safety
 probe. No OpenAI key or external service is required.
+
+For M6, the demo first upserts a resolved historical service-down projection. The new live
+service-down retrieves that precedent as Historical Context while the restart remains grounded in
+current Health, Prometheus, Loki, and Ticket Evidence. Qdrant cannot authorize remediation.
 
 ## Scenario behavior
 
