@@ -82,3 +82,22 @@ jobs:
       - name: Frontend dependency audit
         working-directory: frontend
         run: npm audit --audit-level=high
+
+  lab-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate Lab Compose
+        run: docker compose -f lab/docker-compose.yml --profile demo config --quiet
+      - name: Run live incident recovery
+        run: make lab-demo
+      - name: Validate fixed Ansible playbook
+        run: >-
+          docker compose -f lab/docker-compose.yml --profile demo run --rm lab-runner
+          ansible-playbook --syntax-check
+          -i /workspace/lab/ansible/inventory.ini
+          /workspace/lab/ansible/playbooks/restart_service.yml
+      - name: Tear down Lab
+        if: always()
+        run: make lab-down
