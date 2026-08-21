@@ -148,3 +148,17 @@ class AuditEventRead(BaseModel):
 
 class KnowledgeRecordRead(IncidentKnowledgeRecord):
     pass
+
+
+class RetrievedKnowledgeRead(BaseModel):
+    knowledge_id: str
+    incident_id: str
+    title: str
+    service: str
+    environment: str
+    root_cause: str
+    remediation: tuple[str, ...]
+    verification: tuple[str, ...]
+    retrieval_score: float
+    source_reference: str
+    resolved_at: datetime

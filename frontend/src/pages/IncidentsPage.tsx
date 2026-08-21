@@ -119,6 +119,10 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
     queryKey: queryKeys.incidentWorkflows(incidentId),
     queryFn: () => incidentsApi.workflows(incidentId),
   });
+  const related = useQuery({
+    queryKey: queryKeys.incidentRelated(incidentId),
+    queryFn: () => incidentsApi.related(incidentId),
+  });
   const approvals = useQuery({
     queryKey: queryKeys.incidentApprovals(incidentId),
     queryFn: () => approvalsApi.list(incidentId),
@@ -202,6 +206,37 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
           )}
         </PageSection>
       </div>
+      <PageSection
+        title="Related Incidents / Historical Memory"
+        description="Historical Context 仅供参考，不属于当前 Evidence，也不能授权操作。"
+      >
+        {related.isLoading ? (
+          <LoadingState variant="table" />
+        ) : related.error ? (
+          <ErrorState error={related.error} onRetry={() => void related.refetch()} />
+        ) : related.data?.length ? (
+          <div className="incident-card-list">
+            {related.data.map((memory, rank) => (
+                <article key={memory.knowledge_id} className="incident-card">
+                  <span>Historical Context · Rank {rank + 1}</span>
+                  <strong>{memory.title}</strong>
+                  <small>
+                    {memory.service} · Resolved {formatDate(memory.resolved_at)} · Retrieval similarity{" "}
+                    {memory.retrieval_score.toFixed(3)}
+                  </small>
+                  <span>Root cause: {memory.root_cause}</span>
+                  <small>Remediation: {memory.remediation.join(", ") || "—"}</small>
+                  <a href={memory.source_reference}>Source incident</a>
+                </article>
+              ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="暂无历史参考"
+            message="启用 Incident Memory 后，相似的已解决事故会显示在这里。"
+          />
+        )}
+      </PageSection>
       <PageSection
         title="Collected Evidence"
         description="能力状态和原始数据由来源系统保留；这里只保存有界摘要与 provenance 引用。"

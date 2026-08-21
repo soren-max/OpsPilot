@@ -293,12 +293,32 @@ export interface WorkflowRun {
     uncertainty?: string | null;
     insufficient_evidence?: boolean;
     investigation_evidence_ids?: string[];
+    investigation_knowledge_refs?: string[];
+    retrieved_knowledge_refs?: Array<{
+      knowledge_id: string;
+      incident_id: string;
+      source_reference: string;
+    }>;
     approval_id?: string;
     action_fingerprint?: string;
     action_type?: string;
     risk_level?: string;
   };
   created_at: string;
+}
+
+export interface RetrievedKnowledge {
+  knowledge_id: string;
+  incident_id: string;
+  title: string;
+  service: string;
+  environment: string;
+  root_cause: string;
+  remediation: string[];
+  verification: string[];
+  retrieval_score: number;
+  source_reference: string;
+  resolved_at: string;
 }
 
 export interface ApprovalRequest {

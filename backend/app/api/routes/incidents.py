@@ -6,8 +6,11 @@ from sqlalchemy.orm import Session
 from app.api.deps import response
 from app.api.routes.auth import get_current_user
 from app.application.incident_service import IncidentService
+from app.core.config import get_settings
 from app.db.session import get_db
 from app.domain.incidents.models import IncidentStatus, Severity
+from app.memory.factory import build_memory_store
+from app.memory.service import KnowledgeQueryBuilder
 from app.models import User
 from app.repositories.incident_models import (
     DiagnosisRecord,
@@ -27,6 +30,7 @@ from app.schemas_incidents import (
     IncidentCreate,
     IncidentPage,
     IncidentRead,
+    RetrievedKnowledgeRead,
     VersionedMutation,
 )
 from app.services.rbac import require_permission
@@ -264,3 +268,32 @@ def incident_knowledge_record(
 ) -> dict[str, object]:
     require_permission(db, user, "incident.knowledge.read")
     return response(request, IncidentService(db).build_knowledge_record(incident_id))
+
+
+@router.get("/{incident_id}/related")
+def related_incidents(
+    incident_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, object]:
+    require_permission(db, user, "incident.read")
+    incident = IncidentService(db)._require(incident_id)
+    settings = get_settings()
+    retriever = build_memory_store(settings)
+    if retriever is None:
+        return response(request, [])
+    query = KnowledgeQueryBuilder(settings.memory_retrieval_limit).build(
+        service=incident.service,
+        environment=incident.environment,
+        symptoms=(incident.summary,),
+        evidence_summary=tuple(item.summary for item in incident.evidence),
+        severity=incident.severity.value,
+        tags=tuple(incident.tags),
+    )
+    items = [
+        RetrievedKnowledgeRead.model_validate(item, from_attributes=True)
+        for item in retriever.retrieve(query)
+        if item.incident_id != incident.id
+    ]
+    return response(request, items)
