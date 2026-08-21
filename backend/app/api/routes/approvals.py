@@ -8,6 +8,7 @@ from app.application.workflow_service import WorkflowService
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.domain.approvals import ApprovalActor
+from app.execution.factory import build_execution_plane
 from app.models import User
 from app.schemas_approvals import ApprovalDecisionCreate, ApprovalRequestRead
 from app.services.rbac import require_permission
@@ -47,8 +48,14 @@ def _decide_and_resume(
         if approve
         else approvals.reject(approval_id, _actor(user), body.reason)
     )
+    settings = get_settings()
+    action_service = build_action_service(db, settings)
+    execution_plane, execution_dispatcher = build_execution_plane(db, settings, action_service)
     WorkflowService(
-        db, action_service=build_action_service(db, get_settings())
+        db,
+        action_service=action_service,
+        execution_plane=execution_plane,
+        execution_dispatcher=execution_dispatcher,
     ).resume(item.id)
     return ApprovalRequestRead.model_validate(approvals.get(item.id))
 

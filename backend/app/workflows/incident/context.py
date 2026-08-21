@@ -6,6 +6,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
+from opentelemetry import trace
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -23,15 +24,22 @@ from app.domain.actions.models import (
     TargetEnvironment,
 )
 from app.domain.audit.models import ActorType, AuditEventType
+from app.domain.execution import ExecutionStatus
 from app.domain.incidents.memory import KnowledgeRetriever, RetrievedKnowledge
 from app.domain.incidents.models import IncidentStatus
+from app.execution.service import ExecutionDispatcher, ExecutionPlaneService
 from app.memory.service import KnowledgeQueryBuilder
+from app.repositories.executions import ExecutionRepository
 from app.repositories.incident_models import IncidentAuditEventRecord
 from app.repositories.incidents import AuditEventRepository
 from app.repositories.workflow_models import WorkflowRunRecord
 from app.schemas_incidents import DiagnosisCreate, EvidenceCreate, HypothesisCreate
 from app.services.redaction import redact_text
-from app.workflows.incident.errors import ExecutionFailure, WorkflowInfrastructureFailure
+from app.workflows.incident.errors import (
+    ExecutionFailure,
+    ExecutionPending,
+    WorkflowInfrastructureFailure,
+)
 from app.workflows.incident.investigator import (
     IncidentInvestigator,
     InvestigationContext,
@@ -58,6 +66,8 @@ class IncidentWorkflowRuntime:
         capabilities: IncidentCapabilities | None = None,
         knowledge_retriever: KnowledgeRetriever | None = None,
         knowledge_query_builder: KnowledgeQueryBuilder | None = None,
+        execution_plane: ExecutionPlaneService | None = None,
+        execution_dispatcher: ExecutionDispatcher | None = None,
     ) -> None:
         self.db = db
         self.workflow = workflow
@@ -68,6 +78,8 @@ class IncidentWorkflowRuntime:
         self._capabilities = capabilities
         self._knowledge_retriever = knowledge_retriever
         self._knowledge_query_builder = knowledge_query_builder or KnowledgeQueryBuilder()
+        self._execution_plane = execution_plane
+        self._execution_dispatcher = execution_dispatcher
         self._retrieved_knowledge: dict[str, RetrievedKnowledge] = {}
         self._node_started_at: dict[str, float] = {}
 
@@ -198,9 +210,7 @@ class IncidentWorkflowRuntime:
             )
             self.db.commit()
         try:
-            result = self.investigator.investigate(
-                self.investigation_context(retrieved_refs)
-            )
+            result = self.investigator.investigate(self.investigation_context(retrieved_refs))
         except LLMFailure as exc:
             self._audit(
                 AuditEventType.LLM_INVESTIGATION_FAILED,
@@ -289,9 +299,7 @@ class IncidentWorkflowRuntime:
     def propose_action(self, action_type: ActionType) -> str:
         if self.workflow.proposed_action_id:
             return self.workflow.proposed_action_id
-        fingerprint = hashlib.sha256(
-            f"{self.workflow.id}:{action_type.value}".encode()
-        ).hexdigest()
+        fingerprint = hashlib.sha256(f"{self.workflow.id}:{action_type.value}".encode()).hexdigest()
         self.workflow.proposed_action_id = fingerprint
         self._audit(
             AuditEventType.ACTION_PROPOSED,
@@ -318,6 +326,8 @@ class IncidentWorkflowRuntime:
         return item.id
 
     def execute(self, action_type: ActionType) -> tuple[str, str]:
+        if self._execution_plane is not None and self._execution_dispatcher is not None:
+            return self._execute_via_plane(action_type)
         if self.workflow.execution_task_id:
             status = self.workflow.state_references.get("verification_status")
             if status in {"SUCCEEDED", "FAILED"}:
@@ -372,6 +382,64 @@ class IncidentWorkflowRuntime:
         }
         self.db.commit()
         return execution_id, status
+
+    def _execute_via_plane(self, action_type: ActionType) -> tuple[str, str]:
+        execution_plane = self._execution_plane
+        execution_dispatcher = self._execution_dispatcher
+        if execution_plane is None or execution_dispatcher is None:
+            raise WorkflowInfrastructureFailure("Execution plane is not configured")
+        if self.workflow.execution_task_id:
+            record = ExecutionRepository(self.db).get(self.workflow.execution_task_id)
+            if record is None:
+                raise WorkflowInfrastructureFailure("Durable execution record is missing")
+            if record.status is ExecutionStatus.SUCCEEDED:
+                status = record.verification_status or "FAILED"
+                return record.id, status
+            if record.status in {ExecutionStatus.FAILED, ExecutionStatus.CANCELLED}:
+                return record.id, "FAILED"
+            if record.status is ExecutionStatus.RECONCILIATION_REQUIRED:
+                raise WorkflowInfrastructureFailure("Execution requires operator reconciliation")
+            raise ExecutionPending("External execution is awaiting reconciliation")
+        action = self._action_request(action_type)
+        fingerprint = self.workflow.proposed_action_id
+        if fingerprint is None:
+            raise WorkflowInfrastructureFailure("Action fingerprint is missing")
+        approval = ApprovalService(self.db).is_approved(self.workflow.id, fingerprint)
+        assessment = self._service().policy.assess(action, approval_granted=approval)
+        span_context = trace.get_current_span().get_span_context()
+        trace_id = f"{span_context.trace_id:032x}" if span_context.is_valid else None
+        record = execution_plane.queue_approved(
+            incident_id=self.workflow.incident_id,
+            workflow_id=self.workflow.id,
+            action_fingerprint=fingerprint,
+            request=action,
+            assessment=assessment,
+            approval_id=str(self.workflow.state_references.get("approval_id", "policy-approved")),
+            trace_id=trace_id,
+        )
+        self.workflow.execution_task_id = record.id
+        self.workflow.state_references = {
+            **self.workflow.state_references,
+            "execution_id": record.id,
+            "execution_status": record.status.value,
+        }
+        self.db.commit()
+        operation = execution_dispatcher.dispatch_one()
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.run(operation)
+        else:
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                pool.submit(asyncio.run, operation).result()
+        record = ExecutionRepository(self.db).get(record.id)
+        if record is None:
+            raise WorkflowInfrastructureFailure("Durable execution record is missing")
+        if record.status is ExecutionStatus.SUCCEEDED:
+            return record.id, record.verification_status or "FAILED"
+        if record.status in {ExecutionStatus.FAILED, ExecutionStatus.CANCELLED}:
+            return record.id, "FAILED"
+        raise ExecutionPending("External execution is awaiting reconciliation")
 
     def finalize(
         self, incident_version: int, *, successful: bool, inconclusive: bool = False
