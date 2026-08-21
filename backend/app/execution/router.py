@@ -45,6 +45,8 @@ class ExecutionRouter:
             raise ValueError("Execution profile environment does not match the request")
         if request.environment not in descriptor.supported_environments:
             raise ValueError("Backend does not support this environment")
+        if profile.target_mapping and request.target not in profile.target_mapping:
+            raise ValueError("Execution target is not allowlisted by the profile")
         if _RISK_ORDER[assessment.risk_level] > _RISK_ORDER[descriptor.max_risk_level]:
             raise ValueError("Backend risk capability is lower than the policy assessment")
         return ExecutionRoute(

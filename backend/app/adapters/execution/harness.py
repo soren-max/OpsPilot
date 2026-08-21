@@ -201,7 +201,9 @@ class HarnessPipelineExecutionBackend:
     def _runtime_inputs(
         self, request: ActionRequest, context: ExecutionContext, pipeline: str
     ) -> str:
-        service = getattr(request.parameters, "service", request.target)
+        service = context.profile.target_mapping.get(request.target)
+        if not service:
+            raise ValueError("Harness profile requires an operator-owned target mapping")
         payload = {
             "inputSet": {
                 "identifier": f"opspilot_{context.execution_id.replace('-', '')[:20]}",

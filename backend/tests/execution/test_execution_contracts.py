@@ -56,6 +56,7 @@ def profile() -> ExecutionProfile:
         backend_type=BackendType.HARNESS,
         environment=TargetEnvironment.PRODUCTION,
         allowed_action_types=frozenset({ActionType.RESTART_SERVICE}),
+        target_mapping={"payments-01": "payments"},
         immutable_refs={"pipeline_identifier": "opspilot_restart_service"},
     )
 
@@ -102,6 +103,9 @@ def test_profile_and_backend_boundaries_fail_closed() -> None:
         router().route(request(TargetEnvironment.TEST), assessment())
     with pytest.raises(ValueError, match="Read-only or forbidden"):
         router().route(request(), assessment(RiskLevel.FORBIDDEN))
+    forged = request().model_copy(update={"target": "another-service"})
+    with pytest.raises(ValueError, match="target is not allowlisted"):
+        router().route(forged, assessment())
 
 
 class RecordingHarnessClient:

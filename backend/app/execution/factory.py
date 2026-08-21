@@ -64,6 +64,7 @@ def build_execution_plane(
             backend_type=BackendType.HARNESS,
             environment=TargetEnvironment.PRODUCTION,
             allowed_action_types=frozenset({ActionType.RESTART_SERVICE}),
+            target_mapping={target: target for target in action_service.policy.allowed_targets},
             immutable_refs={
                 "pipeline_identifier": settings.harness_restart_pipeline_identifier
             },

@@ -99,6 +99,7 @@ def seed_execution(db: Session) -> tuple[ExecutionRecord, ExecutionOutboxRecord,
         backend_type=BackendType.HARNESS,
         environment=TargetEnvironment.PRODUCTION,
         allowed_action_types=frozenset({ActionType.RESTART_SERVICE}),
+        target_mapping={"payments-01": "payments"},
         immutable_refs={"pipeline_identifier": "opspilot_restart"},
     )
     return execution, outbox, profile

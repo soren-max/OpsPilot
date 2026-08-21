@@ -53,6 +53,7 @@ async def run() -> None:
         backend_type=BackendType.HARNESS,
         environment=TargetEnvironment.PRODUCTION,
         allowed_action_types=frozenset({ActionType.RESTART_SERVICE}),
+        target_mapping={"demo-service": "demo-service"},
         immutable_refs={"pipeline_identifier": "opspilot_restart_service"},
     )
     router = ExecutionRouter(
