@@ -134,12 +134,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Validate Lab Compose
-        run: docker compose -f lab/docker-compose.yml --profile demo config --quiet
-      - name: Run live incident recovery
-        run: make lab-demo
+        run: docker compose -f lab/docker-compose.yml --profile demo-minimal config --quiet
+      - name: Demo prerequisite doctor
+        run: make demo-doctor
+      - name: Run live incident recovery twice
+        run: |
+          make demo-local
+          make demo-reset
+          make demo-local
       - name: Validate fixed Ansible playbook
         run: >-
-          docker compose -f lab/docker-compose.yml --profile demo run --rm lab-runner
+          docker compose -f lab/docker-compose.yml --profile demo-minimal run --rm lab-runner-minimal
           ansible-playbook --syntax-check
           -i /workspace/lab/ansible/inventory.ini
           /workspace/lab/ansible/playbooks/restart_service.yml
