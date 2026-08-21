@@ -42,6 +42,10 @@ class Settings(BaseSettings):
         default="opspilot_incident_memory_v1", min_length=1, max_length=120
     )
     memory_retrieval_limit: int = Field(default=5, ge=1, le=10)
+    mcp_http_host: str = "127.0.0.1"
+    mcp_http_port: int = Field(default=8010, ge=1, le=65535)
+    mcp_auth_issuer: str | None = None
+    mcp_auth_audience: str | None = None
     prometheus_base_url: str | None = None
     prometheus_auth_token: SecretStr | None = None
     loki_base_url: str | None = None
