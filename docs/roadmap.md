@@ -9,8 +9,8 @@
 | M2.1 Workflow Runtime Hardening | Done | Shared configured execution boundary and fail-closed workflow wiring |
 | M3A Observability & Ticket Capabilities | Implemented | Typed, bounded read-only evidence ports and adapters |
 | M3B LLM Investigator | Implemented | Evidence-grounded structured investigation with deterministic authorization |
-| M4 Durable HITL + Checkpoint | Planned | Identity-bound approval and resumable state |
-| M5 Local Incident Lab | Planned | Reproducible incident scenarios |
+| M4 Durable HITL + Checkpoint | Done | Identity-bound approval and resumable state |
+| M5 Local Incident Lab | Done | Reproducible live telemetry, failure, approval, and recovery scenarios |
 | M6 Playbook Memory / RAG | Planned | Curated retrieval with provenance |
 | M7 MCP Capability Boundary | Planned | Optional interoperable capability boundary |
 | M8 Multi-backend Execution | Planned | Ansible plus a future Harness backend |

@@ -1,5 +1,12 @@
 # Architecture
 
+## M5 live validation topology
+
+The disposable Incident Lab connects the existing adapters to Prometheus, Loki, PostgreSQL and
+small observable services. Fault injection is a typed Lab CLI, not a workflow capability. The
+only remediation route remains Policy → durable approval → ActionService → fixed Ansible
+playbook → verification. See [design/incident-lab.md](design/incident-lab.md).
+
 ## Layer architecture
 
 ```mermaid
