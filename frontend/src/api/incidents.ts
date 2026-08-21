@@ -1,6 +1,7 @@
 import type {
   Incident,
   IncidentPage,
+  ExecutionRecord,
   RetrievedKnowledge,
   TimelineItem,
   WorkflowRun,
@@ -15,4 +16,6 @@ export const incidentsApi = {
   workflows: (incidentId: string) => api<WorkflowRun[]>(`/incidents/${incidentId}/workflows`),
   related: (incidentId: string) =>
     api<RetrievedKnowledge[]>(`/incidents/${incidentId}/related`),
+  executions: (incidentId: string) =>
+    api<ExecutionRecord[]>(`/executions?incident_id=${encodeURIComponent(incidentId)}`),
 };
