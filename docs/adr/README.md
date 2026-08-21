@@ -12,3 +12,5 @@ original content.
 | [0005](0005-separate-domain-state-from-workflow-checkpoint.md) | Separate Domain State from Workflow Checkpoint | Accepted | Business facts and orchestration position have distinct sources of truth. |
 | [0006](0006-typed-observability-queries-over-arbitrary-query-language.md) | Typed Observability Queries over Arbitrary Query Languages | Accepted for M3A | Application-owned queries bound observability access and preserve provenance. |
 | [0007](0007-llm-reasoning-with-deterministic-authorization.md) | LLM Reasoning with Deterministic Authorization | Accepted | Models reason over evidence; guards, policy, and HITL retain authority. |
+| [0008](0008-durable-human-approval-boundary.md) | Durable Human Approval Boundary | Accepted | Approval identity and checkpoint continuation remain auditable and separate. |
+| [0009](0009-historical-incident-memory-is-context-not-evidence.md) | Historical Incident Memory Is Context, Not Evidence | Accepted | Retrieved precedent can inform reasoning but cannot prove facts or authorize action. |

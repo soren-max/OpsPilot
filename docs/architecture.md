@@ -7,6 +7,14 @@ small observable services. Fault injection is a typed Lab CLI, not a workflow ca
 only remediation route remains Policy → durable approval → ActionService → fixed Ansible
 playbook → verification. See [design/incident-lab.md](design/incident-lab.md).
 
+## M6 historical memory boundary
+
+M6 adds `KnowledgeRetriever` and `DenseEmbeddingProvider` ports. The Qdrant adapter is
+infrastructure-only; workflow and domain code never accept raw vectors, filters, collection names,
+or backend URLs. The graph sequence is `collect_context → retrieve_knowledge → investigate`, and
+checkpoint state stores knowledge IDs only. Historical Knowledge is not Incident Evidence; Policy,
+durable approval, ActionService, and the fixed executor mapping remain unchanged.
+
 ## Layer architecture
 
 ```mermaid

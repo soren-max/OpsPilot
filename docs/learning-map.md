@@ -13,10 +13,10 @@ LLM application curricula, including `Lordog/dive-into-llms`, without copying co
 | Agent | Stateful incident orchestration | Implemented |
 | Agent Safety | Deterministic policy + risk + approval boundary | Implemented |
 | HITL | M4 durable interrupt/checkpoint/resume | Planned |
-| RAG / Memory | M6 retrieved knowledge context | Boundary only |
+| RAG / Memory | M6 typed historical incident retrieval + hybrid RRF | Implemented |
 | LangGraph | Incident StateGraph and workflow trace | Implemented |
 | MCP | Optional future tool boundary | Planned |
-| Evaluation | Incident dataset and safety evaluation | Planned |
+| Evaluation | Incident, safety, and retrieval benchmark datasets | Implemented |
 | Observability | Agent, tool, action, and approval traces | Partial |
 
 OpsPilot does not expose, store, or depend on hidden chain-of-thought. Auditable artifacts are

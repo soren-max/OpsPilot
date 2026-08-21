@@ -1,5 +1,11 @@
 # Testing Strategy
 
+## M6 Historical Incident Memory
+
+Memory tests cover deterministic projection and identity, idempotent Qdrant upsert, metadata
+filters, a live hybrid round trip, workflow retrieval, and historical prompt-injection grounding.
+`make memory-eval` evaluates 40 records and emits a table plus JSON without paid APIs or downloads.
+
 ## M5 Incident Lab
 
 Normal CI keeps scenario parsing, safety invariants, architecture boundaries and mocked adapter

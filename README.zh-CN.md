@@ -8,9 +8,15 @@ OpsPilot 是一个开源的、以证据驱动（Evidence-driven）且由人控�
 SRE 与事故响应人员收集证据、形成明确的假设、提出结构化动作（Structured Action），并经由
 受限的基础设施适配器执行经过审批的变更——而不是通过任意 shell。
 
-当前里程碑（M5）把完整流水线接入可重复运行的本地 Docker Lab：
+当前里程碑（M6）在完整流水线上增加带来源的历史 Incident Memory：
 **可观测性 → 证据 → LLM 调查器 → 证据约束（Evidence Grounding）→ 结构化动作 → 策略 →
 持久化人工审批 → Ansible → 验证**。默认演示使用确定性调查器，不需要模型 API Key。
+
+## 历史 Incident Memory
+
+只有已解决/关闭且存在诊断的 Incident 才会被确定性投影并显式索引。Qdrant 使用 dense、
+sparse 与 RRF 检索。相关事故明确标记为“历史上下文”，与当前 Evidence 分离；相似度不是
+诊断置信度，也不能授权执行。运行 `make memory-eval` 可复现 40 条记录的检索基准。
 
 ## Live Incident Lab
 
@@ -100,9 +106,6 @@ ActionRequest -> ActionPolicyEngine -> approval boundary -> ActionExecutor -> ve
 
 **计划中（Planned，尚未实现）：**
 
-- 持久化 HITL：Postgres checkpoint 与恢复（`M4`）
-- Incident Lab（`M5`）
-- RAG / playbook 记忆（`M6`）
 - MCP 能力边界（`M7`）
 - Harness 多后端执行（`M8`）
 - GitOps 受治理变更工作流（`M9`）
