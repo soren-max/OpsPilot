@@ -21,18 +21,10 @@
 Harness and GitOps in M8/M9 are future enhancements. M1B includes no Harness SDK, production
 backend, or simulated implementation.
 
-## Current Pause Point
+## Current Portfolio Pause Point
 
-**M3B represents the current stable portfolio milestone.** New core features are paused: the
-evidence-grounded investigation pipeline is complete, documented, and tested, and the boundary
-before mutating execution is explicit. The next engineering milestone is **M4 — Durable HITL +
-Postgres Checkpoint** (identity-bound approval and resumable state).
-# M4 — Durable HITL + PostgreSQL Checkpoint (complete)
-
-- Durable PostgreSQL LangGraph continuation state
-- Auditable approval lifecycle and identity boundary
-- Interrupt/resume workflow with replay protection
-- Approval API and incident approval UI
-- Offline approve/resume/mock-execute/verify demo
+**Local Demo Closeout after M7** is the current stable portfolio pause point. M1–M7 are implemented;
+the canonical demonstration focuses on the complete evidence, durable approval, Ansible remediation,
+and verification path. Historical Memory and MCP remain optional advanced demonstrations.
 
 Next: **M8 Multi-backend Governed Execution**.

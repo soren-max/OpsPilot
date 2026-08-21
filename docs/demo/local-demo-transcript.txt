@@ -1,0 +1,23 @@
+[1/10] Lab ready
+[2/10] Fault injected — service-down
+[3/10] Incident created — <incident-id>
+[4/10] Evidence collected — 4 records (4 metric series, 6 log entries observed)
+[5/10] Diagnosis completed — Service process unavailable
+[6/10] Action proposed — restart_service; Policy=MEDIUM
+[7/10] Approval required — <approval-id> (durable HITL)
+[8/10] Workflow resumed — approved by demo identity Lab Operator
+[9/10] Remediation executed — fixed Ansible restart_service.yml
+[10/10] Verification passed — current health is healthy
+
+Demo Summary
+Incident ID: <incident-id>
+Workflow ID: <workflow-id>
+Evidence Count: 4
+Diagnosis: Service process unavailable
+Action: restart_service
+Risk: MEDIUM
+Approval: APPROVED (Lab Operator)
+Executor: ansible
+Verification: PASSED
+Historical Memory: disabled
+Final State: RESOLVED

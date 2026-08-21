@@ -8,8 +8,40 @@ x-lab-service: &lab-service
     com.opspilot.lab: "true"
     com.opspilot.environment: lab
 
+x-runner-environment: &runner-environment
+  PYTHONUNBUFFERED: "1"
+  OPSPILOT_DATABASE_URL: postgresql+psycopg://opspilot:lab-only-password@postgres:5432/opspilot_lab
+  OPSPILOT_WORKFLOW_CHECKPOINT_BACKEND: postgres
+  OPSPILOT_SECRET_KEY: lab-only-secret-key-at-least-32-characters
+  OPSPILOT_EXECUTOR: ansible
+  OPSPILOT_DRY_RUN_ONLY: "false"
+  OPSPILOT_EXECUTION_ACKNOWLEDGED: "true"
+  OPSPILOT_ANSIBLE_INVENTORY_PATH: /workspace/lab/ansible/inventory.ini
+  OPSPILOT_ANSIBLE_PLAYBOOK_DIRECTORY: /workspace/lab/ansible/playbooks
+  OPSPILOT_ANSIBLE_BINARY_PATH: /src/.venv/bin/ansible-playbook
+  OPSPILOT_PROMETHEUS_BASE_URL: http://prometheus:9090
+  OPSPILOT_LOKI_BASE_URL: http://loki:3100
+  LAB_CONTROL_BASE: http://web-01:8081
+  LAB_DEPENDENCY_CONTROL_BASE: http://dependency:8081
+
+x-lab-runner: &lab-runner
+  build:
+    context: ..
+    dockerfile: lab/runner.Dockerfile
+  volumes:
+    - ../:/workspace:ro
+  working_dir: /workspace/backend
+  command:
+    - sh
+    - -c
+    - >-
+      python -m alembic upgrade head >/tmp/opspilot-migrate.log 2>&1 ||
+      { echo 'Database migration failed:' >&2; tail -40 /tmp/opspilot-migrate.log >&2; exit 1; };
+      exec python -m app.lab demo
+
 services:
   qdrant:
+    profiles: ["demo-full"]
     image: qdrant/qdrant:v1.15.4
     ports:
       - "127.0.0.1:16333:6333"
@@ -120,31 +152,28 @@ services:
     depends_on:
       - loki
 
-  lab-runner:
-    profiles: ["demo"]
-    build:
-      context: ..
-      dockerfile: lab/runner.Dockerfile
+  lab-runner-minimal:
+    <<: *lab-runner
+    profiles: ["demo-minimal"]
     environment:
-      OPSPILOT_DATABASE_URL: postgresql+psycopg://opspilot:lab-only-password@postgres:5432/opspilot_lab
-      OPSPILOT_WORKFLOW_CHECKPOINT_BACKEND: postgres
-      OPSPILOT_SECRET_KEY: lab-only-secret-key-at-least-32-characters
-      OPSPILOT_EXECUTOR: ansible
-      OPSPILOT_DRY_RUN_ONLY: "false"
-      OPSPILOT_EXECUTION_ACKNOWLEDGED: "true"
-      OPSPILOT_ANSIBLE_INVENTORY_PATH: /workspace/lab/ansible/inventory.ini
-      OPSPILOT_ANSIBLE_PLAYBOOK_DIRECTORY: /workspace/lab/ansible/playbooks
-      OPSPILOT_ANSIBLE_BINARY_PATH: /src/.venv/bin/ansible-playbook
-      OPSPILOT_PROMETHEUS_BASE_URL: http://prometheus:9090
-      OPSPILOT_LOKI_BASE_URL: http://loki:3100
+      <<: *runner-environment
+      OPSPILOT_MEMORY_BACKEND: disabled
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
+      promtail:
+        condition: service_started
+
+  lab-runner-full:
+    <<: *lab-runner
+    profiles: ["demo-full"]
+    environment:
+      <<: *runner-environment
       OPSPILOT_MEMORY_BACKEND: qdrant
       OPSPILOT_QDRANT_BASE_URL: http://qdrant:6333
-      LAB_CONTROL_BASE: http://web-01:8081
-      LAB_DEPENDENCY_CONTROL_BASE: http://dependency:8081
-    volumes:
-      - ../:/workspace:ro
-    working_dir: /workspace/backend
-    command: ["sh", "-c", "python -m alembic upgrade head && python -m app.lab demo"]
+      LAB_DEMO_SAFETY_PROBE: "1"
     depends_on:
       postgres:
         condition: service_healthy
@@ -154,6 +183,26 @@ services:
         condition: service_started
       promtail:
         condition: service_started
+
+  mcp-server:
+    <<: *lab-runner
+    profiles: ["demo-full"]
+    command: ["sh", "-c", "python -m alembic upgrade head && python -m app.mcp http"]
+    environment:
+      <<: *runner-environment
+      OPSPILOT_MEMORY_BACKEND: qdrant
+      OPSPILOT_QDRANT_BASE_URL: http://qdrant:6333
+      OPSPILOT_MCP_HTTP_HOST: 0.0.0.0
+      OPSPILOT_MCP_HTTP_PORT: "8010"
+      OPSPILOT_MCP_AUTH_ISSUER: http://mcp-server:8010
+      OPSPILOT_MCP_AUTH_AUDIENCE: http://mcp-server:8010
+    ports:
+      - "127.0.0.1:18010:8010"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
 
 volumes:
   postgres_data:

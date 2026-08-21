@@ -12,7 +12,7 @@ LLM application curricula, including `Lordog/dive-into-llms`, without copying co
 | Tool Calling | Typed native and MCP capability layer | Implemented |
 | Agent | Stateful incident orchestration | Implemented |
 | Agent Safety | Deterministic policy + risk + approval boundary | Implemented |
-| HITL | M4 durable interrupt/checkpoint/resume | Planned |
+| HITL | M4 durable interrupt/checkpoint/resume | Implemented |
 | RAG / Memory | M6 typed historical incident retrieval + hybrid RRF | Implemented |
 | LangGraph | Incident StateGraph and workflow trace | Implemented |
 | MCP | M7 typed capability interoperability boundary | Implemented |
