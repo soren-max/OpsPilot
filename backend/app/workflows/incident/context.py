@@ -23,7 +23,9 @@ from app.domain.actions.models import (
     TargetEnvironment,
 )
 from app.domain.audit.models import ActorType, AuditEventType
+from app.domain.incidents.memory import KnowledgeRetriever, RetrievedKnowledge
 from app.domain.incidents.models import IncidentStatus
+from app.memory.service import KnowledgeQueryBuilder
 from app.repositories.incident_models import IncidentAuditEventRecord
 from app.repositories.incidents import AuditEventRepository
 from app.repositories.workflow_models import WorkflowRunRecord
@@ -54,6 +56,8 @@ class IncidentWorkflowRuntime:
         investigator: IncidentInvestigator,
         action_service: ActionService | None = None,
         capabilities: IncidentCapabilities | None = None,
+        knowledge_retriever: KnowledgeRetriever | None = None,
+        knowledge_query_builder: KnowledgeQueryBuilder | None = None,
     ) -> None:
         self.db = db
         self.workflow = workflow
@@ -62,6 +66,9 @@ class IncidentWorkflowRuntime:
         self.audits = AuditEventRepository(db)
         self._action_service = action_service
         self._capabilities = capabilities
+        self._knowledge_retriever = knowledge_retriever
+        self._knowledge_query_builder = knowledge_query_builder or KnowledgeQueryBuilder()
+        self._retrieved_knowledge: dict[str, RetrievedKnowledge] = {}
         self._node_started_at: dict[str, float] = {}
 
     def load_incident(self) -> tuple[int, list[str]]:
@@ -97,7 +104,45 @@ class IncidentWorkflowRuntime:
                 for item in incident.evidence
             ),
             retrieved_knowledge_refs=tuple(retrieved_refs),
+            historical_knowledge=tuple(
+                self._retrieved_knowledge[reference]
+                for reference in retrieved_refs
+                if reference in self._retrieved_knowledge
+            ),
         )
+
+    def retrieve_knowledge(self) -> list[str]:
+        if self._knowledge_retriever is None:
+            return []
+        incident = self.incidents._require(self.workflow.incident_id)
+        evidence = sorted(incident.evidence, key=lambda item: (item.observed_at, item.id))
+        query = self._knowledge_query_builder.build(
+            service=incident.service,
+            environment=incident.environment,
+            symptoms=(incident.summary,),
+            evidence_summary=tuple(item.summary for item in evidence),
+            severity=incident.severity.value,
+            tags=tuple(incident.tags),
+        )
+        retrieved = tuple(
+            item
+            for item in self._knowledge_retriever.retrieve(query)
+            if item.incident_id != incident.id
+        )
+        self._retrieved_knowledge = {item.knowledge_id: item for item in retrieved}
+        self.workflow.state_references = {
+            **self.workflow.state_references,
+            "retrieved_knowledge_refs": [
+                {
+                    "knowledge_id": item.knowledge_id,
+                    "incident_id": item.incident_id,
+                    "source_reference": item.source_reference,
+                }
+                for item in retrieved
+            ],
+        }
+        self.db.commit()
+        return list(self._retrieved_knowledge)
 
     def collect_context(self, evidence_ids: list[str]) -> list[str]:
         if self._capabilities is None:
@@ -180,6 +225,7 @@ class IncidentWorkflowRuntime:
             "uncertainty": result.uncertainty,
             "insufficient_evidence": result.insufficient_evidence,
             "investigation_evidence_ids": list(result.evidence_ids),
+            "investigation_knowledge_refs": list(result.knowledge_refs),
         }
         if metadata.mode == "llm":
             self._audit(

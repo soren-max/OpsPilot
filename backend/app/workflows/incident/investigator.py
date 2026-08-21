@@ -4,6 +4,7 @@ from typing import Protocol
 
 from app.domain.actions.models import ActionType
 from app.domain.incidents.evidence import EvidenceType
+from app.domain.incidents.memory import RetrievedKnowledge
 from app.domain.incidents.models import JsonValue
 
 
@@ -33,6 +34,7 @@ class InvestigationContext:
     environment: str
     evidence: tuple[InvestigationEvidence, ...]
     retrieved_knowledge_refs: tuple[str, ...] = ()
+    historical_knowledge: tuple[RetrievedKnowledge, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -43,6 +45,7 @@ class InvestigationResult:
     confidence: float
     evidence_ids: tuple[str, ...]
     action_type: ActionType | None
+    knowledge_refs: tuple[str, ...] = ()
     insufficient_evidence: bool = False
     uncertainty: str | None = None
     investigator_mode: str = "deterministic"
@@ -89,6 +92,7 @@ class DeterministicInvestigator:
                 confidence=0.95,
                 evidence_ids=tuple(item.evidence_id for item in unavailable),
                 action_type=ActionType.RESTART_SERVICE,
+                knowledge_refs=context.retrieved_knowledge_refs,
             )
         read_only = [
             item
@@ -103,6 +107,7 @@ class DeterministicInvestigator:
                 confidence=0.8,
                 evidence_ids=tuple(item.evidence_id for item in read_only),
                 action_type=ActionType.GET_SERVICE_STATUS,
+                knowledge_refs=context.retrieved_knowledge_refs,
             )
         return InvestigationResult(
             statement="No remediation signal is present in the available evidence.",
@@ -111,4 +116,5 @@ class DeterministicInvestigator:
             confidence=0.7,
             evidence_ids=tuple(item.evidence_id for item in context.evidence),
             action_type=None,
+            knowledge_refs=context.retrieved_knowledge_refs,
         )

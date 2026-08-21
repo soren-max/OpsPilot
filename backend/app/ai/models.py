@@ -21,11 +21,26 @@ class InvestigationPromptEvidence(StrictAIModel):
     metadata: dict[str, JsonValue] = Field(default_factory=dict)
 
 
+class InvestigationPromptKnowledge(StrictAIModel):
+    knowledge_id: str = Field(min_length=1, max_length=64)
+    incident_id: str = Field(min_length=1, max_length=64)
+    title: str = Field(min_length=1, max_length=200)
+    service: str = Field(min_length=1, max_length=120)
+    environment: str = Field(min_length=1, max_length=80)
+    root_cause: str = Field(min_length=1, max_length=2000)
+    remediation: tuple[str, ...] = Field(max_length=20)
+    verification: tuple[str, ...] = Field(max_length=20)
+    source_reference: str = Field(min_length=1, max_length=500)
+
+
 class InvestigationPromptInput(StrictAIModel):
     incident_id: str
     service: str = Field(min_length=1, max_length=120)
     environment: str = Field(min_length=1, max_length=80)
     evidence: tuple[InvestigationPromptEvidence, ...] = Field(max_length=20)
+    historical_knowledge: tuple[InvestigationPromptKnowledge, ...] = Field(
+        default=(), max_length=5
+    )
     prompt_name: str
     prompt_version: str
 
@@ -36,6 +51,7 @@ class InvestigationModelOutput(StrictAIModel):
     decision_summary: str = Field(min_length=1, max_length=1000)
     confidence: float = Field(ge=0, le=1)
     evidence_ids: tuple[str, ...] = Field(max_length=20)
+    knowledge_refs: tuple[str, ...] = Field(default=(), max_length=5)
     action_type: ActionType | None
     insufficient_evidence: bool
     uncertainty: str | None = Field(max_length=1000)
