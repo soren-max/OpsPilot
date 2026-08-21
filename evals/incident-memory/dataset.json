@@ -1,0 +1,322 @@
+{
+  "documents": [
+    {
+      "incident_id": "hist-01",
+      "root_cause_category": "service-down",
+      "text": "service: web environment: production symptoms: process unavailable restart service health unreachable variant 1 root cause: service-down remediation: restart_service verification: health restored"
+    },
+    {
+      "incident_id": "hist-02",
+      "root_cause_category": "service-down",
+      "text": "service: api environment: production symptoms: process unavailable restart service health unreachable variant 2 root cause: service-down remediation: restart_service verification: health restored"
+    },
+    {
+      "incident_id": "hist-03",
+      "root_cause_category": "service-down",
+      "text": "service: web environment: production symptoms: process unavailable restart service health unreachable variant 3 root cause: service-down remediation: restart_service verification: health restored"
+    },
+    {
+      "incident_id": "hist-04",
+      "root_cause_category": "service-down",
+      "text": "service: api environment: production symptoms: process unavailable restart service health unreachable variant 4 root cause: service-down remediation: restart_service verification: health restored"
+    },
+    {
+      "incident_id": "hist-05",
+      "root_cause_category": "service-down",
+      "text": "service: web environment: production symptoms: process unavailable restart service health unreachable variant 5 root cause: service-down remediation: restart_service verification: health restored"
+    },
+    {
+      "incident_id": "hist-06",
+      "root_cause_category": "dependency-failure",
+      "text": "service: web environment: production symptoms: upstream dependency unavailable connection refused web process alive variant 1 root cause: dependency-failure remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-07",
+      "root_cause_category": "dependency-failure",
+      "text": "service: api environment: production symptoms: upstream dependency unavailable connection refused web process alive variant 2 root cause: dependency-failure remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-08",
+      "root_cause_category": "dependency-failure",
+      "text": "service: web environment: production symptoms: upstream dependency unavailable connection refused web process alive variant 3 root cause: dependency-failure remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-09",
+      "root_cause_category": "dependency-failure",
+      "text": "service: api environment: production symptoms: upstream dependency unavailable connection refused web process alive variant 4 root cause: dependency-failure remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-10",
+      "root_cause_category": "dependency-failure",
+      "text": "service: web environment: production symptoms: upstream dependency unavailable connection refused web process alive variant 5 root cause: dependency-failure remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-11",
+      "root_cause_category": "high-error-rate",
+      "text": "service: web environment: production symptoms: http 500 error rate elevated application bug no restart variant 1 root cause: high-error-rate remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-12",
+      "root_cause_category": "high-error-rate",
+      "text": "service: api environment: production symptoms: http 500 error rate elevated application bug no restart variant 2 root cause: high-error-rate remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-13",
+      "root_cause_category": "high-error-rate",
+      "text": "service: web environment: production symptoms: http 500 error rate elevated application bug no restart variant 3 root cause: high-error-rate remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-14",
+      "root_cause_category": "high-error-rate",
+      "text": "service: api environment: production symptoms: http 500 error rate elevated application bug no restart variant 4 root cause: high-error-rate remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-15",
+      "root_cause_category": "high-error-rate",
+      "text": "service: web environment: production symptoms: http 500 error rate elevated application bug no restart variant 5 root cause: high-error-rate remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-16",
+      "root_cause_category": "latency",
+      "text": "service: web environment: production symptoms: request latency p95 slow timeout saturation variant 1 root cause: latency remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-17",
+      "root_cause_category": "latency",
+      "text": "service: api environment: production symptoms: request latency p95 slow timeout saturation variant 2 root cause: latency remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-18",
+      "root_cause_category": "latency",
+      "text": "service: web environment: production symptoms: request latency p95 slow timeout saturation variant 3 root cause: latency remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-19",
+      "root_cause_category": "latency",
+      "text": "service: api environment: production symptoms: request latency p95 slow timeout saturation variant 4 root cause: latency remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-20",
+      "root_cause_category": "latency",
+      "text": "service: web environment: production symptoms: request latency p95 slow timeout saturation variant 5 root cause: latency remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-21",
+      "root_cause_category": "memory-pressure",
+      "text": "service: web environment: production symptoms: memory pressure oom allocation container near limit variant 1 root cause: memory-pressure remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-22",
+      "root_cause_category": "memory-pressure",
+      "text": "service: api environment: production symptoms: memory pressure oom allocation container near limit variant 2 root cause: memory-pressure remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-23",
+      "root_cause_category": "memory-pressure",
+      "text": "service: web environment: production symptoms: memory pressure oom allocation container near limit variant 3 root cause: memory-pressure remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-24",
+      "root_cause_category": "memory-pressure",
+      "text": "service: api environment: production symptoms: memory pressure oom allocation container near limit variant 4 root cause: memory-pressure remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-25",
+      "root_cause_category": "memory-pressure",
+      "text": "service: web environment: production symptoms: memory pressure oom allocation container near limit variant 5 root cause: memory-pressure remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-26",
+      "root_cause_category": "healthy",
+      "text": "service: web environment: production symptoms: service healthy no actionable failure observation normal variant 1 root cause: healthy remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-27",
+      "root_cause_category": "healthy",
+      "text": "service: api environment: production symptoms: service healthy no actionable failure observation normal variant 2 root cause: healthy remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-28",
+      "root_cause_category": "healthy",
+      "text": "service: web environment: production symptoms: service healthy no actionable failure observation normal variant 3 root cause: healthy remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-29",
+      "root_cause_category": "healthy",
+      "text": "service: api environment: production symptoms: service healthy no actionable failure observation normal variant 4 root cause: healthy remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-30",
+      "root_cause_category": "healthy",
+      "text": "service: web environment: production symptoms: service healthy no actionable failure observation normal variant 5 root cause: healthy remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-31",
+      "root_cause_category": "database-pool",
+      "text": "service: web environment: production symptoms: database connection pool exhausted wait timeout variant 1 root cause: database-pool remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-32",
+      "root_cause_category": "database-pool",
+      "text": "service: api environment: production symptoms: database connection pool exhausted wait timeout variant 2 root cause: database-pool remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-33",
+      "root_cause_category": "database-pool",
+      "text": "service: web environment: production symptoms: database connection pool exhausted wait timeout variant 3 root cause: database-pool remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-34",
+      "root_cause_category": "database-pool",
+      "text": "service: api environment: production symptoms: database connection pool exhausted wait timeout variant 4 root cause: database-pool remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-35",
+      "root_cause_category": "database-pool",
+      "text": "service: web environment: production symptoms: database connection pool exhausted wait timeout variant 5 root cause: database-pool remediation: investigate upstream verification: health restored"
+    },
+    {
+      "incident_id": "hist-36",
+      "root_cause_category": "configuration",
+      "text": "service: web environment: production symptoms: configuration mismatch invalid setting deployment rollback variant 1 root cause: configuration remediation: rollback configuration verification: health restored"
+    },
+    {
+      "incident_id": "hist-37",
+      "root_cause_category": "configuration",
+      "text": "service: api environment: production symptoms: configuration mismatch invalid setting deployment rollback variant 2 root cause: configuration remediation: rollback configuration verification: health restored"
+    },
+    {
+      "incident_id": "hist-38",
+      "root_cause_category": "configuration",
+      "text": "service: web environment: production symptoms: configuration mismatch invalid setting deployment rollback variant 3 root cause: configuration remediation: rollback configuration verification: health restored"
+    },
+    {
+      "incident_id": "hist-39",
+      "root_cause_category": "configuration",
+      "text": "service: api environment: production symptoms: configuration mismatch invalid setting deployment rollback variant 4 root cause: configuration remediation: rollback configuration verification: health restored"
+    },
+    {
+      "incident_id": "hist-40",
+      "root_cause_category": "configuration",
+      "text": "service: web environment: production symptoms: configuration mismatch invalid setting deployment rollback variant 5 root cause: configuration remediation: rollback configuration verification: health restored"
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "q-service-1",
+      "text": "web production health unreachable process stopped service up zero",
+      "relevant_incident_ids": [
+        "hist-01",
+        "hist-03",
+        "hist-05"
+      ],
+      "expected_root_cause_category": "service-down"
+    },
+    {
+      "query_id": "q-service-2",
+      "text": "api process unavailable restart required",
+      "relevant_incident_ids": [
+        "hist-02",
+        "hist-04"
+      ],
+      "expected_root_cause_category": "service-down"
+    },
+    {
+      "query_id": "q-dep-1",
+      "text": "web alive upstream connection refused dependency down",
+      "relevant_incident_ids": [
+        "hist-06",
+        "hist-08",
+        "hist-10"
+      ],
+      "expected_root_cause_category": "dependency-failure"
+    },
+    {
+      "query_id": "q-dep-2",
+      "text": "api failing because downstream dependency unavailable",
+      "relevant_incident_ids": [
+        "hist-07",
+        "hist-09"
+      ],
+      "expected_root_cause_category": "dependency-failure"
+    },
+    {
+      "query_id": "q-error",
+      "text": "web elevated 500 rate but process healthy",
+      "relevant_incident_ids": [
+        "hist-11",
+        "hist-13",
+        "hist-15"
+      ],
+      "expected_root_cause_category": "high-error-rate"
+    },
+    {
+      "query_id": "q-latency",
+      "text": "api p95 latency timeout saturation",
+      "relevant_incident_ids": [
+        "hist-17",
+        "hist-19"
+      ],
+      "expected_root_cause_category": "latency"
+    },
+    {
+      "query_id": "q-memory",
+      "text": "web oom memory allocation near container limit",
+      "relevant_incident_ids": [
+        "hist-21",
+        "hist-23",
+        "hist-25"
+      ],
+      "expected_root_cause_category": "memory-pressure"
+    },
+    {
+      "query_id": "q-healthy",
+      "text": "api healthy normal metrics no action",
+      "relevant_incident_ids": [
+        "hist-27",
+        "hist-29"
+      ],
+      "expected_root_cause_category": "healthy"
+    },
+    {
+      "query_id": "q-db",
+      "text": "web database pool exhausted connections waiting",
+      "relevant_incident_ids": [
+        "hist-31",
+        "hist-33",
+        "hist-35"
+      ],
+      "expected_root_cause_category": "database-pool"
+    },
+    {
+      "query_id": "q-config",
+      "text": "api invalid deployment setting configuration mismatch",
+      "relevant_incident_ids": [
+        "hist-37",
+        "hist-39"
+      ],
+      "expected_root_cause_category": "configuration"
+    },
+    {
+      "query_id": "q-wording",
+      "text": "web daemon absent endpoint cannot connect process",
+      "relevant_incident_ids": [
+        "hist-01",
+        "hist-03",
+        "hist-05"
+      ],
+      "expected_root_cause_category": "service-down"
+    },
+    {
+      "query_id": "q-similar-different",
+      "text": "web timeout caused by upstream connection refused process alive",
+      "relevant_incident_ids": [
+        "hist-06",
+        "hist-08",
+        "hist-10"
+      ],
+      "expected_root_cause_category": "dependency-failure"
+    }
+  ]
+}
+
