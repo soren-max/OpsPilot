@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     ansible_playbook_directory: str | None = None
     ansible_binary_path: str | None = None
     execution_timeout_seconds: int = Field(default=30, ge=1, le=300)
+    execution_dispatch_lease_seconds: int = Field(default=60, ge=10, le=3600)
+    harness_base_url: str | None = None
+    harness_account_id: str | None = Field(default=None, max_length=120)
+    harness_org_id: str | None = Field(default=None, max_length=120)
+    harness_project_id: str | None = Field(default=None, max_length=120)
+    harness_api_key: SecretStr | None = None
+    harness_restart_pipeline_identifier: str | None = Field(
+        default=None, pattern=r"^[A-Za-z0-9_-]{1,120}$"
+    )
     executor_retry: int = Field(default=0, ge=0, le=5)
     partial_failure_policy: str = "NONE"
     rbac_enabled: bool = True
@@ -76,9 +85,7 @@ class Settings(BaseSettings):
         default=30,
         ge=1,
         le=120,
-        validation_alias=AliasChoices(
-            "LLM_TIMEOUT_SECONDS", "OPSPILOT_LLM_TIMEOUT_SECONDS"
-        ),
+        validation_alias=AliasChoices("LLM_TIMEOUT_SECONDS", "OPSPILOT_LLM_TIMEOUT_SECONDS"),
     )
     llm_max_retries: int = Field(
         default=1,
@@ -117,7 +124,13 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("DEFAULT_ADMIN_ENABLED", "OPSPILOT_DEFAULT_ADMIN_ENABLED"),
     )
 
-    @field_validator("prometheus_base_url", "loki_base_url", "qdrant_base_url", mode="before")
+    @field_validator(
+        "prometheus_base_url",
+        "loki_base_url",
+        "qdrant_base_url",
+        "harness_base_url",
+        mode="before",
+    )
     @classmethod
     def validate_operator_base_url(cls, value: object) -> str | None:
         if value is None or value == "":
@@ -158,6 +171,22 @@ class Settings(BaseSettings):
             raise ValueError("Memory backend must be disabled or qdrant")
         if self.memory_backend == "qdrant" and not self.qdrant_base_url:
             raise ValueError("Qdrant memory backend requires OPSPILOT_QDRANT_BASE_URL")
+        if self.harness_restart_pipeline_identifier:
+            missing_harness = [
+                name
+                for name, value in {
+                    "OPSPILOT_HARNESS_BASE_URL": self.harness_base_url,
+                    "OPSPILOT_HARNESS_ACCOUNT_ID": self.harness_account_id,
+                    "OPSPILOT_HARNESS_ORG_ID": self.harness_org_id,
+                    "OPSPILOT_HARNESS_PROJECT_ID": self.harness_project_id,
+                    "OPSPILOT_HARNESS_API_KEY": self.harness_api_key,
+                }.items()
+                if not value
+            ]
+            if missing_harness:
+                raise ValueError(
+                    "Harness execution profile requires: " + ", ".join(missing_harness)
+                )
         if self.llm_mode not in {"deterministic", "llm"}:
             raise ValueError("LLM_MODE must be deterministic or llm")
         if self.llm_mode == "llm":
@@ -174,9 +203,7 @@ class Settings(BaseSettings):
             if missing_llm:
                 raise ValueError("LLM mode requires: " + ", ".join(missing_llm))
         if self.production_operations_enabled and not self.write_operations_enabled:
-            raise ValueError(
-                "OPSPILOT_PRODUCTION_OPERATIONS_ENABLED requires write operations"
-            )
+            raise ValueError("OPSPILOT_PRODUCTION_OPERATIONS_ENABLED requires write operations")
         if self.selected_executor == "mock" and not self.dry_run_only:
             raise ValueError("Mock backend requires dry-run mode")
         if self.selected_executor == "ansible":
@@ -201,7 +228,6 @@ class Settings(BaseSettings):
     @property
     def selected_executor(self) -> str:
         return self.executor
-
 
 
 @lru_cache
