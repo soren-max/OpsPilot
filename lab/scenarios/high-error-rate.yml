@@ -1,0 +1,7 @@
+name: high-error-rate
+description: Keep web-01 alive while returning bounded HTTP 503 responses.
+target: web-01
+injection: high-error-rate
+expected_signals: [ERROR_RATE_HIGH, REQUEST_RATE_PRESENT, ERROR_LOG]
+expected_outcome: investigate_without_blind_restart
+cleanup: reset

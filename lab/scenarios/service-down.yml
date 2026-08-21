@@ -1,0 +1,7 @@
+name: service-down
+description: Stop the web-01 application process while its controller remains reachable.
+target: web-01
+injection: stop
+expected_signals: [SERVICE_UP_ZERO, HEALTH_UNAVAILABLE, ERROR_LOG]
+expected_outcome: restart_service
+cleanup: reset

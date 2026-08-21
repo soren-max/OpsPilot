@@ -1,0 +1,10 @@
+---
+- name: Read the fixed OpsPilot lab web health endpoint
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Require service health
+      ansible.builtin.uri:
+        url: "{{ health_url }}"
+        method: GET
+        status_code: 200

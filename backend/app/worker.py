@@ -28,6 +28,7 @@ from app.domain.actions.executor import ActionExecutor
 from app.domain.actions.policy import ActionPolicyEngine
 from app.models import Host, Service, ServiceDeployment
 from app.services.worker import WorkerService
+from app.workflows.checkpoint import get_workflow_checkpointer
 from app.workflows.incident.investigator import DeterministicInvestigator, IncidentInvestigator
 
 running = True
@@ -164,6 +165,7 @@ def main() -> None:
     signal.signal(signal.SIGTERM, stop_worker)
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_file)
+    get_workflow_checkpointer()
     investigator = build_investigator(settings)
     while running:
         with SessionLocal() as db:

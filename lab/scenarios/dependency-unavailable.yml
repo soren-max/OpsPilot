@@ -1,0 +1,7 @@
+name: dependency-unavailable
+description: Stop dependency while web-01 remains alive and records dependency failures.
+target: dependency
+injection: dependency-unavailable
+expected_signals: [WEB_UP, DEPENDENCY_UP_ZERO, DEPENDENCY_ERROR_LOG]
+expected_outcome: dependency_root_cause
+cleanup: reset
