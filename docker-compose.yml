@@ -1,7 +1,8 @@
 name: opspilot
 
 x-backend-environment: &backend-environment
-  OPSPILOT_DATABASE_URL: sqlite:////var/lib/opspilot/opspilot_ops.db
+  OPSPILOT_DATABASE_URL: postgresql+psycopg://opspilot:${OPSPILOT_POSTGRES_PASSWORD:?Set OPSPILOT_POSTGRES_PASSWORD in .env}@postgres:5432/opspilot
+  OPSPILOT_WORKFLOW_CHECKPOINT_BACKEND: postgres
   OPSPILOT_SERVER_HOST: 0.0.0.0
   OPSPILOT_SERVER_PORT: "8000"
   OPSPILOT_CORS_ORIGINS: ${OPSPILOT_CORS_ORIGINS:-http://localhost:8080}
@@ -14,6 +15,21 @@ x-backend-environment: &backend-environment
   DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?Set DEFAULT_ADMIN_PASSWORD in .env}
 
 services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: opspilot
+      POSTGRES_PASSWORD: ${OPSPILOT_POSTGRES_PASSWORD:?Set OPSPILOT_POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: opspilot
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opspilot -d opspilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   backend:
     image: opspilot-backend:${OPSPILOT_IMAGE_TAG:-v0.1.0}
     build:
@@ -43,6 +59,9 @@ services:
       retries: 10
       start_period: 10s
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   worker:
     image: opspilot-backend:${OPSPILOT_IMAGE_TAG:-v0.1.0}
@@ -155,3 +174,4 @@ services:
 
 volumes:
   frontend_node_modules:
+  postgres_data:

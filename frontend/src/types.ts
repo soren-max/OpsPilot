@@ -293,6 +293,27 @@ export interface WorkflowRun {
     uncertainty?: string | null;
     insufficient_evidence?: boolean;
     investigation_evidence_ids?: string[];
+    approval_id?: string;
+    action_fingerprint?: string;
+    action_type?: string;
+    risk_level?: string;
   };
   created_at: string;
+}
+
+export interface ApprovalRequest {
+  id: string;
+  incident_id: string;
+  workflow_run_id: string;
+  action_request_id: string;
+  action_fingerprint: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
+  requested_at: string;
+  resolved_at: string | null;
+  approver_identity: string | null;
+  approver_display_name: string | null;
+  approver_type: string | null;
+  decision: "APPROVE" | "REJECT" | null;
+  reason: string | null;
+  resumed_at: string | null;
 }

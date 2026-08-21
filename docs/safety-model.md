@@ -36,3 +36,10 @@ evidence.
 - medium-risk action without approval: no executor call
 - filesystem path supplied by caller: not part of ActionRequest
 - arbitrary shell or process-kill request: no representable ActionType
+# Durable approval safety
+
+Approval is a scoped, auditable decision over one workflow and one action fingerprint—not a
+boolean capability. It cannot make a forbidden policy result executable. Resume rejects pending or
+mismatched approvals, repeated decisions conflict, and repeated resume returns the existing
+terminal workflow without executing again. Checkpoints contain continuation references only; raw
+prompts, model responses, hidden reasoning and secrets are excluded from workflow state and audit.

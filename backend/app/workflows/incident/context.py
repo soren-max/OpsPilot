@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 from sqlalchemy import select
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.ai.errors import LLMFailure
 from app.application.action_service import ActionService
+from app.application.approval_service import ApprovalService
 from app.application.incident_service import IncidentService, safe_audit_metadata
 from app.capabilities import IncidentCapabilities
 from app.db.base import utc_now
@@ -257,6 +259,18 @@ class IncidentWorkflowRuntime:
         action = self._action_request(action_type)
         return self._service().policy.assess(action)
 
+    def request_approval(self, action_fingerprint: str) -> str:
+        item = ApprovalService(self.db).create_request(
+            self.workflow.incident_id, self.workflow.id, action_fingerprint
+        )
+        self.workflow.state_references = {
+            **self.workflow.state_references,
+            "approval_id": item.id,
+            "action_fingerprint": action_fingerprint,
+        }
+        self.db.commit()
+        return item.id
+
     def execute(self, action_type: ActionType) -> tuple[str, str]:
         if self.workflow.execution_task_id:
             status = self.workflow.state_references.get("verification_status")
@@ -278,7 +292,19 @@ class IncidentWorkflowRuntime:
         }
         self.db.commit()
         try:
-            outcome = asyncio.run(self._service().execute(action))
+            approval_granted = ApprovalService(self.db).is_approved(
+                self.workflow.id, action_fingerprint
+            )
+            operation = self._service().execute(action, approval_granted=approval_granted)
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                outcome = asyncio.run(operation)
+            else:
+                # Synchronous LangGraph nodes normally run in a worker thread. This fallback
+                # also preserves correctness for embedded ASGI runtimes that invoke them inline.
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    outcome = pool.submit(asyncio.run, operation).result()
         except (ConnectionError, TimeoutError) as exc:
             raise WorkflowInfrastructureFailure(
                 "Action capability is temporarily unavailable"

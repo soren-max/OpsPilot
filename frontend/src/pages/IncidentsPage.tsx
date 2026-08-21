@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Activity, ArrowLeft, Clock3 } from "lucide-react";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { incidentsApi } from "../api";
+import { approvalsApi, incidentsApi } from "../api";
 import { DataTable, PageHeader, PageSection, StatusBadge } from "../components/OpsUI";
 import { EmptyState, ErrorState, LoadingState } from "../components/PageState";
 import { queryKeys } from "../query/queryKeys";
@@ -104,6 +105,8 @@ function IncidentList({ environment }: { environment: string }) {
 }
 
 function IncidentDetail({ incidentId }: { incidentId: string }) {
+  const queryClient = useQueryClient();
+  const [approvalReason, setApprovalReason] = useState("");
   const incident = useQuery({
     queryKey: queryKeys.incident(incidentId),
     queryFn: () => incidentsApi.detail(incidentId),
@@ -115,6 +118,23 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
   const workflows = useQuery({
     queryKey: queryKeys.incidentWorkflows(incidentId),
     queryFn: () => incidentsApi.workflows(incidentId),
+  });
+  const approvals = useQuery({
+    queryKey: queryKeys.incidentApprovals(incidentId),
+    queryFn: () => approvalsApi.list(incidentId),
+  });
+  const decide = useMutation({
+    mutationFn: ({ id, decision }: { id: string; decision: "approve" | "reject" }) =>
+      approvalsApi[decision](id, approvalReason),
+    onSuccess: async () => {
+      setApprovalReason("");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.incidentApprovals(incidentId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.incidentWorkflows(incidentId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.incident(incidentId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.incidentTimeline(incidentId) }),
+      ]);
+    },
   });
   if (incident.isLoading) return <LoadingState label="正在加载 Incident" />;
   if (incident.error)
@@ -266,6 +286,83 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
               })}
             </tbody>
           </DataTable>
+        )}
+      </PageSection>
+      <PageSection
+        title="Human Approval"
+        description="人工决定是受策略约束的执行边界；批准不会跳过 Policy Engine。"
+      >
+        {approvals.isLoading ? (
+          <LoadingState />
+        ) : approvals.error ? (
+          <ErrorState error={approvals.error} onRetry={() => void approvals.refetch()} />
+        ) : !approvals.data?.length ? (
+          <EmptyState title="暂无审批请求" message="需要变更基础设施时，工作流会在此安全暂停。" />
+        ) : (
+          <div className="incident-card-list">
+            {approvals.data.map((approval) => {
+              const workflow = workflows.data?.find(
+                (candidate) => candidate.id === approval.workflow_run_id,
+              );
+              return (
+                <article key={approval.id} className="incident-card approval-card">
+                  <span>
+                    Incident {item.id.slice(0, 8)} · <StatusBadge status={approval.status} />
+                  </span>
+                  <strong>
+                    Action proposal: {workflow?.state_references.action_type ?? "structured action"}
+                  </strong>
+                  <small>
+                    Risk: {workflow?.state_references.risk_level ?? "policy assessed"} · Fingerprint{" "}
+                    <code>{approval.action_fingerprint.slice(0, 12)}</code>
+                  </small>
+                  <small>
+                    Diagnosis: {item.diagnoses.at(-1)?.root_cause ?? "See diagnosis record"}
+                  </small>
+                  <small>
+                    Evidence references: {item.diagnoses.at(-1)?.evidence_ids.length ?? 0} · Decision
+                    summary: {workflow?.state_references.decision_summary ?? "Deterministic proposal"}
+                  </small>
+                  {approval.status === "PENDING" ? (
+                    <div className="approval-actions">
+                      <label>
+                        决策理由
+                        <textarea
+                          value={approvalReason}
+                          maxLength={1000}
+                          onChange={(event) => setApprovalReason(event.target.value)}
+                          placeholder="记录批准或拒绝的原因"
+                        />
+                      </label>
+                      <div>
+                        <button
+                          className="button button--primary"
+                          disabled={!approvalReason.trim() || decide.isPending}
+                          onClick={() =>
+                            decide.mutate({ id: approval.id, decision: "approve" })
+                          }
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className="button button--danger"
+                          disabled={!approvalReason.trim() || decide.isPending}
+                          onClick={() => decide.mutate({ id: approval.id, decision: "reject" })}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <small>
+                      {approval.approver_display_name} · {approval.reason} ·{" "}
+                      {approval.resolved_at ? formatDate(approval.resolved_at) : "—"}
+                    </small>
+                  )}
+                </article>
+              );
+            })}
+          </div>
         )}
       </PageSection>
       <div className="incident-overview-grid">

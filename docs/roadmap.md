@@ -27,3 +27,12 @@ backend, or simulated implementation.
 evidence-grounded investigation pipeline is complete, documented, and tested, and the boundary
 before mutating execution is explicit. The next engineering milestone is **M4 — Durable HITL +
 Postgres Checkpoint** (identity-bound approval and resumable state).
+# M4 — Durable HITL + PostgreSQL Checkpoint (complete)
+
+- Durable PostgreSQL LangGraph continuation state
+- Auditable approval lifecycle and identity boundary
+- Interrupt/resume workflow with replay protection
+- Approval API and incident approval UI
+- Offline approve/resume/mock-execute/verify demo
+
+Next: **M5 Incident Lab**.

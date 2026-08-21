@@ -82,7 +82,8 @@ def test_graph_topology_is_explicit() -> None:
     edges = {(edge.source, edge.target) for edge in graph.edges}
     assert ("load_incident", "collect_context") in edges
     assert ("execute", "verify") in edges
-    assert ("approval_required", "__end__") in edges
+    assert ("approval_required", "execute") in edges
+    assert ("approval_required", "failure") in edges
 
 
 def test_state_is_json_serializable_and_contains_references_only() -> None:

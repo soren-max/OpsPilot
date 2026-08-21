@@ -49,3 +49,15 @@ def test_workflow_runtime_does_not_import_mock_backend() -> None:
         APP_ROOT / "workflows" / "incident",
         ("app.adapters.mock",),
     )
+
+
+def test_workflow_nodes_never_import_executor_or_approval_persistence() -> None:
+    assert_no_import_prefix(
+        APP_ROOT / "workflows" / "incident" / "nodes",
+        ("app.domain.actions.executor", "app.repositories.approval"),
+    )
+
+
+def test_approval_service_cannot_reach_executor_implementations() -> None:
+    modules = imported_modules(APP_ROOT / "application" / "approval_service.py")
+    assert not any(module.startswith("app.adapters") for module in modules)

@@ -28,6 +28,8 @@ class IncidentWorkflowState(TypedDict):
     decision_summary: str | None
     action_needed: bool
     approval_required: bool
+    approval_id: str | None
+    approval_decision: str | None
     last_error: str | None
     retrieved_knowledge_ids: list[str]
     investigation_statement: str | None
@@ -56,6 +58,8 @@ def initial_state(incident_id: str, workflow_id: str) -> IncidentWorkflowState:
         decision_summary=None,
         action_needed=False,
         approval_required=False,
+        approval_id=None,
+        approval_decision=None,
         last_error=None,
         retrieved_knowledge_ids=[],
         investigation_statement=None,

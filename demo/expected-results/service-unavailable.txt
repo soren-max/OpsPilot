@@ -22,5 +22,17 @@ Risk Assessment
   risk=MEDIUM
   approval_required=true
 
-WAITING_APPROVAL
-Demo stopped before approval or execution (durable resume belongs to M4).
+Approval Requested
+  checkpoint=298e04f0e1446f23
+  status=WAITING_APPROVAL
+
+Human Decision
+  actor=offline-demo-operator
+  decision=APPROVED
+  reason=fixture evidence supports bounded remediation
+
+Workflow Resumed
+  executor=mock
+  verification=SUCCEEDED
+
+SUCCEEDED

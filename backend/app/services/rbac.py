@@ -34,6 +34,8 @@ DEFAULT_PERMISSION_DEFINITIONS: dict[str, str] = {
     "workflow.read": "Read incident workflow progress and trace",
     "workflow.start": "Start incident workflows",
     "workflow.cancel": "Cancel queued or paused incident workflows",
+    "approval.read": "Read human approval requests",
+    "approval.decide": "Approve or reject human approval requests",
 }
 
 
