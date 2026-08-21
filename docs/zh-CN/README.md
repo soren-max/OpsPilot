@@ -22,7 +22,7 @@
 
 - [架构（Architecture）](architecture.md) — 系统分层总览：LangGraph Incident 工作流、类型化能力端口、Incident Evidence、LLM 调查器与 Action Safety Core（对应英文 [architecture.md](../architecture.md)）。
 - [安全模型（Safety Model）](safety-model.md) — LLM 只是决策助手而非授权主体：只读动作可自动放行，重启等中风险动作必须审批，未知动作、未知目标与非法参数一律 fail-closed。
-- [路线图（Roadmap）](roadmap.md) — 里程碑一览：M1A–M3B 均已完成（M1A 动作安全核心 → M3B LLM 调查器），M4（Durable HITL + Postgres Checkpoint）是下一个工程里程碑；RAG、MCP、Harness、GitOps 等仍在计划中。
+- [路线图（Roadmap）](roadmap.md) — M1–M7 已实现，Local Demo Closeout 是当前 Portfolio 暂停点，M8 是下一工程里程碑。
 - [开发指南（Development）](development.md) — 本地环境搭建、依赖管理（Python 3.13 / uv / Node 22+）与开发约定。
 - [测试策略（Testing）](testing.md) — 后端/前端回归基线、确定性动作安全测试与评估夹具的使用方式。
 

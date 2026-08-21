@@ -2,43 +2,48 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-**Agentic Incident Response Platform**
+**Evidence-driven, human-controlled incident response.** OpsPilot collects current operational
+evidence, produces a grounded diagnosis and structured action, enforces deterministic policy and
+durable approval, executes through a fixed Ansible boundary, and verifies recovery.
 
-OpsPilot is an open-source project for evidence-driven, human-controlled incident response.
-It is built to help SRE and incident responders collect evidence, form explicit hypotheses,
-propose structured actions, and execute approved changes through constrained infrastructure
-adapters — never through an arbitrary shell.
+## Quick Demo
 
-The current milestone (M7) adds an MCP `2026-07-28` interoperability plane to the complete
-**Observability → Evidence → LLM Investigator → Grounding Guard → Structured Action → Policy →
-Durable Human Approval → Ansible → Verification** pipeline against a reproducible local Lab.
-The default walkthrough is deterministic and requires no model API key.
+```bash
+make demo-local
+```
 
-## MCP Capability Plane
+**Fault → Evidence → Diagnosis → Human Approval → Ansible → Verified Recovery**
 
-The official Python SDK exposes allowlisted typed observability and historical-memory tools over
-stdio and stateless Streamable HTTP. A controlled client adapter can consume operator-configured
-remote MCP capabilities. MCP annotations are advisory; Policy, evidence ownership, durable HITL,
-and fixed executors remain authoritative. The only mutating tool requests remediation and returns
-an approval reference—it cannot execute. Run `make mcp-demo` and `make mcp-eval` locally.
+The canonical `service-down` demonstration is synthetic, deterministic, repeatable, and needs no
+OpenAI key or external SaaS. It uses real Prometheus, Loki, PostgreSQL checkpointing, Policy/HITL,
+fixed Ansible remediation, and health verification. Start with `make demo-doctor`; clean up with
+`make demo-down`. See the [10-minute mentor walkthrough](docs/demo/mentor-demo.md).
 
-## Historical Incident Memory
+```mermaid
+flowchart LR
+  Alert --> Incident --> Evidence --> Investigator --> Action[Structured Action]
+  Action --> Policy --> Approval[Human Approval] --> Ansible --> Verification
+  Optional[Optional: RAG / MCP / OpenAI] -.-> Investigator
+```
 
-Only resolved/closed, diagnosed incidents are deterministically projected and explicitly indexed.
-Qdrant combines dense and sparse retrieval with RRF. Related incidents appear as **Historical
-Context**, separately from current Evidence; similarity is not confidence and cannot authorize an
-action. Run `make memory-eval` for the committed 40-record retrieval benchmark.
+**Current status:** M1–M7 implemented. **Portfolio pause point:** Local Demo Closeout.
+**Next engineering milestone:** M8 Multi-backend Governed Execution (not implemented).
 
-## Live Incident Lab
+## Demo Profiles
 
-In about 30 seconds of terminal output, `make lab-demo` explains the operational story:
+| Capability | Demo Minimal | Demo Full | Production integration |
+| --- | --- | --- | --- |
+| Prometheus / Loki / Health / Mock Ticket | Included | Included | Configure typed adapters |
+| Deterministic investigator | Included | Included | Supported |
+| OpenAI investigator | Off | Optional | Operator configuration required |
+| Durable HITL / PostgreSQL checkpoint | Included | Included | Auth and deployment configuration required |
+| Fixed Ansible remediation | Included | Included | Operator-owned inventory required |
+| Historical memory / local Qdrant | Off | Included | Production embedding/vector configuration required |
+| MCP capability plane | Off | Included | Auth, trust, and transport configuration required |
 
-**Fault → real Prometheus/Loki/Health Evidence → deterministic investigation → approval → fixed
-Ansible remediation → verified recovery.**
-
-The existing fixture demo (`make demo`) is the fastest zero-service walkthrough. The Live Lab
-(`make lab-demo`) starts disposable Docker services and proves the actual integration boundaries.
-See [lab/README.md](lab/README.md). Neither mode is presented as production deployment.
+The public repository is an independent personal R&D project. The local demo is a disposable Docker
+environment, not a claim of production deployment. Real environments require explicit adapters,
+credentials, access controls, and operator configuration.
 
 ## Why OpsPilot
 
@@ -80,17 +85,17 @@ flowchart TD
   Investigator --> Guard[Grounding Guard<br/>Structured Output + Evidence ID validation]
   Guard --> Action[Structured Action Proposal]
   Action --> Policy[Deterministic Policy Engine<br/>Implemented]
-  Policy --> Approval{Human Approval<br/>M3: WAITING_APPROVAL stop point<br/>M4: durable approval - Planned}
+  Policy --> Approval{Durable Human Approval<br/>Implemented in M4}
   Approval --> Executor[ActionExecutor<br/>Implemented]
   Executor --> Mock[Mock Adapter<br/>Implemented]
   Executor --> Ansible[Ansible Adapter<br/>Implemented]
   Ansible --> Infra[Target Infrastructure]
-  subgraph Planned[M4 and beyond]
+  subgraph Advanced[Implemented optional capabilities]
     direction LR
-    Postgres[(Postgres Checkpoint<br/>Planned)]
-    HITL[Durable HITL Resume<br/>Planned]
+    Postgres[(Postgres Checkpoint<br/>Implemented)]
+    HITL[Durable HITL Resume<br/>Implemented]
     Harness[Harness Backend<br/>Planned]
-    RAG[RAG / Playbook Memory<br/>Planned]
+    RAG[Historical Incident Memory<br/>Implemented in M6]
   end
   Approval -.-> Postgres
   Postgres -.-> HITL
@@ -245,17 +250,18 @@ Copy `.env.example` to `.env` and replace every placeholder before starting the 
 | M3A Observability Capabilities | **Implemented** |
 | M3B Evidence-Grounded LLM Investigator | **Implemented** |
 | M3.5 Portfolio & Demo Readiness | **Implemented** |
-| M4 Durable HITL + Postgres Checkpoint | **Planned — next milestone** |
+| M4 Durable HITL + Postgres Checkpoint | **Implemented** |
+| M5 Reproducible Incident Lab | **Implemented** |
+| M6 Historical Incident Memory / Hybrid RAG | **Implemented** |
+| M7 MCP Capability Boundary | **Implemented** |
 
 The worker builds one operator-configured `ActionService` per iteration from the selected Mock or
 Ansible backend and the enabled Target allowlist. It injects that same policy/executor boundary
 into both ordinary Operations and LangGraph workflows; workflow code never selects a backend and
 fails closed if the dependency is absent.
 
-M2 injects LangGraph's own `BaseCheckpointSaver` port and uses `InMemorySaver` for development and
-tests. Stable LangGraph threads use `thread_id = workflow_id`, but process restarts lose memory
-checkpoints. Production-grade Postgres checkpoint persistence and authenticated approval/resume
-belong to M4.
+LangGraph uses stable `thread_id = workflow_id` identifiers. Development tests may use an in-memory
+saver; the demo uses PostgreSQL checkpoint persistence and identity-bound approval/resume.
 
 The legacy SSH and service-script runtime was removed in M1B. Ansible may use SSH internally
 according to operator-owned inventory, but that is not part of the Agent/API contract.
@@ -264,22 +270,17 @@ according to operator-owned inventory, but that is not part of the Agent/API con
 
 | Milestone | Status |
 | --- | --- |
-| M1A – M3B | **Done** (see Current Status) |
-| **M4 Durable HITL + Postgres Checkpoint** | **Next** |
-| M5 Incident Lab | Future |
-| M6 Playbook Memory / RAG | Future |
-| M7 MCP Capability Boundary | **Implemented** |
-| M8 Harness Multi-backend Execution | Future |
+| M1A – M7 | **Implemented** (see Current Status) |
+| Local Demo Closeout | **Current portfolio pause point** |
+| M8 Multi-backend Governed Execution | **Next engineering milestone** |
 | M9 GitOps | Future |
 | M10 Risk Reviewer / Evaluation | Future |
 | M11 Agent Observability | Future |
 
-### Current Pause Point
+### Current Portfolio Pause Point
 
-**M3.5 represents the current stable portfolio milestone.** The project intentionally pauses new
-core features here: the evidence-grounded investigation pipeline is complete, documented, and
-tested, and the boundary before mutating execution is explicit. The next engineering milestone is
-**M4 — Durable HITL + Postgres Checkpoint**.
+The stable public portfolio baseline is **Local Demo Closeout after M7**. The next engineering
+milestone is **M8 — Multi-backend Governed Execution**; Harness and GitOps are not implemented.
 
 ## Why this project is different
 

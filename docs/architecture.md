@@ -1,5 +1,22 @@
 # Architecture
 
+## Local demo architecture snapshot
+
+The canonical `demo-minimal` profile exercises the implemented safety path without optional or paid
+dependencies:
+
+```mermaid
+flowchart LR
+  Alert --> Incident --> Evidence[Prometheus / Loki / Health / Ticket Evidence]
+  Evidence --> Investigator[Deterministic Investigator] --> Action[Structured Action]
+  Action --> Policy --> Approval[Durable Human Approval]
+  Approval --> Ansible[Fixed Ansible Playbook] --> Verification --> Resolved
+  Optional[Optional: RAG / MCP / OpenAI] -.-> Investigator
+```
+
+`demo-full` adds local Qdrant historical context and the MCP capability plane. Neither changes
+Policy, approval, executor, or verification authority. Harness and GitOps remain future M8/M9 work.
+
 ## M7 MCP capability plane
 
 The MCP `2026-07-28` adapter sits outside Domain, Policy, Executor, and Workflow packages. Its fixed

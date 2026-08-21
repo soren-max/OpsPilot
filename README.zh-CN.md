@@ -2,30 +2,45 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-**智能体事故响应平台（Agentic Incident Response Platform）**
+**证据驱动、人工控制的事故响应。** OpsPilot 收集当前事故证据，生成有证据约束的诊断与
+结构化动作，通过确定性策略、持久化人工审批、固定 Ansible 边界和独立验证完成恢复。
 
-OpsPilot 是一个开源的、以证据驱动（Evidence-driven）且由人控制的事故响应项目。它帮助
-SRE 与事故响应人员收集证据、形成明确的假设、提出结构化动作（Structured Action），并经由
-受限的基础设施适配器执行经过审批的变更——而不是通过任意 shell。
+## 快速演示
 
-当前里程碑（M7）在完整流水线上增加 MCP `2026-07-28` capability interoperability plane：
-**可观测性 → 证据 → LLM 调查器 → 证据约束（Evidence Grounding）→ 结构化动作 → 策略 →
-持久化人工审批 → Ansible → 验证**。默认演示使用确定性调查器，不需要模型 API Key。
+```bash
+make demo-local
+```
 
-## 历史 Incident Memory
+**故障 → 证据 → 诊断 → 人工审批 → Ansible → 恢复验证**
 
-只有已解决/关闭且存在诊断的 Incident 才会被确定性投影并显式索引。Qdrant 使用 dense、
-sparse 与 RRF 检索。相关事故明确标记为“历史上下文”，与当前 Evidence 分离；相似度不是
-诊断置信度，也不能授权执行。运行 `make memory-eval` 可复现 40 条记录的检索基准。
+默认 `service-down` 演示使用合成环境和确定性调查器，不需要 OpenAI Key 或外部 SaaS。
+运行前可用 `make demo-doctor` 检查环境，完成后用 `make demo-down` 清理。详见
+[10 分钟 Mentor 演示脚本](docs/demo/mentor-demo.md)。
 
-## Live Incident Lab
+```mermaid
+flowchart LR
+  Alert --> Incident --> Evidence --> Investigator --> Action[结构化动作]
+  Action --> Policy --> Approval[人工审批] --> Ansible --> Verification[验证]
+  Optional[可选: RAG / MCP / OpenAI] -.-> Investigator
+```
 
-运行 `make lab-demo`，终端会依次展示：
+**当前状态：** M1–M7 已实现。**Portfolio 暂停点：** Local Demo Closeout。
+**下一工程里程碑：** M8 Multi-backend Governed Execution（未实现）。
 
-**故障 → 真实 Prometheus/Loki/Health 证据 → 确定性调查 → 审批 → 固定 Ansible 修复 → 恢复验证。**
+## 演示 Profile
 
-`make demo` 是无需容器的 fixture 演示；`make lab-demo` 会启动一次性的真实本地服务和遥测
-组件。详细说明见 [lab/README.md](lab/README.md)。两者都不是生产部署方案。
+| 能力 | Demo Minimal | Demo Full | 生产集成 |
+| --- | --- | --- | --- |
+| Prometheus / Loki / Health / Mock Ticket | 包含 | 包含 | 配置类型化适配器 |
+| 确定性调查器 | 包含 | 包含 | 支持 |
+| OpenAI 调查器 | 关闭 | 可选 | 需要运维配置 |
+| 持久 HITL / PostgreSQL checkpoint | 包含 | 包含 | 需要认证与部署配置 |
+| 固定 Ansible 修复 | 包含 | 包含 | 需要运维自有 inventory |
+| 历史 Memory / 本地 Qdrant | 关闭 | 包含 | 需要生产检索配置 |
+| MCP capability plane | 关闭 | 包含 | 需要 auth / trust / transport 配置 |
+
+本公开仓库是独立个人 R&D 项目。本地演示是可丢弃的 Docker 合成环境，不代表已在公司
+生产环境部署。真实环境需要显式适配器、凭据、访问控制与运维配置。
 
 ## 为什么需要 OpsPilot
 
@@ -64,17 +79,17 @@ flowchart TD
   Investigator --> Guard[Grounding Guard<br/>Structured Output + Evidence ID validation]
   Guard --> Action[Structured Action Proposal]
   Action --> Policy[Deterministic Policy Engine<br/>Implemented]
-  Policy --> Approval{Human Approval<br/>M3: WAITING_APPROVAL stop point<br/>M4: durable approval - Planned}
+  Policy --> Approval{Durable Human Approval<br/>M4 已实现}
   Approval --> Executor[ActionExecutor<br/>Implemented]
   Executor --> Mock[Mock Adapter<br/>Implemented]
   Executor --> Ansible[Ansible Adapter<br/>Implemented]
   Ansible --> Infra[Target Infrastructure]
-  subgraph Planned[M4 and beyond]
+  subgraph Advanced[已实现的可选能力]
     direction LR
-    Postgres[(Postgres Checkpoint<br/>Planned)]
-    HITL[Durable HITL Resume<br/>Planned]
+    Postgres[(Postgres Checkpoint<br/>已实现)]
+    HITL[Durable HITL Resume<br/>已实现]
     Harness[Harness Backend<br/>Planned]
-    RAG[RAG / Playbook Memory<br/>Planned]
+    RAG[Historical Incident Memory<br/>M6 已实现]
   end
   Approval -.-> Postgres
   Postgres -.-> HITL
@@ -208,15 +223,17 @@ LLM 模式需要有效的 `OPENAI_API_KEY` 与经运维确认的模型配置。P
 | M3A Observability Capabilities | **已实现** |
 | M3B Evidence-Grounded LLM Investigator | **已实现** |
 | M3.5 Portfolio & Demo Readiness | **已实现** |
-| M4 Durable HITL + Postgres Checkpoint | **计划中 —— 下一里程碑** |
+| M4 Durable HITL + Postgres Checkpoint | **已实现** |
+| M5 Reproducible Incident Lab | **已实现** |
+| M6 Historical Incident Memory / Hybrid RAG | **已实现** |
+| M7 MCP Capability Boundary | **已实现** |
 
 Worker 每次迭代从选中的 Mock 或 Ansible 后端与启用的 Target 白名单构建一个由运维配置的
 `ActionService`，并把同一个策略/执行器边界注入普通 Operations 与 LangGraph 工作流；工作流
 代码从不选择后端，依赖缺失时 fail closed。
 
-M2 直接注入 LangGraph 自带的 `BaseCheckpointSaver` 端口，开发与测试使用 `InMemorySaver`。
-稳定的 LangGraph 线程使用 `thread_id = workflow_id`，但进程重启会丢失内存 checkpoint。
-生产级 Postgres checkpoint 持久化与带身份认证的审批/恢复属于 M4。
+LangGraph 使用稳定的 `thread_id = workflow_id`。开发测试可使用内存 saver；默认
+演示使用 PostgreSQL checkpoint 持久化和身份绑定的审批/恢复。
 
 M1B 已移除遗留的 SSH 与服务脚本运行时。Ansible 可以按运维自有的 inventory 在内部使用 SSH，
 但那不属于 Agent/API 契约。
@@ -225,21 +242,17 @@ M1B 已移除遗留的 SSH 与服务脚本运行时。Ansible 可以按运维自
 
 | 里程碑 | 状态 |
 | --- | --- |
-| M1A – M3B | **已完成**（见当前状态） |
-| **M4 Durable HITL + Postgres Checkpoint** | **下一里程碑** |
-| M5 Incident Lab | 未来 |
-| M6 Playbook Memory / RAG | 未来 |
-| M7 MCP Capability Boundary | **已实现** |
-| M8 Harness Multi-backend Execution | 未来 |
+| M1A – M7 | **已实现**（见当前状态） |
+| Local Demo Closeout | **当前 Portfolio 暂停点** |
+| M8 Multi-backend Governed Execution | **下一工程里程碑** |
 | M9 GitOps | 未来 |
 | M10 Risk Reviewer / Evaluation | 未来 |
 | M11 Agent Observability | 未来 |
 
-### 当前暂停点（Current Pause Point）
+### 当前 Portfolio 暂停点
 
-**M3.5 是当前稳定的组合里程碑。** 项目在此刻意暂停新增核心功能：证据约束的调查流水线已
-完整、有文档、有测试，变更执行前的边界是显式的。下一个工程里程碑是
-**M4 —— Durable HITL + Postgres Checkpoint**。
+当前稳定公开基线是 **M7 之后的 Local Demo Closeout**。下一工程里程碑是
+**M8 —— Multi-backend Governed Execution**；Harness 与 GitOps 尚未实现。
 
 ## 这个项目有什么不同
 
