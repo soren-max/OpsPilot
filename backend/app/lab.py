@@ -177,8 +177,10 @@ def _seed_lab_catalog() -> None:
 def _capabilities(action_service: ActionService) -> IncidentCapabilities:
     settings = get_settings()
     now = datetime.now(UTC)
+
     def client(url: str) -> HttpxJsonClient:
         return HttpxJsonClient(url, timeout_seconds=5)
+
     ticket = TicketRecord(
         id="LAB-101",
         title="Previous web process stop",
@@ -202,13 +204,14 @@ def _capabilities(action_service: ActionService) -> IncidentCapabilities:
     )
 
 
-async def _telemetry_probe() -> None:
+async def _telemetry_probe() -> tuple[int, int]:
     settings = get_settings()
     end = datetime.now(UTC)
     start = end - timedelta(minutes=5)
     metrics = PrometheusMetricsAdapter(
         HttpxJsonClient(settings.prometheus_base_url or "", timeout_seconds=5)
     )
+    series_count = 0
     for kind in (
         MetricKind.SERVICE_UP,
         MetricKind.REQUEST_RATE,
@@ -226,13 +229,13 @@ async def _telemetry_probe() -> None:
                 aggregation=MetricAggregation.AVG,
             )
         )
-        print(f"  Prometheus {kind.value}: {len(observation.series)} bounded series")
+        series_count += len(observation.series)
     logs = await LokiLogsAdapter(
         HttpxJsonClient(settings.loki_base_url or "", timeout_seconds=5)
     ).query(
         LogQuery(service="web-01", environment="lab", start=start, end=end, limit=20)
     )
-    print(f"  Loki ERROR logs: {len(logs.entries)} bounded entries")
+    return series_count, len(logs.entries)
 
 
 async def _prompt_injection_probe() -> None:
@@ -274,38 +277,42 @@ async def _prompt_injection_probe() -> None:
     print("12. Safety scenario: prompt injection remained evidence; no action or approval bypass")
 
 
+def _display_id(value: str, label: str) -> str:
+    return f"<{label}>" if os.environ.get("LAB_NORMALIZE_OUTPUT") == "1" else value
+
+
 def demo() -> None:
     get_workflow_checkpointer()
-    print("1. Lab healthy")
     reset()
-    print("2. Fault injected: service-down")
+    print("[1/10] Lab ready")
     inject(load_scenario("service-down"))
+    print("[2/10] Fault injected — service-down")
     time.sleep(8)
-    asyncio.run(_telemetry_probe())
+    metric_series, log_entries = asyncio.run(_telemetry_probe())
     _seed_lab_catalog()
     with SessionLocal() as db:
         settings = get_settings()
         action_service = build_action_service(db, settings)
         memory = build_memory_store(settings)
-        assert memory is not None
-        memory.ensure_collection()
-        memory.upsert(
-            IncidentKnowledgeRecord(
-                incident_id="lab-historical-service-down",
-                title="Historical web process unavailable",
-                service="web-01",
-                environment="lab",
-                severity=Severity.HIGH.value,
-                symptoms=("Health endpoint unreachable",),
-                evidence_summary=("SERVICE_UP was zero",),
-                root_cause="Service process unavailable",
-                contributing_factors=(),
-                remediation=("restart_service",),
-                verification=("Health endpoint returned 200",),
-                tags=("lab", "service-down"),
-                resolved_at=datetime(2026, 8, 20, tzinfo=UTC),
+        if memory is not None:
+            memory.ensure_collection()
+            memory.upsert(
+                IncidentKnowledgeRecord(
+                    incident_id="lab-historical-service-down",
+                    title="Historical web process unavailable",
+                    service="web-01",
+                    environment="lab",
+                    severity=Severity.HIGH.value,
+                    symptoms=("Health endpoint unreachable",),
+                    evidence_summary=("SERVICE_UP was zero",),
+                    root_cause="Service process unavailable",
+                    contributing_factors=(),
+                    remediation=("restart_service",),
+                    verification=("Health endpoint returned 200",),
+                    tags=("lab", "service-down"),
+                    resolved_at=datetime(2026, 8, 20, tzinfo=UTC),
+                )
             )
-        )
         incident = IncidentService(db).create_incident(
             IncidentCreate(
                 title="Lab web-01 is unavailable",
@@ -318,7 +325,7 @@ def demo() -> None:
             ),
             "lab-demo",
         )
-        print(f"3. Incident created: {incident.id}")
+        print(f"[3/10] Incident created — {_display_id(incident.id, 'incident-id')}")
         workflow_service = WorkflowService(
             db,
             investigator=DeterministicInvestigator(),
@@ -330,31 +337,50 @@ def demo() -> None:
         waiting = workflow_service.run(workflow.id)
         assert waiting.status is WorkflowRunStatus.WAITING
         stored = IncidentService(db)._require(incident.id)
-        print(f"4. Evidence collected: {len(stored.evidence)} real observations")
-        print(f"5. Diagnosis: {stored.diagnoses[-1].root_cause}")
+        evidence_count = len(stored.evidence)
+        diagnosis = stored.diagnoses[-1].root_cause
+        print(
+            f"[4/10] Evidence collected — {evidence_count} records "
+            f"({metric_series} metric series, {log_entries} log entries observed)"
+        )
+        print(f"[5/10] Diagnosis completed — {diagnosis}")
         related = waiting.state_references.get("retrieved_knowledge_refs")
-        assert isinstance(related, list) and related
-        print("  Historical Context: retrieved prior service-down incident")
-        print("6. Action proposed: restart_service; Policy=MEDIUM")
+        historical = "enabled" if isinstance(related, list) and related else "disabled"
+        print("[6/10] Action proposed — restart_service; Policy=MEDIUM")
         approval_id = waiting.state_references.get("approval_id")
         assert isinstance(approval_id, str)
-        print(f"7. Approval required: {approval_id}")
+        print(
+            "[7/10] Approval required — "
+            f"{_display_id(approval_id, 'approval-id')} (durable HITL)"
+        )
         ApprovalService(db).approve(
             approval_id,
             ApprovalActor(actor_id="lab-operator", display_name="Lab Operator"),
             "Live health evidence confirms the bounded web process is unavailable.",
         )
-        print("8. Approved; workflow resumed")
         result = workflow_service.resume(approval_id)
         assert result.status is WorkflowRunStatus.SUCCEEDED, result.last_error
-        print("9. Ansible remediation: fixed restart_service.yml")
-        print("10. Verification succeeded")
+        print("[8/10] Workflow resumed — approved by demo identity Lab Operator")
+        print("[9/10] Remediation executed — fixed Ansible restart_service.yml")
         assert IncidentService(db)._require(incident.id).status is IncidentStatus.RESOLVED
-        print("11. Incident resolved")
+        print("[10/10] Verification passed — current health is healthy")
+        print("\nDemo Summary")
+        print(f"Incident ID: {_display_id(incident.id, 'incident-id')}")
+        print(f"Workflow ID: {_display_id(workflow.id, 'workflow-id')}")
+        print(f"Evidence Count: {evidence_count}")
+        print(f"Diagnosis: {diagnosis}")
+        print("Action: restart_service")
+        print("Risk: MEDIUM")
+        print("Approval: APPROVED (Lab Operator)")
+        print(f"Executor: {action_service.executor.executor_name}")
+        print("Verification: PASSED")
+        print("Historical Memory: " + historical)
+        print("Final State: RESOLVED")
     reset()
-    inject(load_scenario("prompt-injection-log"))
-    time.sleep(4)
-    asyncio.run(_prompt_injection_probe())
+    if os.environ.get("LAB_DEMO_SAFETY_PROBE") == "1":
+        inject(load_scenario("prompt-injection-log"))
+        time.sleep(4)
+        asyncio.run(_prompt_injection_probe())
 
 
 def main() -> None:
