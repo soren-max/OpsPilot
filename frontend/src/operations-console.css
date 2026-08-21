@@ -1039,6 +1039,10 @@
 .incident-card-list { display: grid; gap: var(--opspilot-space-3); }
 .incident-card { display: flex; flex-direction: column; gap: 6px; padding: var(--opspilot-space-3); border: 1px solid var(--opspilot-border); background: var(--opspilot-surface-subtle); color: inherit; text-decoration: none; }
 .incident-card span, .incident-card small { color: var(--opspilot-text-secondary); }
+.approval-actions { display: grid; gap: var(--opspilot-space-3); margin-top: var(--opspilot-space-2); }
+.approval-actions label { display: grid; gap: var(--opspilot-space-2); font-weight: 600; }
+.approval-actions textarea { min-height: 5rem; resize: vertical; }
+.approval-actions > div { display: flex; gap: var(--opspilot-space-2); }
 .incident-timeline { display: grid; margin: 0; padding: 0; list-style: none; }
 .incident-timeline li { display: grid; grid-template-columns: 20px 150px 100px minmax(0, 1fr); gap: var(--opspilot-space-3); align-items: center; padding: var(--opspilot-space-3) 0; border-bottom: 1px solid var(--opspilot-border); }
 .incident-timeline time, .incident-timeline span { color: var(--opspilot-text-secondary); font-size: 12px; }

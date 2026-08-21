@@ -39,4 +39,4 @@ expected_action_proposal:
   target: demo-checkout-01
   reason: Restore checkout-api after evidence confirms the service is stopped.
   risk: medium
-expected_workflow_state: WAITING_APPROVAL
+expected_workflow_state: SUCCEEDED

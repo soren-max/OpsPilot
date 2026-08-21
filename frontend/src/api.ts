@@ -9,6 +9,7 @@ export { auditsApi } from "./api/audits";
 export { authApi } from "./api/auth";
 export { catalogApi } from "./api/catalog";
 export { incidentsApi } from "./api/incidents";
+export { approvalsApi } from "./api/approvals";
 export { systemApi } from "./api/system";
 export { tasksApi } from "./api/tasks";
 

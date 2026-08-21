@@ -38,4 +38,4 @@ expected_action_proposal:
   target: demo-payments-01
   reason: Restore payments-api using only grounded availability evidence.
   risk: medium
-expected_workflow_state: WAITING_APPROVAL
+expected_workflow_state: SUCCEEDED

@@ -38,4 +38,4 @@ expected_action_proposal:
   target: demo-catalog-01
   reason: Restore the exhausted catalog-api worker pool.
   risk: medium
-expected_workflow_state: WAITING_APPROVAL
+expected_workflow_state: SUCCEEDED

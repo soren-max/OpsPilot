@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
+import hashlib
 from enum import StrEnum
 from pathlib import Path
 from typing import Literal
@@ -10,6 +12,8 @@ from typing import Literal
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.adapters.mock import MockActionExecutor
+from app.application.action_service import ActionService
 from app.domain.actions.models import (
     ActionRequest,
     ActionType,
@@ -27,7 +31,7 @@ class DemoModel(BaseModel):
 
 
 class DemoFinalState(StrEnum):
-    WAITING_APPROVAL = "WAITING_APPROVAL"
+    SUCCEEDED = "SUCCEEDED"
 
 
 class IncidentMetadata(DemoModel):
@@ -68,7 +72,7 @@ class DemoScenario(DemoModel):
     expected_evidence: tuple[DemoEvidence, ...] = Field(min_length=1)
     expected_diagnosis: ExpectedDiagnosis
     expected_action_proposal: ExpectedAction
-    expected_workflow_state: Literal["WAITING_APPROVAL"]
+    expected_workflow_state: Literal["SUCCEEDED"]
 
     @model_validator(mode="after")
     def diagnosis_references_existing_evidence(self) -> DemoScenario:
@@ -86,6 +90,9 @@ class DemoResult(DemoModel):
     evidence_references: tuple[str, ...]
     action_type: ActionType
     risk: str
+    approval_status: Literal["APPROVED"]
+    checkpoint_id: str
+    verification_status: Literal["SUCCEEDED"]
     final_state: DemoFinalState
 
 
@@ -135,14 +142,23 @@ def run_demo(scenario: DemoScenario) -> DemoResult:
         parameters=ServiceActionParams(service=scenario.service),
         reason=proposal.reason,
     )
-    assessment = ActionPolicyEngine(allowed_targets=frozenset({proposal.target})).assess(
-        request
-    )
+    policy = ActionPolicyEngine(allowed_targets=frozenset({proposal.target}))
+    assessment = policy.assess(request)
     if not assessment.approval_required or assessment.allowed:
         raise ValueError("demo must reach a blocked approval boundary")
     if assessment.risk_level.value != proposal.risk:
         raise ValueError("scenario risk does not match deterministic policy")
 
+    # The offline demo models the durable boundary with a deterministic continuation ID.
+    # Production uses LangGraph's PostgreSQL saver; the demo intentionally needs no service.
+    checkpoint_id = hashlib.sha256(
+        f"{scenario.incident.id}:{proposal.type.value}:{proposal.target}".encode()
+    ).hexdigest()
+    execution = asyncio.run(
+        ActionService(policy, MockActionExecutor()).execute(request, approval_granted=True)
+    )
+    if execution.result is None or execution.verification is None:
+        raise ValueError("approved demo action must execute and verify")
     result = DemoResult(
         incident_id=scenario.incident.id,
         diagnosis_category=diagnosis.category,
@@ -150,7 +166,10 @@ def run_demo(scenario: DemoScenario) -> DemoResult:
         evidence_references=diagnosis.evidence_references,
         action_type=proposal.type,
         risk=assessment.risk_level.value,
-        final_state=DemoFinalState.WAITING_APPROVAL,
+        approval_status="APPROVED",
+        checkpoint_id=checkpoint_id,
+        verification_status="SUCCEEDED" if execution.verification.verified else "FAILED",
+        final_state=DemoFinalState.SUCCEEDED,
     )
     if result.final_state.value != scenario.expected_workflow_state:
         raise ValueError("scenario final state does not match pipeline result")
@@ -184,8 +203,20 @@ Risk Assessment
   risk={result.risk.upper()}
   approval_required=true
 
-{result.final_state.value}
-Demo stopped before approval or execution (durable resume belongs to M4)."""
+Approval Requested
+  checkpoint={result.checkpoint_id[:16]}
+  status=WAITING_APPROVAL
+
+Human Decision
+  actor=offline-demo-operator
+  decision={result.approval_status}
+  reason=fixture evidence supports bounded remediation
+
+Workflow Resumed
+  executor=mock
+  verification={result.verification_status}
+
+{result.final_state.value}"""
 
 
 def main() -> None:

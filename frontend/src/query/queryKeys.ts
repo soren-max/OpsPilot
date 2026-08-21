@@ -23,5 +23,7 @@ export const queryKeys = {
   incidentTimeline: (incidentId: string | undefined) => ["incident-timeline", incidentId] as const,
   incidentWorkflows: (incidentId: string | undefined) =>
     ["incident-workflows", incidentId] as const,
+  incidentApprovals: (incidentId: string | undefined) =>
+    ["incident-approvals", incidentId] as const,
   statusSnapshots: (environmentId: string) => ["status-snapshots", environmentId] as const,
 };
