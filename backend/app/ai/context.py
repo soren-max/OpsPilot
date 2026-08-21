@@ -1,6 +1,10 @@
 from collections import defaultdict
 
-from app.ai.models import InvestigationPromptEvidence, InvestigationPromptInput
+from app.ai.models import (
+    InvestigationPromptEvidence,
+    InvestigationPromptInput,
+    InvestigationPromptKnowledge,
+)
 from app.ai.prompts import PROMPT_NAME, PROMPT_VERSION
 from app.domain.incidents.evidence import EvidenceType
 from app.domain.incidents.models import JsonValue
@@ -66,6 +70,20 @@ class EvidenceContextBuilder:
             service=context.service,
             environment=context.environment,
             evidence=tuple(packaged),
+            historical_knowledge=tuple(
+                InvestigationPromptKnowledge(
+                    knowledge_id=item.knowledge_id,
+                    incident_id=item.incident_id,
+                    title=item.title[:200],
+                    service=item.service,
+                    environment=item.environment,
+                    root_cause=item.root_cause[:2000],
+                    remediation=item.remediation[:20],
+                    verification=item.verification[:20],
+                    source_reference=item.source_reference,
+                )
+                for item in context.historical_knowledge[:5]
+            ),
             prompt_name=PROMPT_NAME,
             prompt_version=PROMPT_VERSION,
         )

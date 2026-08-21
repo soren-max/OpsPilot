@@ -16,6 +16,7 @@ from app.workflows.incident.nodes import (
     investigate,
     load_incident,
     propose_action,
+    retrieve_knowledge,
     verify,
 )
 from app.workflows.incident.routing import (
@@ -27,7 +28,7 @@ from app.workflows.incident.routing import (
 from app.workflows.incident.state import IncidentWorkflowState
 
 GRAPH_NAME = "incident-remediation"
-GRAPH_VERSION = "1"
+GRAPH_VERSION = "2"
 
 
 def incident_graph_builder() -> StateGraph[
@@ -39,6 +40,7 @@ def incident_graph_builder() -> StateGraph[
     graph = StateGraph(IncidentWorkflowState, context_schema=IncidentWorkflowContext)
     graph.add_node("load_incident", load_incident)
     graph.add_node("collect_context", collect_context)
+    graph.add_node("retrieve_knowledge", retrieve_knowledge)
     graph.add_node("investigate", investigate)
     graph.add_node("diagnose", diagnose)
     graph.add_node("propose_action", propose_action)
@@ -58,7 +60,8 @@ def incident_graph_builder() -> StateGraph[
     graph.add_node("finalize", finalize)
     graph.add_edge(START, "load_incident")
     graph.add_edge("load_incident", "collect_context")
-    graph.add_edge("collect_context", "investigate")
+    graph.add_edge("collect_context", "retrieve_knowledge")
+    graph.add_edge("retrieve_knowledge", "investigate")
     graph.add_edge("investigate", "diagnose")
     graph.add_conditional_edges("diagnose", route_after_diagnosis)
     graph.add_edge("propose_action", "assess_risk")

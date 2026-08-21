@@ -69,6 +69,7 @@ def test_graph_topology_is_explicit() -> None:
     assert set(graph.nodes) >= {
         "load_incident",
         "collect_context",
+        "retrieve_knowledge",
         "investigate",
         "diagnose",
         "propose_action",
@@ -81,6 +82,8 @@ def test_graph_topology_is_explicit() -> None:
     }
     edges = {(edge.source, edge.target) for edge in graph.edges}
     assert ("load_incident", "collect_context") in edges
+    assert ("collect_context", "retrieve_knowledge") in edges
+    assert ("retrieve_knowledge", "investigate") in edges
     assert ("execute", "verify") in edges
     assert ("approval_required", "execute") in edges
     assert ("approval_required", "failure") in edges

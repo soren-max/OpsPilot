@@ -21,6 +21,10 @@ class EvidenceGroundingValidator:
         unknown = sorted(set(referenced) - available)
         if unknown:
             raise LLMGroundingFailure("Model referenced evidence outside the current incident")
+        available_knowledge = {item.knowledge_id for item in request.historical_knowledge}
+        unknown_knowledge = sorted(set(output.knowledge_refs) - available_knowledge)
+        if unknown_knowledge:
+            raise LLMGroundingFailure("Model referenced knowledge outside the retrieved context")
         if not output.insufficient_evidence and not referenced:
             raise LLMGroundingFailure("A diagnosis requires supporting evidence")
         if output.action_type is not None and not referenced:

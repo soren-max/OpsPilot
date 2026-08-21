@@ -17,6 +17,9 @@ numbering quirk and the files are intentionally not renamed.
 | Evidence Grounding | [Evidence Grounding](14-evidence-grounding.md) | Conclusions cite incident-local, validated Evidence IDs. |
 | Prompt Injection | [Prompt Injection](17-prompt-injection.md) | Untrusted evidence cannot bypass schema, grounding, policy, or approval. |
 | Evaluation | [Agent Evaluation](18-agent-evaluation.md) | Deterministic fixtures cover grounding, action accuracy, and safety. |
+| RAG Memory | [RAG Incident Memory](19-rag-incident-memory.md) | Resolved incident projections become sourced historical context. |
+| Hybrid Retrieval | [Hybrid Retrieval](20-hybrid-retrieval.md) | Dense and sparse ranks are fused with RRF. |
+| Retrieval Eval | [Retrieval Evaluation](21-retrieval-evaluation.md) | Recall, MRR, root-cause hits, and latency are regression tested. |
 | Execution Safety | [Agent Safety](04-agent-safety.md) | Structured actions and fail-closed policy constrain authority. |
 | Observability | [Observability Capabilities](13-observability-capabilities.md) | Typed ports replace arbitrary PromQL and LogQL. |
 | Ansible Boundary | [Executor and Ansible](06-executor-and-ansible.md) | Fixed mappings keep transport and playbook selection outside model control. |

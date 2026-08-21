@@ -34,6 +34,9 @@ def test_incident_api_pagination_filter_and_timeline(client: object) -> None:
     timeline = client.get(f"/api/v1/incidents/{incident_id}/timeline")  # type: ignore[attr-defined]
     assert timeline.status_code == 200
     assert timeline.json()["data"][0]["event_type"] == "INCIDENT_CREATED"
+    related = client.get(f"/api/v1/incidents/{incident_id}/related")  # type: ignore[attr-defined]
+    assert related.status_code == 200
+    assert related.json()["data"] == []
 
 
 def test_incident_routes_enforce_rbac(client: object, db: Session) -> None:

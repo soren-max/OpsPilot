@@ -35,6 +35,13 @@ class Settings(BaseSettings):
     lock_ttl_seconds: int = Field(default=900, ge=30, le=86_400)
     worker_poll_seconds: float = Field(default=1.0, ge=0.1, le=60)
     workflow_checkpoint_backend: str = "auto"
+    memory_backend: str = "disabled"
+    qdrant_base_url: str | None = None
+    qdrant_api_key: SecretStr | None = None
+    qdrant_collection: str = Field(
+        default="opspilot_incident_memory_v1", min_length=1, max_length=120
+    )
+    memory_retrieval_limit: int = Field(default=5, ge=1, le=10)
     prometheus_base_url: str | None = None
     prometheus_auth_token: SecretStr | None = None
     loki_base_url: str | None = None
@@ -106,13 +113,13 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("DEFAULT_ADMIN_ENABLED", "OPSPILOT_DEFAULT_ADMIN_ENABLED"),
     )
 
-    @field_validator("prometheus_base_url", "loki_base_url", mode="before")
+    @field_validator("prometheus_base_url", "loki_base_url", "qdrant_base_url", mode="before")
     @classmethod
     def validate_operator_base_url(cls, value: object) -> str | None:
         if value is None or value == "":
             return None
         if not isinstance(value, str):
-            raise ValueError("Observability base URLs must be strings")
+            raise ValueError("Operator base URLs must be strings")
         parsed = urlsplit(value)
         if (
             parsed.scheme not in {"http", "https"}
@@ -122,7 +129,7 @@ class Settings(BaseSettings):
             or parsed.query
             or parsed.fragment
         ):
-            raise ValueError("Observability base URLs must be credential-free HTTP(S) origins")
+            raise ValueError("Operator base URLs must be credential-free HTTP(S) origins")
         return value.rstrip("/")
 
     @model_validator(mode="after")
@@ -143,6 +150,10 @@ class Settings(BaseSettings):
             "postgres"
         ):
             raise ValueError("Postgres checkpoint backend requires a PostgreSQL database URL")
+        if self.memory_backend not in {"disabled", "qdrant"}:
+            raise ValueError("Memory backend must be disabled or qdrant")
+        if self.memory_backend == "qdrant" and not self.qdrant_base_url:
+            raise ValueError("Qdrant memory backend requires OPSPILOT_QDRANT_BASE_URL")
         if self.llm_mode not in {"deterministic", "llm"}:
             raise ValueError("LLM_MODE must be deterministic or llm")
         if self.llm_mode == "llm":

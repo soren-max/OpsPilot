@@ -49,6 +49,7 @@ class LLMIncidentInvestigator:
             confidence=output.confidence,
             evidence_ids=output.evidence_ids,
             action_type=output.action_type,
+            knowledge_refs=output.knowledge_refs,
             insufficient_evidence=output.insufficient_evidence,
             uncertainty=output.uncertainty,
             investigator_mode=self.mode,

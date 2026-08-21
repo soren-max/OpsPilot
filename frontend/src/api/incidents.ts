@@ -1,4 +1,10 @@
-import type { Incident, IncidentPage, TimelineItem, WorkflowRun } from "../types";
+import type {
+  Incident,
+  IncidentPage,
+  RetrievedKnowledge,
+  TimelineItem,
+  WorkflowRun,
+} from "../types";
 import { api } from "./client";
 
 export const incidentsApi = {
@@ -7,4 +13,6 @@ export const incidentsApi = {
   detail: (incidentId: string) => api<Incident>(`/incidents/${incidentId}`),
   timeline: (incidentId: string) => api<TimelineItem[]>(`/incidents/${incidentId}/timeline`),
   workflows: (incidentId: string) => api<WorkflowRun[]>(`/incidents/${incidentId}/workflows`),
+  related: (incidentId: string) =>
+    api<RetrievedKnowledge[]>(`/incidents/${incidentId}/related`),
 };

@@ -26,6 +26,7 @@ from app.core.logging import configure_logging
 from app.db.session import SessionLocal
 from app.domain.actions.executor import ActionExecutor
 from app.domain.actions.policy import ActionPolicyEngine
+from app.memory.factory import build_memory_store
 from app.models import Host, Service, ServiceDeployment
 from app.services.worker import WorkerService
 from app.workflows.checkpoint import get_workflow_checkpointer
@@ -167,6 +168,7 @@ def main() -> None:
     configure_logging(settings.log_level, settings.log_file)
     get_workflow_checkpointer()
     investigator = build_investigator(settings)
+    knowledge_retriever = build_memory_store(settings)
     while running:
         with SessionLocal() as db:
             action_service = build_action_service(db, settings)
@@ -176,6 +178,7 @@ def main() -> None:
                 investigator=investigator,
                 action_service=action_service,
                 capabilities=capabilities,
+                knowledge_retriever=knowledge_retriever,
             ).run_next():
                 continue
             handled = WorkerService(db, action_service, settings).run_once()

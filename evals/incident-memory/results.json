@@ -1,0 +1,26 @@
+[
+  {
+    "retriever": "dense",
+    "recall_at_5": 0.8611111111111112,
+    "recall_at_10": 0.9722222222222222,
+    "mrr": 0.8217592592592593,
+    "root_cause_hit_rate": 0.9166666666666666,
+    "latency_ms": 2.16139783332873
+  },
+  {
+    "retriever": "sparse",
+    "recall_at_5": 1.0,
+    "recall_at_10": 1.0,
+    "mrr": 1.0,
+    "root_cause_hit_rate": 1.0,
+    "latency_ms": 2.203079666661741
+  },
+  {
+    "retriever": "hybrid_rrf",
+    "recall_at_5": 0.9166666666666666,
+    "recall_at_10": 1.0,
+    "mrr": 0.9333333333333333,
+    "root_cause_hit_rate": 1.0,
+    "latency_ms": 2.2311947500005167
+  }
+]

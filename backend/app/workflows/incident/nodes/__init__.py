@@ -8,6 +8,7 @@ from app.workflows.incident.nodes.investigate import investigate
 from app.workflows.incident.nodes.load_incident import load_incident
 from app.workflows.incident.nodes.pause import approval_required
 from app.workflows.incident.nodes.propose_action import propose_action
+from app.workflows.incident.nodes.retrieve_knowledge import retrieve_knowledge
 from app.workflows.incident.nodes.verify import verify
 
 __all__ = [
@@ -21,5 +22,6 @@ __all__ = [
     "investigate",
     "load_incident",
     "propose_action",
+    "retrieve_knowledge",
     "verify",
 ]

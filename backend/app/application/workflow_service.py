@@ -14,6 +14,7 @@ from app.capabilities import IncidentCapabilities
 from app.core.errors import ConflictError, NotFoundError
 from app.db.base import utc_now
 from app.domain.audit.models import AuditEventType
+from app.domain.incidents.memory import KnowledgeRetriever
 from app.domain.incidents.models import IncidentStatus
 from app.repositories.workflow_models import (
     WorkflowEvaluationRecord,
@@ -44,6 +45,7 @@ class WorkflowService:
         checkpointer: BaseCheckpointSaver[str] | None = None,
         action_service: ActionService | None = None,
         capabilities: IncidentCapabilities | None = None,
+        knowledge_retriever: KnowledgeRetriever | None = None,
     ) -> None:
         self.db = db
         self.runs = WorkflowRunRepository(db)
@@ -52,6 +54,7 @@ class WorkflowService:
         self.checkpointer = checkpointer or get_workflow_checkpointer()
         self.action_service = action_service
         self.capabilities = capabilities
+        self.knowledge_retriever = knowledge_retriever
 
     def start(self, incident_id: str, actor: str, idempotency_key: str) -> WorkflowRunRecord:
         from app.application.incident_service import IncidentService
@@ -98,7 +101,12 @@ class WorkflowService:
         workflow.status = WorkflowRunStatus.RUNNING
         workflow.started_at = workflow.started_at or utc_now()
         runtime = IncidentWorkflowRuntime(
-            self.db, workflow, self.investigator, self.action_service, self.capabilities
+            self.db,
+            workflow,
+            self.investigator,
+            self.action_service,
+            self.capabilities,
+            self.knowledge_retriever,
         )
         graph = build_incident_graph(self.checkpointer)
         try:
@@ -136,6 +144,7 @@ class WorkflowService:
                 self.investigator,
                 self.action_service,
                 self.capabilities,
+                self.knowledge_retriever,
             )
             runtime.audit_workflow(
                 AuditEventType.WORKFLOW_FAILED,
@@ -162,7 +171,12 @@ class WorkflowService:
             raise ConflictError("APPROVAL_ACTION_MISMATCH", "Approval does not match the action")
         workflow.status = WorkflowRunStatus.RUNNING
         runtime = IncidentWorkflowRuntime(
-            self.db, workflow, self.investigator, self.action_service, self.capabilities
+            self.db,
+            workflow,
+            self.investigator,
+            self.action_service,
+            self.capabilities,
+            self.knowledge_retriever,
         )
         graph = build_incident_graph(self.checkpointer)
         try:

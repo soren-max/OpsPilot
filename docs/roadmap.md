@@ -11,7 +11,7 @@
 | M3B LLM Investigator | Implemented | Evidence-grounded structured investigation with deterministic authorization |
 | M4 Durable HITL + Checkpoint | Done | Identity-bound approval and resumable state |
 | M5 Local Incident Lab | Done | Reproducible live telemetry, failure, approval, and recovery scenarios |
-| M6 Playbook Memory / RAG | Planned | Curated retrieval with provenance |
+| M6 Historical Incident Memory / RAG | Done | Hybrid retrieval with provenance and eval |
 | M7 MCP Capability Boundary | Planned | Optional interoperable capability boundary |
 | M8 Multi-backend Execution | Planned | Ansible plus a future Harness backend |
 | M9 GitOps Change Workflow | Planned | Governed configuration and deployment change |
@@ -35,4 +35,4 @@ Postgres Checkpoint** (identity-bound approval and resumable state).
 - Approval API and incident approval UI
 - Offline approve/resume/mock-execute/verify demo
 
-Next: **M5 Incident Lab**.
+Next: **M7 MCP Capability Boundary**.

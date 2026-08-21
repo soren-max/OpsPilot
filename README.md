@@ -9,10 +9,17 @@ It is built to help SRE and incident responders collect evidence, form explicit 
 propose structured actions, and execute approved changes through constrained infrastructure
 adapters — never through an arbitrary shell.
 
-The current milestone (M5) demonstrates a complete
+The current milestone (M6) adds source-linked Historical Incident Memory to the complete
 **Observability → Evidence → LLM Investigator → Grounding Guard → Structured Action → Policy →
 Durable Human Approval → Ansible → Verification** pipeline against a reproducible local Lab.
 The default walkthrough is deterministic and requires no model API key.
+
+## Historical Incident Memory
+
+Only resolved/closed, diagnosed incidents are deterministically projected and explicitly indexed.
+Qdrant combines dense and sparse retrieval with RRF. Related incidents appear as **Historical
+Context**, separately from current Evidence; similarity is not confidence and cannot authorize an
+action. Run `make memory-eval` for the committed 40-record retrieval benchmark.
 
 ## Live Incident Lab
 
@@ -107,9 +114,6 @@ No model output is passed to a shell, SSH client, inventory path, or playbook pa
 
 **Planned (not yet implemented):**
 
-- Durable HITL with Postgres checkpoint and resume (`M4`)
-- Incident Lab (`M5`)
-- RAG / playbook memory (`M6`)
 - MCP capability boundary (`M7`)
 - Harness multi-backend execution (`M8`)
 - GitOps governed change workflow (`M9`)
