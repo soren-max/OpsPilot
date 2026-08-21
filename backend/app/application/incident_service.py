@@ -69,6 +69,9 @@ AUDIT_METADATA_ALLOWLIST = frozenset(
         "latency_ms",
         "input_tokens",
         "output_tokens",
+        "mcp_client",
+        "mcp_tool",
+        "trace_id",
     }
 )
 
