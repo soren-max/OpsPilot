@@ -1,4 +1,4 @@
-.PHONY: demo lab-up lab-inject lab-status lab-reset lab-down lab-demo memory-index memory-eval
+.PHONY: demo lab-up lab-inject lab-status lab-reset lab-down lab-demo memory-index memory-eval mcp-demo mcp-eval
 
 LAB_CLI_ENV = OPSPILOT_SECRET_KEY=lab-cli-only-secret-key-at-least-32-characters
 
@@ -29,3 +29,10 @@ memory-index:
 
 memory-eval:
 	uv run --project backend --no-sync python -m app.memory.eval --json-output evals/incident-memory/results.json
+
+mcp-eval:
+	uv run --project backend --no-sync python -m app.mcp_eval
+
+mcp-demo:
+	uv run --project backend --no-sync pytest backend/tests/mcp/test_mcp_server.py backend/tests/mcp/test_mcp_transports.py -q
+	$(MAKE) mcp-eval

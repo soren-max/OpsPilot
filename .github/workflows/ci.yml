@@ -94,6 +94,22 @@ jobs:
       - name: Run offline retrieval benchmark
         run: uv run --project backend python -m app.memory.eval
 
+  mcp-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        run: python -m pip install --disable-pip-version-check uv
+      - name: Install backend
+        run: uv sync --project backend --extra dev --locked
+      - name: Official SDK stdio and Streamable HTTP interop
+        run: uv run --project backend pytest backend/tests/mcp
+      - name: Agent infrastructure contract evaluation
+        run: uv run --project backend python -m app.mcp_eval
+
   security:
     runs-on: ubuntu-latest
     steps:

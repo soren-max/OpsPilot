@@ -20,6 +20,8 @@ dependencies = [
   "uvicorn>=0.34,<1",
   "langgraph>=1.2,<2",
   "langgraph-checkpoint-postgres>=3.0,<4",
+  "mcp==2.0.0",
+  "opentelemetry-sdk>=1.28,<2",
 ]
 
 [project.optional-dependencies]
@@ -55,3 +57,8 @@ python_version = "3.11"
 strict = true
 plugins = ["pydantic.mypy"]
 exclude = ["alembic"]
+
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=0.25,<2",
+]

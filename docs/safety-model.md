@@ -1,5 +1,10 @@
 # Safety Model
 
+MCP is not authorization. Annotations, remote descriptions, resources, and output are untrusted and
+cannot change risk, evidence ownership, approvals, or executor selection. Private context plus
+external content plus mutation raises deterministic composition risk; fixed allowlists, scopes,
+bounded models, Policy/HITL, and runtime isolation enforce the response.
+
 ## Evidence Before Action
 
 An action reason is required, and the M3A/M3B workflow collects observable evidence before

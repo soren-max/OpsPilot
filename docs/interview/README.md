@@ -20,6 +20,9 @@ numbering quirk and the files are intentionally not renamed.
 | RAG Memory | [RAG Incident Memory](19-rag-incident-memory.md) | Resolved incident projections become sourced historical context. |
 | Hybrid Retrieval | [Hybrid Retrieval](20-hybrid-retrieval.md) | Dense and sparse ranks are fused with RRF. |
 | Retrieval Eval | [Retrieval Evaluation](21-retrieval-evaluation.md) | Recall, MRR, root-cause hits, and latency are regression tested. |
+| MCP Boundary | [MCP Capability Boundary](22-mcp-capability-boundary.md) | MCP exposes ports without replacing authorization or orchestration. |
+| MCP Security | [MCP Security](23-mcp-security.md) | Allowlisting, scopes, ownership, Policy, and HITL contain protocol threats. |
+| Infrastructure Telemetry | [Agent Infrastructure Observability](24-agent-infrastructure-observability.md) | Safe trace propagation connects MCP to capability work. |
 | Execution Safety | [Agent Safety](04-agent-safety.md) | Structured actions and fail-closed policy constrain authority. |
 | Observability | [Observability Capabilities](13-observability-capabilities.md) | Typed ports replace arbitrary PromQL and LogQL. |
 | Ansible Boundary | [Executor and Ansible](06-executor-and-ansible.md) | Fixed mappings keep transport and playbook selection outside model control. |

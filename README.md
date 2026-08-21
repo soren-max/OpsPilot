@@ -9,10 +9,18 @@ It is built to help SRE and incident responders collect evidence, form explicit 
 propose structured actions, and execute approved changes through constrained infrastructure
 adapters — never through an arbitrary shell.
 
-The current milestone (M6) adds source-linked Historical Incident Memory to the complete
+The current milestone (M7) adds an MCP `2026-07-28` interoperability plane to the complete
 **Observability → Evidence → LLM Investigator → Grounding Guard → Structured Action → Policy →
 Durable Human Approval → Ansible → Verification** pipeline against a reproducible local Lab.
 The default walkthrough is deterministic and requires no model API key.
+
+## MCP Capability Plane
+
+The official Python SDK exposes allowlisted typed observability and historical-memory tools over
+stdio and stateless Streamable HTTP. A controlled client adapter can consume operator-configured
+remote MCP capabilities. MCP annotations are advisory; Policy, evidence ownership, durable HITL,
+and fixed executors remain authoritative. The only mutating tool requests remediation and returns
+an approval reference—it cannot execute. Run `make mcp-demo` and `make mcp-eval` locally.
 
 ## Historical Incident Memory
 
@@ -114,7 +122,6 @@ No model output is passed to a shell, SSH client, inventory path, or playbook pa
 
 **Planned (not yet implemented):**
 
-- MCP capability boundary (`M7`)
 - Harness multi-backend execution (`M8`)
 - GitOps governed change workflow (`M9`)
 - Advanced evaluation and agent observability (`M10`/`M11`)
@@ -261,7 +268,7 @@ according to operator-owned inventory, but that is not part of the Agent/API con
 | **M4 Durable HITL + Postgres Checkpoint** | **Next** |
 | M5 Incident Lab | Future |
 | M6 Playbook Memory / RAG | Future |
-| M7 MCP | Future |
+| M7 MCP Capability Boundary | **Implemented** |
 | M8 Harness Multi-backend Execution | Future |
 | M9 GitOps | Future |
 | M10 Risk Reviewer / Evaluation | Future |

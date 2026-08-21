@@ -1,5 +1,12 @@
 # Architecture
 
+## M7 MCP capability plane
+
+The MCP `2026-07-28` adapter sits outside Domain, Policy, Executor, and Workflow packages. Its fixed
+broker exposes existing observe and memory ports plus a governed remediation proposal. Streamable
+HTTP is stateless and scoped; stdio is local-only. LangGraph, deterministic Policy, durable HITL,
+and executor mappings remain orchestration and authorization authorities.
+
 ## M5 live validation topology
 
 The disposable Incident Lab connects the existing adapters to Prometheus, Loki, PostgreSQL and

@@ -1,5 +1,12 @@
 # Testing Strategy
 
+## M7 MCP Capability Boundary
+
+`backend/tests/mcp` covers official SDK discovery, schemas, structured tool calls, resources,
+stdio and stateless Streamable HTTP black-box interop, auth rejection, scopes, fixed remote
+mappings, poisoning containment, ownership defenses, and trace continuity. `make mcp-eval` reports
+the versioned Agent Infrastructure Contract Eval without a model API or paid MCP service.
+
 ## M6 Historical Incident Memory
 
 Memory tests cover deterministic projection and identity, idempotent Qdrant upsert, metadata
