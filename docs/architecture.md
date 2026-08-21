@@ -136,3 +136,10 @@ persists successful observations as deduplicated Incident Evidence, and returns 
 to LangGraph. Metrics, logs, tickets, and health remain parallel read-only evidence sources;
 `ActionService` remains the policy-controlled remediation boundary. The Health port may reuse a
 read-only Action request internally, but workflow nodes see only `get_service_health`.
+# M4 durable approval boundary
+
+LangGraph continuation state now uses a PostgreSQL checkpointer in durable deployments. It remains
+separate from Incident business facts and `WorkflowRun` metadata. Mutating remediation pauses with
+an interrupt after policy assessment, creates an auditable `ApprovalRequest`, and resumes the same
+workflow thread after an authenticated decision. The resumed action still enters `ActionService`
+and deterministic policy before the executor.
