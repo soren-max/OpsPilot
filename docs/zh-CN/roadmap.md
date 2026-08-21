@@ -1,5 +1,7 @@
 # 路线图（Roadmap）
 
+M8 Multi-Backend Governed Execution 已完成；下一阶段是 M9 GitOps Change Workflow。
+
 [English](../roadmap.md) | [简体中文](roadmap.md)
 
 | Milestone | Status | Scope |

@@ -13,6 +13,8 @@
 | M5 Local Incident Lab | Done | Reproducible live telemetry, failure, approval, and recovery scenarios |
 | M6 Historical Incident Memory / RAG | Done | Hybrid retrieval with provenance and eval |
 | M7 MCP Capability Boundary | Done | MCP 2026-07-28 typed interoperability and governed proposals |
+| M8 Multi-Backend Governed Execution | Done | Mock, Ansible, Harness, outbox, reconciliation |
+| M9 GitOps Change Workflow | Next | Governed change generation and review |
 | M8 Multi-backend Execution | Planned | Ansible plus a future Harness backend |
 | M9 GitOps Change Workflow | Planned | Governed configuration and deployment change |
 | M10 Risk Reviewer & Evaluation | Planned | Advisory risk review and safety evaluation |

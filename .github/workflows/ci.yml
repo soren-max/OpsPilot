@@ -110,6 +110,36 @@ jobs:
       - name: Agent infrastructure contract evaluation
         run: uv run --project backend python -m app.mcp_eval
 
+  execution-e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: opspilot
+          POSTGRES_PASSWORD: opspilot-test
+          POSTGRES_DB: opspilot_execution
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U opspilot -d opspilot_execution"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      OPSPILOT_TEST_POSTGRES_URL: postgresql://opspilot:opspilot-test@localhost:5432/opspilot_execution
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        run: python -m pip install --disable-pip-version-check uv
+      - name: Install backend
+        run: uv sync --project backend --extra dev --locked
+      - name: Backend contracts, crash recovery, and reconciliation
+        run: uv run --project backend pytest backend/tests/execution backend/tests/test_m8_migration.py
+
   security:
     runs-on: ubuntu-latest
     steps:

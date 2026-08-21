@@ -1,5 +1,13 @@
 # Architecture
 
+## M8 governed execution plane
+
+After deterministic Policy and durable approval, operator-owned routing selects an allowlisted
+Mock, Ansible, or Harness profile. An atomic execution plus transactional outbox separates
+authorization from dispatch. Indeterminate external side effects are reconciled, never blindly
+retried, before independent incident verification. See
+[the design](design/governed-execution-plane.md).
+
 ## M7 MCP capability plane
 
 The MCP `2026-07-28` adapter sits outside Domain, Policy, Executor, and Workflow packages. Its fixed

@@ -8,7 +8,11 @@ OpsPilot 是一个开源的、以证据驱动（Evidence-driven）且由人控�
 SRE 与事故响应人员收集证据、形成明确的假设、提出结构化动作（Structured Action），并经由
 受限的基础设施适配器执行经过审批的变更——而不是通过任意 shell。
 
-当前里程碑（M7）在完整流水线上增加 MCP `2026-07-28` capability interoperability plane：
+当前里程碑（M8）增加 governed multi-backend execution plane。Mock、Ansible 继续保留，并通过
+allowlisted Harness CD pipeline 支持异步执行、transactional outbox、UNKNOWN 副作用恢复、
+reconciliation 与独立 verification。LLM 和 MCP 都不能选择 backend 或 pipeline。
+
+M7 在完整流水线上增加 MCP `2026-07-28` capability interoperability plane：
 **可观测性 → 证据 → LLM 调查器 → 证据约束（Evidence Grounding）→ 结构化动作 → 策略 →
 持久化人工审批 → Ansible → 验证**。默认演示使用确定性调查器，不需要模型 API Key。
 
@@ -230,8 +234,8 @@ M1B 已移除遗留的 SSH 与服务脚本运行时。Ansible 可以按运维自
 | M5 Incident Lab | 未来 |
 | M6 Playbook Memory / RAG | 未来 |
 | M7 MCP Capability Boundary | **已实现** |
-| M8 Harness Multi-backend Execution | 未来 |
-| M9 GitOps | 未来 |
+| M8 Harness Multi-backend Execution | **已实现** |
+| M9 GitOps | **下一阶段** |
 | M10 Risk Reviewer / Evaluation | 未来 |
 | M11 Agent Observability | 未来 |
 

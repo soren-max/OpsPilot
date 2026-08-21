@@ -1,5 +1,8 @@
 # 安全模型（Safety Model）
 
+LLM、API 和 MCP 都不能选择 backend、profile 或 Harness pipeline。外部 dispatch timeout 进入
+`UNKNOWN`，不会自动重发。Harness 成功不等于事故已修复；仍需当前 Health/Metrics verification。
+
 [English](../safety-model.md) | [简体中文](safety-model.md)
 
 ## 先取证，后行动（Evidence Before Action）
