@@ -14,8 +14,8 @@
 | M6 Historical Incident Memory / RAG | Done | Hybrid retrieval with provenance and eval |
 | M7 MCP Capability Boundary | Done | MCP 2026-07-28 typed interoperability and governed proposals |
 | M8 Multi-Backend Governed Execution | Done | Mock, Ansible, Harness, outbox, reconciliation |
-| M8.5 Deployment Compatibility | Next | Typed profiles and a synthetic legacy-environment migration bridge |
-| M9 GitOps Change Workflow | Planned | Governed configuration and deployment change |
+| M8.5 Deployment Compatibility | Done | Typed profiles and a synthetic legacy-environment migration bridge |
+| M9 GitOps Change Workflow | Next | Governed configuration and deployment change |
 | M10 Risk Reviewer & Evaluation | Planned | Advisory risk review and safety evaluation |
 | M11 Agent Observability | Planned | Workflow traces and operational telemetry |
 
@@ -24,8 +24,8 @@ traditional SSH-managed test environments without restoring the removed ServiceS
 
 ## Portfolio Entry Point
 
-The canonical local demo remains the stable portfolio entry point. M1–M8 are implemented; the
+The canonical local demo remains the stable portfolio entry point. M1–M8.5 are implemented; the
 demonstration focuses on evidence, durable approval, governed execution, and independent
 verification. Historical Memory and MCP remain optional advanced demonstrations.
 
-Next: **M8.5 Deployment Compatibility & Legacy Migration Bridge**.
+Next: **M9 GitOps Change Workflow** or production-style deployment hardening.

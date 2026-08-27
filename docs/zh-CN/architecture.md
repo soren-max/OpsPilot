@@ -1,5 +1,12 @@
 # 架构（Architecture）
 
+## M8.5 部署兼容迁移桥
+
+语义化 service / environment / target 通过 `DeploymentEnvironmentResolver` 解析到严格的
+运维自有 Profile。只有 Ansible 基础设施适配器知道 inventory、host alias、user ref、
+secret-file ref、固定脚本路径与 SSH。systemd 与固定脚本目标都必须经过 Policy、持久 HITL、
+受治理执行和独立验证；不会恢复 `ServiceSSH`。
+
 ## M8 治理执行面
 
 Policy 与 durable approval 之后，operator-owned `ExecutionRouter` 才会选择 allowlisted Mock、
@@ -22,7 +29,7 @@ flowchart LR
 ```
 
 `demo-full` 增加本地 Qdrant 历史上下文和 MCP capability plane，但不改变 Policy、
-审批、执行器或验证的权威边界。Harness 与 GitOps 仍是未来 M8/M9 工作。
+审批、执行器或验证的权威边界。Harness 已在 M8 实现；GitOps 属于 M9。
 
 ## 运行模型
 

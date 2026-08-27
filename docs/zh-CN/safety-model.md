@@ -1,5 +1,9 @@
 # 安全模型（Safety Model）
 
+M8.5 将 SSH 下沉到 Ansible 基础设施边界。调用方不能提供 host、SSH user、inventory、key、
+script path、command 或 argv。固定脚本只使用严格配置映射出的 `command.argv`；systemd 使用
+`systemd_service`。未知 Profile、跨环境 Target、注入字符串与缺失凭据全部 fail closed。
+
 LLM、API 和 MCP 都不能选择 backend、profile 或 Harness pipeline。外部 dispatch timeout 进入
 `UNKNOWN`，不会自动重发。Harness 成功不等于事故已修复；仍需当前 Health/Metrics verification。
 

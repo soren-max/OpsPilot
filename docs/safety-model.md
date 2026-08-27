@@ -1,5 +1,12 @@
 # Safety Model
 
+M8.5 keeps SSH below the infrastructure boundary. Deployment YAML is strict, versioned and
+operator-owned; it contains references rather than credential values. Callers cannot provide a
+host, SSH user, inventory, key, script path, command or argv. Fixed-script control uses only
+`ansible.builtin.command.argv` values derived from validated allowlists, while systemd control uses
+`ansible.builtin.systemd_service`. Missing profiles or credentials fail closed, and preview,
+doctor, API, audit and telemetry outputs omit transport secrets.
+
 M8 preserves the authority chain: models cannot select a backend, execution profile, Harness
 pipeline, or provider URL. A timeout after external submission is `UNKNOWN`, never an automatic
 retry. Backend success cannot resolve an Incident without separate current-state verification, and
@@ -46,6 +53,9 @@ evidence.
 - medium-risk action without approval: no executor call
 - filesystem path supplied by caller: not part of ActionRequest
 - arbitrary shell or process-kill request: no representable ActionType
+- unknown/cross-environment deployment profile: resolver rejection
+- command-injection value in service mapping: configuration rejection
+- missing SSH credential secret-file reference: no Ansible dispatch
 # Durable approval safety
 
 Approval is a scoped, auditable decision over one workflow and one action fingerprint—not a

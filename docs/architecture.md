@@ -1,5 +1,14 @@
 # Architecture
 
+## M8.5 deployment compatibility bridge
+
+Semantic service/environment/target identity is resolved through the application
+`DeploymentEnvironmentResolver` port to strict operator-owned target, connection, service-control
+and verification profiles. The Ansible adapter alone knows inventory, host aliases, user refs,
+secret-file refs, fixed script paths and SSH. Both systemd and legacy fixed-script targets enter the
+same Policy → durable HITL → execution → verification lifecycle. See
+[deployment compatibility](design/deployment-compatibility.md).
+
 ## Local demo architecture snapshot
 
 The canonical `demo-minimal` profile exercises the implemented safety path without optional or paid
