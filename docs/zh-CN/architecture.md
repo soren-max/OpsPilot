@@ -1,5 +1,11 @@
 # 架构（Architecture）
 
+## M8 治理执行面
+
+Policy 与 durable approval 之后，operator-owned `ExecutionRouter` 才会选择 allowlisted Mock、
+Ansible 或 Harness profile。ExecutionRecord 与 transactional outbox 原子提交；未知外部副作用
+只能 reconciliation，不能盲目重试。Backend success 与 Incident verification 分开。
+
 [English](../architecture.md) | [简体中文](architecture.md)
 
 ## 本地演示架构快照

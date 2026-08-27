@@ -22,3 +22,8 @@ class VerificationFailure(WorkflowFailure):
 class WorkflowInfrastructureFailure(WorkflowFailure):
     code = "WORKFLOW_INFRASTRUCTURE_FAILURE"
     retryable = True
+
+
+class ExecutionPending(WorkflowFailure):
+    code = "EXECUTION_PENDING"
+    retryable = True

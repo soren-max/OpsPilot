@@ -123,6 +123,10 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
     queryKey: queryKeys.incidentRelated(incidentId),
     queryFn: () => incidentsApi.related(incidentId),
   });
+  const executions = useQuery({
+    queryKey: queryKeys.incidentExecutions(incidentId),
+    queryFn: () => incidentsApi.executions(incidentId),
+  });
   const approvals = useQuery({
     queryKey: queryKeys.incidentApprovals(incidentId),
     queryFn: () => approvalsApi.list(incidentId),
@@ -235,6 +239,55 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
             title="暂无历史参考"
             message="启用 Incident Memory 后，相似的已解决事故会显示在这里。"
           />
+        )}
+      </PageSection>
+      <PageSection
+        title="Execution Timeline"
+        description="Backend completion and incident verification are independent governed states."
+      >
+        {executions.isLoading ? (
+          <LoadingState variant="table" />
+        ) : executions.error ? (
+          <ErrorState error={executions.error} onRetry={() => void executions.refetch()} />
+        ) : executions.data?.length ? (
+          <DataTable ariaLabel="Governed execution timeline">
+            <thead>
+              <tr>
+                <th>Backend / Profile</th>
+                <th>Execution</th>
+                <th>Remote status</th>
+                <th>Incident verified</th>
+                <th>Correlation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {executions.data.map((execution) => (
+                <tr key={execution.id}>
+                  <td>
+                    {execution.backend_type} / <code>{execution.backend_profile}</code>
+                  </td>
+                  <td>
+                    <StatusBadge status={execution.status} />
+                    <small>{formatDate(execution.created_at)}</small>
+                  </td>
+                  <td className="mono">
+                    {execution.safe_provider_status ?? "—"}
+                    {execution.provider_execution_id
+                      ? ` / ${execution.provider_execution_id}`
+                      : ""}
+                  </td>
+                  <td>
+                    <StatusBadge status={execution.verification_status ?? "PENDING"} />
+                  </td>
+                  <td className="mono">
+                    {execution.trace_id ? `trace ${execution.trace_id}` : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </DataTable>
+        ) : (
+          <EmptyState title="暂无执行记录" message="批准后的治理动作会显示在这里。" />
         )}
       </PageSection>
       <PageSection

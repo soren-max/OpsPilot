@@ -1,5 +1,10 @@
 # Safety Model
 
+M8 preserves the authority chain: models cannot select a backend, execution profile, Harness
+pipeline, or provider URL. A timeout after external submission is `UNKNOWN`, never an automatic
+retry. Backend success cannot resolve an Incident without separate current-state verification, and
+rollback is a new governed proposal.
+
 MCP is not authorization. Annotations, remote descriptions, resources, and output are untrusted and
 cannot change risk, evidence ownership, approvals, or executor selection. Private context plus
 external content plus mutation raises deterministic composition risk; fixed allowlists, scopes,

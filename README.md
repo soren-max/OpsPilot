@@ -12,6 +12,16 @@ durable approval, executes through a fixed Ansible boundary, and verifies recove
 make demo-local
 ```
 
+The current milestone (M8) adds a governed multi-backend execution plane. Mock and Ansible remain,
+while allowlisted Harness CD pipelines add asynchronous delivery with a transactional outbox,
+indeterminate-dispatch recovery, reconciliation, and independent verification. LLM and MCP callers
+cannot select a backend or pipeline.
+
+M7 added an MCP `2026-07-28` interoperability plane to the complete
+**Observability → Evidence → LLM Investigator → Grounding Guard → Structured Action → Policy →
+Durable Human Approval → Ansible → Verification** pipeline against a reproducible local Lab.
+The default walkthrough is deterministic and requires no model API key.
+
 **Fault → Evidence → Diagnosis → Human Approval → Ansible → Verified Recovery**
 
 The canonical `service-down` demonstration is synthetic, deterministic, repeatable, and needs no
@@ -26,8 +36,8 @@ flowchart LR
   Optional[Optional: RAG / MCP / OpenAI] -.-> Investigator
 ```
 
-**Current status:** M1–M7 implemented. **Portfolio pause point:** Local Demo Closeout.
-**Next engineering milestone:** M8 Multi-backend Governed Execution (not implemented).
+**Current status:** M1–M8 implemented. The canonical local demo remains the stable portfolio entrypoint.
+**Next engineering milestone:** M8.5 Deployment Compatibility & Legacy Migration Bridge.
 
 ## Demo Profiles
 
@@ -94,7 +104,7 @@ flowchart TD
     direction LR
     Postgres[(Postgres Checkpoint<br/>Implemented)]
     HITL[Durable HITL Resume<br/>Implemented]
-    Harness[Harness Backend<br/>Planned]
+    Harness[Harness Backend<br/>Implemented in M8]
     RAG[Historical Incident Memory<br/>Implemented in M6]
   end
   Approval -.-> Postgres
@@ -123,11 +133,12 @@ No model output is passed to a shell, SSH client, inventory path, or playbook pa
 - Deterministic offline investigator baseline (no API key required)
 - Deterministic policy engine with target allowlists and fail-closed rules
 - Mock and fixed-mapping Ansible executors behind a dependency-injected port (`M1A`/`M1B`)
+- Governed Mock, Ansible, and allowlisted Harness execution profiles with reconciliation (`M8`)
 - Audit / evaluation foundation: evaluation fixtures, safety cases, secret scan in CI
 
 **Planned (not yet implemented):**
 
-- Harness multi-backend execution (`M8`)
+- Deployment compatibility and legacy migration bridge (`M8.5`)
 - GitOps governed change workflow (`M9`)
 - Advanced evaluation and agent observability (`M10`/`M11`)
 
@@ -254,6 +265,7 @@ Copy `.env.example` to `.env` and replace every placeholder before starting the 
 | M5 Reproducible Incident Lab | **Implemented** |
 | M6 Historical Incident Memory / Hybrid RAG | **Implemented** |
 | M7 MCP Capability Boundary | **Implemented** |
+| M8 Multi-backend Governed Execution | **Implemented** |
 
 The worker builds one operator-configured `ActionService` per iteration from the selected Mock or
 Ansible backend and the enabled Target allowlist. It injects that same policy/executor boundary
@@ -270,17 +282,18 @@ according to operator-owned inventory, but that is not part of the Agent/API con
 
 | Milestone | Status |
 | --- | --- |
-| M1A – M7 | **Implemented** (see Current Status) |
-| Local Demo Closeout | **Current portfolio pause point** |
-| M8 Multi-backend Governed Execution | **Next engineering milestone** |
+| M1A – M8 | **Implemented** (see Current Status) |
+| Local Demo Closeout | **Implemented** |
+| M8 Harness Multi-backend Execution | **Implemented** |
+| M8.5 Deployment Compatibility | **Next** |
 | M9 GitOps | Future |
 | M10 Risk Reviewer / Evaluation | Future |
 | M11 Agent Observability | Future |
 
-### Current Portfolio Pause Point
+### Portfolio Entry Point
 
-The stable public portfolio baseline is **Local Demo Closeout after M7**. The next engineering
-milestone is **M8 — Multi-backend Governed Execution**; Harness and GitOps are not implemented.
+The canonical local demonstration remains the stable public portfolio entry point. M8 governed
+multi-backend execution is implemented; M8.5 adds a synthetic legacy-environment migration bridge.
 
 ## Why this project is different
 

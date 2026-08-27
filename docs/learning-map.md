@@ -16,6 +16,7 @@ LLM application curricula, including `Lordog/dive-into-llms`, without copying co
 | RAG / Memory | M6 typed historical incident retrieval + hybrid RRF | Implemented |
 | LangGraph | Incident StateGraph and workflow trace | Implemented |
 | MCP | M7 typed capability interoperability boundary | Implemented |
+| Governed delivery | M8 deterministic execution, outbox, reconciliation | Implemented |
 | Evaluation | Incident, safety, and retrieval benchmark datasets | Implemented |
 | Observability | Agent, tool, action, and approval traces | Partial |
 

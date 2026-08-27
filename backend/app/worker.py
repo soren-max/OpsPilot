@@ -1,3 +1,4 @@
+import asyncio
 import signal
 import time
 from datetime import timedelta
@@ -26,8 +27,12 @@ from app.core.logging import configure_logging
 from app.db.session import SessionLocal
 from app.domain.actions.executor import ActionExecutor
 from app.domain.actions.policy import ActionPolicyEngine
+from app.domain.execution import ExecutionStatus
+from app.execution.factory import build_execution_plane
+from app.execution.service import ExecutionReconciler
 from app.memory.factory import build_memory_store
 from app.models import Host, Service, ServiceDeployment
+from app.repositories.workflow_models import WorkflowRunRecord, WorkflowRunStatus
 from app.services.worker import WorkerService
 from app.workflows.checkpoint import get_workflow_checkpointer
 from app.workflows.incident.investigator import DeterministicInvestigator, IncidentInvestigator
@@ -172,6 +177,27 @@ def main() -> None:
     while running:
         with SessionLocal() as db:
             action_service = build_action_service(db, settings)
+            execution_plane, execution_dispatcher = build_execution_plane(
+                db, settings, action_service
+            )
+            execution_dispatcher.recover_expired_dispatches()
+            if asyncio.run(execution_dispatcher.dispatch_one()):
+                continue
+            tracking = execution_dispatcher.executions.tracking(limit=1)
+            if tracking:
+                execution = asyncio.run(
+                    ExecutionReconciler(execution_dispatcher).reconcile(tracking[0].id)
+                )
+                if execution.status in {
+                    ExecutionStatus.SUCCEEDED,
+                    ExecutionStatus.FAILED,
+                    ExecutionStatus.CANCELLED,
+                }:
+                    workflow = db.get(WorkflowRunRecord, execution.workflow_id)
+                    if workflow is not None and workflow.status is WorkflowRunStatus.WAITING:
+                        workflow.status = WorkflowRunStatus.PENDING
+                        db.commit()
+                continue
             capabilities = build_incident_capabilities(db, settings, action_service)
             if WorkflowService(
                 db,
@@ -179,6 +205,8 @@ def main() -> None:
                 action_service=action_service,
                 capabilities=capabilities,
                 knowledge_retriever=knowledge_retriever,
+                execution_plane=execution_plane,
+                execution_dispatcher=execution_dispatcher,
             ).run_next():
                 continue
             handled = WorkerService(db, action_service, settings).run_once()

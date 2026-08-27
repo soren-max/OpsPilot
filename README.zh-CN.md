@@ -11,6 +11,14 @@
 make demo-local
 ```
 
+当前里程碑（M8）增加 governed multi-backend execution plane。Mock、Ansible 继续保留，并通过
+allowlisted Harness CD pipeline 支持异步执行、transactional outbox、UNKNOWN 副作用恢复、
+reconciliation 与独立 verification。LLM 和 MCP 都不能选择 backend 或 pipeline。
+
+M7 在完整流水线上增加 MCP `2026-07-28` capability interoperability plane：
+**可观测性 → 证据 → LLM 调查器 → 证据约束（Evidence Grounding）→ 结构化动作 → 策略 →
+持久化人工审批 → Ansible → 验证**。默认演示使用确定性调查器，不需要模型 API Key。
+
 **故障 → 证据 → 诊断 → 人工审批 → Ansible → 恢复验证**
 
 默认 `service-down` 演示使用合成环境和确定性调查器，不需要 OpenAI Key 或外部 SaaS。
@@ -24,8 +32,8 @@ flowchart LR
   Optional[可选: RAG / MCP / OpenAI] -.-> Investigator
 ```
 
-**当前状态：** M1–M7 已实现。**Portfolio 暂停点：** Local Demo Closeout。
-**下一工程里程碑：** M8 Multi-backend Governed Execution（未实现）。
+**当前状态：** M1–M8 已实现。标准本地演示仍是稳定的 Portfolio 入口。
+**下一工程里程碑：** M8.5 Deployment Compatibility & Legacy Migration Bridge。
 
 ## 演示 Profile
 
@@ -88,7 +96,7 @@ flowchart TD
     direction LR
     Postgres[(Postgres Checkpoint<br/>已实现)]
     HITL[Durable HITL Resume<br/>已实现]
-    Harness[Harness Backend<br/>Planned]
+    Harness[Harness Backend<br/>M8 已实现]
     RAG[Historical Incident Memory<br/>M6 已实现]
   end
   Approval -.-> Postgres
@@ -117,6 +125,7 @@ ActionRequest -> ActionPolicyEngine -> approval boundary -> ActionExecutor -> ve
 - 确定性离线调查基线（无需 API key）
 - 确定性策略引擎：目标白名单与 fail-closed 规则
 - 依赖注入端口背后的 Mock 与固定映射 Ansible 执行器（`M1A`/`M1B`）
+- 受治理的 Mock、Ansible 和 allowlisted Harness 执行 Profile 及 reconciliation（`M8`）
 - 审计 / 评估基础：评估夹具、安全用例、CI 中的 secret 扫描
 
 ## MCP Capability Plane
@@ -128,7 +137,7 @@ remediation proposal 并返回 approval reference，不能直接执行。运行 
 
 **计划中（Planned，尚未实现）：**
 
-- Harness 多后端执行（`M8`）
+- 部署兼容与遗留环境迁移桥（`M8.5`）
 - GitOps 受治理变更工作流（`M9`）
 - 高级评估与智能体可观测性（`M10`/`M11`）
 
@@ -227,6 +236,7 @@ LLM 模式需要有效的 `OPENAI_API_KEY` 与经运维确认的模型配置。P
 | M5 Reproducible Incident Lab | **已实现** |
 | M6 Historical Incident Memory / Hybrid RAG | **已实现** |
 | M7 MCP Capability Boundary | **已实现** |
+| M8 Multi-backend Governed Execution | **已实现** |
 
 Worker 每次迭代从选中的 Mock 或 Ansible 后端与启用的 Target 白名单构建一个由运维配置的
 `ActionService`，并把同一个策略/执行器边界注入普通 Operations 与 LangGraph 工作流；工作流
@@ -242,17 +252,18 @@ M1B 已移除遗留的 SSH 与服务脚本运行时。Ansible 可以按运维自
 
 | 里程碑 | 状态 |
 | --- | --- |
-| M1A – M7 | **已实现**（见当前状态） |
-| Local Demo Closeout | **当前 Portfolio 暂停点** |
-| M8 Multi-backend Governed Execution | **下一工程里程碑** |
+| M1A – M8 | **已实现**（见当前状态） |
+| Local Demo Closeout | **已实现** |
+| M8 Harness Multi-backend Execution | **已实现** |
+| M8.5 Deployment Compatibility | **下一阶段** |
 | M9 GitOps | 未来 |
 | M10 Risk Reviewer / Evaluation | 未来 |
 | M11 Agent Observability | 未来 |
 
-### 当前 Portfolio 暂停点
+### Portfolio 入口
 
-当前稳定公开基线是 **M7 之后的 Local Demo Closeout**。下一工程里程碑是
-**M8 —— Multi-backend Governed Execution**；Harness 与 GitOps 尚未实现。
+标准本地演示仍是稳定的公开 Portfolio 入口。M8 受治理多后端执行已实现；
+M8.5 将增加合成遗留环境的迁移桥。
 
 ## 这个项目有什么不同
 

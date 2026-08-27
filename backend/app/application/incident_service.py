@@ -72,6 +72,11 @@ AUDIT_METADATA_ALLOWLIST = frozenset(
         "mcp_client",
         "mcp_tool",
         "trace_id",
+        "execution_id",
+        "backend_type",
+        "backend_profile",
+        "provider_execution_id",
+        "approval_id",
     }
 )
 

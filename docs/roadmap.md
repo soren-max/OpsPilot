@@ -13,18 +13,19 @@
 | M5 Local Incident Lab | Done | Reproducible live telemetry, failure, approval, and recovery scenarios |
 | M6 Historical Incident Memory / RAG | Done | Hybrid retrieval with provenance and eval |
 | M7 MCP Capability Boundary | Done | MCP 2026-07-28 typed interoperability and governed proposals |
-| M8 Multi-backend Execution | Planned | Ansible plus a future Harness backend |
+| M8 Multi-Backend Governed Execution | Done | Mock, Ansible, Harness, outbox, reconciliation |
+| M8.5 Deployment Compatibility | Next | Typed profiles and a synthetic legacy-environment migration bridge |
 | M9 GitOps Change Workflow | Planned | Governed configuration and deployment change |
 | M10 Risk Reviewer & Evaluation | Planned | Advisory risk review and safety evaluation |
 | M11 Agent Observability | Planned | Workflow traces and operational telemetry |
 
-Harness and GitOps in M8/M9 are future enhancements. M1B includes no Harness SDK, production
-backend, or simulated implementation.
+M8 implements the governed Harness reference backend. M8.5 demonstrates bounded integration with
+traditional SSH-managed test environments without restoring the removed ServiceSSH abstraction.
 
-## Current Portfolio Pause Point
+## Portfolio Entry Point
 
-**Local Demo Closeout after M7** is the current stable portfolio pause point. M1–M7 are implemented;
-the canonical demonstration focuses on the complete evidence, durable approval, Ansible remediation,
-and verification path. Historical Memory and MCP remain optional advanced demonstrations.
+The canonical local demo remains the stable portfolio entry point. M1–M8 are implemented; the
+demonstration focuses on evidence, durable approval, governed execution, and independent
+verification. Historical Memory and MCP remain optional advanced demonstrations.
 
-Next: **M8 Multi-backend Governed Execution**.
+Next: **M8.5 Deployment Compatibility & Legacy Migration Bridge**.

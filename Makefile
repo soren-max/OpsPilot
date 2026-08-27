@@ -1,4 +1,4 @@
-.PHONY: demo demo-local demo-full demo-doctor demo-doctor-live demo-reset demo-down demo-transcript lab-up lab-up-full lab-inject lab-status lab-reset lab-down lab-demo memory-index memory-eval mcp-demo mcp-eval
+.PHONY: demo demo-local demo-full demo-doctor demo-doctor-live demo-reset demo-down demo-transcript lab-up lab-up-full lab-inject lab-status lab-reset lab-down lab-demo memory-index memory-eval mcp-demo mcp-eval execution-demo harness-demo
 
 COMPOSE = docker compose -f lab/docker-compose.yml
 DEMO_CORE = postgres dependency web-01 web-02 prometheus loki promtail
@@ -60,3 +60,11 @@ mcp-eval:
 mcp-demo:
 	uv run --project backend --no-sync pytest backend/tests/mcp/test_mcp_server.py backend/tests/mcp/test_mcp_transports.py -q
 	$(MAKE) mcp-eval
+
+execution-demo:
+	uv run --project backend --no-sync python -m app.execution.demo
+	uv run --project backend --no-sync pytest backend/tests/execution -q
+
+harness-demo:
+	@test -n "$$OPSPILOT_HARNESS_API_KEY" || (echo "Set opt-in Harness credentials first"; exit 1)
+	uv run --project backend --no-sync python -m app.execution.harness_demo
