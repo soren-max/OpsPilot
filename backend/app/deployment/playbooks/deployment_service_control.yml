@@ -1,0 +1,29 @@
+---
+- name: Apply an operator-owned service control mapping
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Control an allowlisted systemd unit
+      ansible.builtin.systemd_service:
+        name: "{{ fixed_systemd_unit }}"
+        state: "{{ fixed_systemd_state }}"
+      when: control_type == "SYSTEMD" and fixed_operation != "status"
+
+    - name: Read systemd service facts without mutation
+      ansible.builtin.service_facts:
+      when: control_type == "SYSTEMD" and fixed_operation == "status"
+
+    - name: Require the allowlisted systemd unit to be running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services[fixed_systemd_unit].state == "running"
+      when: control_type == "SYSTEMD" and fixed_operation == "status"
+
+    - name: Invoke the fixed legacy service script with bounded argv
+      ansible.builtin.command:
+        argv:
+          - "{{ fixed_script_path }}"
+          - "{{ fixed_operation }}"
+          - "{{ fixed_service_id }}"
+      changed_when: fixed_operation != "status"
+      when: control_type == "FIXED_SCRIPT"

@@ -1,0 +1,14 @@
+---
+- name: Run read-only deployment connectivity checks
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Verify Ansible connectivity
+      ansible.builtin.ping:
+
+    - name: Verify the configured privilege context without changing state
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/id
+          - -u
+      changed_when: false

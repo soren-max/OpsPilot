@@ -7,14 +7,19 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.adapters.ansible import AnsibleActionExecutor, SubprocessAnsibleRunner
+from app.adapters.ansible import (
+    AnsibleActionExecutor,
+    DeploymentAnsibleActionExecutor,
+    OperatorAnsibleRunnerFactory,
+    SubprocessAnsibleRunner,
+)
 from app.adapters.ansible.runner import AnsibleRunner
 from app.adapters.health import ActionServiceHealthCapability
 from app.adapters.http import HttpxJsonClient
 from app.adapters.loki import LokiLogsAdapter
 from app.adapters.mock import MockActionExecutor
 from app.adapters.prometheus import PrometheusMetricsAdapter
-from app.adapters.tickets import MockTicketAdapter
+from app.adapters.tickets import LegacyTicketAdapter, MockTicketAdapter
 from app.ai import EvidenceContextBuilder, EvidenceGroundingValidator, InvestigationGuard
 from app.ai.adapters import OpenAIResponsesProvider
 from app.ai.investigator import LLMIncidentInvestigator
@@ -22,9 +27,11 @@ from app.application import ActionService
 from app.application.workflow_service import WorkflowService
 from app.capabilities import IncidentCapabilities
 from app.capabilities.policy import CapabilityQueryPolicy
+from app.capabilities.tickets import TicketsCapability
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
 from app.db.session import SessionLocal
+from app.deployment import ConfigDeploymentEnvironmentResolver, load_deployment_configuration
 from app.domain.actions.executor import ActionExecutor
 from app.domain.actions.policy import ActionPolicyEngine
 from app.domain.execution import ExecutionStatus
@@ -53,27 +60,51 @@ def build_action_service(
 ) -> ActionService:
     """Build the single operator-configured execution boundary for a worker iteration."""
     executor: ActionExecutor = MockActionExecutor()
+    deployment_targets: frozenset[str] = frozenset()
     if settings.selected_executor == "ansible":
-        if not settings.ansible_inventory_path or not settings.ansible_playbook_directory:
-            raise RuntimeError("Ansible backend requires operator-owned inventory and playbooks")
-        playbook_root = Path(settings.ansible_playbook_directory)
-        runner = ansible_runner or SubprocessAnsibleRunner(
-            inventory=Path(settings.ansible_inventory_path),
-            playbook_root=playbook_root,
-            binary=Path(settings.ansible_binary_path or "/usr/bin/ansible-playbook"),
-            timeout_seconds=settings.execution_timeout_seconds,
-        )
-        executor = AnsibleActionExecutor(
-            runner=runner,
-            playbook_root=playbook_root,
-        )
+        if settings.deployment_config_path:
+            config_path = Path(settings.deployment_config_path)
+            configuration = load_deployment_configuration(config_path)
+            playbook_root = Path(
+                settings.deployment_playbook_directory
+                or Path(__file__).parent / "deployment" / "playbooks"
+            )
+            resolver = ConfigDeploymentEnvironmentResolver(configuration)
+            executor = DeploymentAnsibleActionExecutor(
+                configuration=configuration,
+                resolver=resolver,
+                playbook_root=playbook_root,
+                runner_factory=OperatorAnsibleRunnerFactory(
+                    configuration=configuration,
+                    configuration_path=config_path,
+                    playbook_root=playbook_root,
+                    binary=Path(settings.ansible_binary_path or "/usr/bin/ansible-playbook"),
+                ),
+            )
+            deployment_targets = frozenset(item.target_ref for item in configuration.targets)
+        else:
+            if not settings.ansible_inventory_path or not settings.ansible_playbook_directory:
+                raise RuntimeError(
+                    "Ansible backend requires operator-owned inventory and playbooks"
+                )
+            playbook_root = Path(settings.ansible_playbook_directory)
+            runner = ansible_runner or SubprocessAnsibleRunner(
+                inventory=Path(settings.ansible_inventory_path),
+                playbook_root=playbook_root,
+                binary=Path(settings.ansible_binary_path or "/usr/bin/ansible-playbook"),
+                timeout_seconds=settings.execution_timeout_seconds,
+            )
+            executor = AnsibleActionExecutor(
+                runner=runner,
+                playbook_root=playbook_root,
+            )
     targets = frozenset(
         [
             *db.scalars(select(Host.name).where(Host.enabled.is_(True))),
             *db.scalars(select(Service.name).where(Service.enabled.is_(True))),
         ]
     )
-    return ActionService(ActionPolicyEngine(targets), executor)
+    return ActionService(ActionPolicyEngine(targets | deployment_targets), executor)
 
 
 def build_incident_capabilities(
@@ -95,6 +126,11 @@ def build_incident_capabilities(
     targets_by_service: dict[str, str] = {}
     for service, target in deployments:
         targets_by_service.setdefault(service, target)
+    if settings.deployment_config_path:
+        configuration = load_deployment_configuration(Path(settings.deployment_config_path))
+        services = services | frozenset(item.service for item in configuration.targets)
+        for target in configuration.targets:
+            targets_by_service.setdefault(target.service, target.target_ref)
     policy = CapabilityQueryPolicy(
         allowed_services=services,
         max_time_range=timedelta(seconds=settings.capability_max_time_range_seconds),
@@ -131,11 +167,27 @@ def build_incident_capabilities(
         if settings.loki_base_url
         else None
     )
+    tickets: TicketsCapability = MockTicketAdapter()
+    if settings.deployment_config_path:
+        configuration = load_deployment_configuration(Path(settings.deployment_config_path))
+        target = next((item for item in configuration.targets if item.ticket_profile_ref), None)
+        if target and target.ticket_profile_ref:
+            ticket_profile = next(
+                item for item in configuration.tickets if item.id == target.ticket_profile_ref
+            )
+            tickets = LegacyTicketAdapter(
+                client(
+                    configuration.endpoint_catalog[ticket_profile.base_url_ref],
+                    None,
+                ),
+                tickets_path=ticket_profile.tickets_path,
+                auth_token_env_ref=ticket_profile.auth_token_env_ref,
+            )
     return IncidentCapabilities(
         policy=policy,
         metrics=metrics,
         logs=logs,
-        tickets=MockTicketAdapter(),
+        tickets=tickets,
         health=ActionServiceHealthCapability(action_service, targets_by_service),
         timeout_seconds=settings.capability_timeout_seconds,
     )

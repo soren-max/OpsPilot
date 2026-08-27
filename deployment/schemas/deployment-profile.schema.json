@@ -1,0 +1,528 @@
+{
+  "$defs": {
+    "ActionType": {
+      "enum": [
+        "get_service_status",
+        "health_check",
+        "start_service",
+        "stop_service",
+        "restart_service"
+      ],
+      "title": "ActionType",
+      "type": "string"
+    },
+    "AnsibleConnectionProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "become_required": {
+          "default": false,
+          "title": "Become Required",
+          "type": "boolean"
+        },
+        "connection_timeout": {
+          "default": 10,
+          "maximum": 120,
+          "minimum": 1,
+          "title": "Connection Timeout",
+          "type": "integer"
+        },
+        "credential_env_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z][A-Z0-9_]{2,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Credential Env Ref"
+        },
+        "host_alias": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Host Alias",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inventory_ref": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Inventory Ref",
+          "type": "string"
+        },
+        "remote_user_ref": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Remote User Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "inventory_ref",
+        "host_alias",
+        "remote_user_ref"
+      ],
+      "title": "AnsibleConnectionProfile",
+      "type": "object"
+    },
+    "DeploymentTargetProfile": {
+      "additionalProperties": false,
+      "description": "Semantic deployment target resolved before infrastructure dispatch.",
+      "properties": {
+        "allowed_actions": {
+          "items": {
+            "$ref": "#/$defs/ActionType"
+          },
+          "title": "Allowed Actions",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "connection_profile_ref": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Connection Profile Ref",
+          "type": "string"
+        },
+        "environment": {
+          "$ref": "#/$defs/TargetEnvironment"
+        },
+        "health_profile_ref": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Health Profile Ref",
+          "type": "string"
+        },
+        "observability_profile_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observability Profile Ref"
+        },
+        "profile_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "service": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Service",
+          "type": "string"
+        },
+        "service_control_profile_ref": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Service Control Profile Ref",
+          "type": "string"
+        },
+        "target_ref": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Target Ref",
+          "type": "string"
+        },
+        "ticket_profile_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ticket Profile Ref"
+        }
+      },
+      "required": [
+        "profile_id",
+        "environment",
+        "service",
+        "target_ref",
+        "connection_profile_ref",
+        "service_control_profile_ref",
+        "health_profile_ref",
+        "allowed_actions"
+      ],
+      "title": "DeploymentTargetProfile",
+      "type": "object"
+    },
+    "LegacyTicketProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "auth_token_env_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z][A-Z0-9_]{2,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Auth Token Env Ref"
+        },
+        "base_url_ref": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Base Url Ref",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "tickets_path": {
+          "default": "/tickets",
+          "pattern": "^/[A-Za-z0-9_./-]{1,200}$",
+          "title": "Tickets Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "base_url_ref"
+      ],
+      "title": "LegacyTicketProfile",
+      "type": "object"
+    },
+    "ObservabilityProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "health": {
+          "default": true,
+          "title": "Health",
+          "type": "boolean"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "logs": {
+          "default": false,
+          "title": "Logs",
+          "type": "boolean"
+        },
+        "metrics": {
+          "default": false,
+          "title": "Metrics",
+          "type": "boolean"
+        },
+        "tickets": {
+          "default": false,
+          "title": "Tickets",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "ObservabilityProfile",
+      "type": "object"
+    },
+    "ServiceControlProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_operations": {
+          "items": {
+            "$ref": "#/$defs/ActionType"
+          },
+          "title": "Allowed Operations",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "control_type": {
+          "$ref": "#/$defs/ServiceControlType"
+        },
+        "fixed_script_path": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixed Script Path"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "service_mapping": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "maxProperties": 100,
+          "minProperties": 1,
+          "title": "Service Mapping",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "control_type",
+        "service_mapping",
+        "allowed_operations"
+      ],
+      "title": "ServiceControlProfile",
+      "type": "object"
+    },
+    "ServiceControlType": {
+      "enum": [
+        "SYSTEMD",
+        "FIXED_SCRIPT"
+      ],
+      "title": "ServiceControlType",
+      "type": "string"
+    },
+    "TargetEnvironment": {
+      "enum": [
+        "development",
+        "test",
+        "production"
+      ],
+      "title": "TargetEnvironment",
+      "type": "string"
+    },
+    "VerificationCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "applicable_actions": {
+          "items": {
+            "$ref": "#/$defs/ActionType"
+          },
+          "title": "Applicable Actions",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "check_type": {
+          "$ref": "#/$defs/VerificationCheckType"
+        },
+        "endpoint_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Endpoint Ref"
+        },
+        "expected_http_status": {
+          "anyOf": [
+            {
+              "maximum": 599,
+              "minimum": 100,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Http Status"
+        },
+        "expected_service_state": {
+          "anyOf": [
+            {
+              "enum": [
+                "running",
+                "stopped"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Service State"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "check_type"
+      ],
+      "title": "VerificationCheck",
+      "type": "object"
+    },
+    "VerificationCheckType": {
+      "enum": [
+        "HTTP_HEALTH",
+        "SYSTEMD_STATUS",
+        "PROCESS_STATUS"
+      ],
+      "title": "VerificationCheckType",
+      "type": "string"
+    },
+    "VerificationProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/VerificationCheck"
+          },
+          "maxItems": 10,
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "retry_interval_seconds": {
+          "default": 1.0,
+          "maximum": 60,
+          "minimum": 0.1,
+          "title": "Retry Interval Seconds",
+          "type": "number"
+        },
+        "timeout_seconds": {
+          "default": 30,
+          "maximum": 300,
+          "minimum": 1,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "checks"
+      ],
+      "title": "VerificationProfile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "connections": {
+      "items": {
+        "$ref": "#/$defs/AnsibleConnectionProfile"
+      },
+      "minItems": 1,
+      "title": "Connections",
+      "type": "array"
+    },
+    "database_url_env_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Z][A-Z0-9_]{2,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Database Url Env Ref"
+    },
+    "endpoint_catalog": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Endpoint Catalog",
+      "type": "object"
+    },
+    "inventory_catalog": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Inventory Catalog",
+      "type": "object"
+    },
+    "observability": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ObservabilityProfile"
+      },
+      "title": "Observability",
+      "type": "array"
+    },
+    "remote_user_catalog": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Remote User Catalog",
+      "type": "object"
+    },
+    "required_ports": {
+      "default": [],
+      "items": {
+        "type": "integer"
+      },
+      "maxItems": 20,
+      "title": "Required Ports",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "service_controls": {
+      "items": {
+        "$ref": "#/$defs/ServiceControlProfile"
+      },
+      "minItems": 1,
+      "title": "Service Controls",
+      "type": "array"
+    },
+    "targets": {
+      "items": {
+        "$ref": "#/$defs/DeploymentTargetProfile"
+      },
+      "minItems": 1,
+      "title": "Targets",
+      "type": "array"
+    },
+    "tickets": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/LegacyTicketProfile"
+      },
+      "title": "Tickets",
+      "type": "array"
+    },
+    "verifications": {
+      "items": {
+        "$ref": "#/$defs/VerificationProfile"
+      },
+      "minItems": 1,
+      "title": "Verifications",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "inventory_catalog",
+    "remote_user_catalog",
+    "connections",
+    "service_controls",
+    "verifications",
+    "targets"
+  ],
+  "title": "DeploymentConfiguration",
+  "type": "object"
+}

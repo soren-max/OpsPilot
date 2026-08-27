@@ -1,0 +1,42 @@
+schema_version: "1"
+# Copy this template into a private configuration repository. Keep credentials in
+# environment variables, secret files, CI secrets, or an operator secret provider.
+inventory_catalog:
+  test-inventory: inventory/test.ini
+remote_user_catalog:
+  test-operator: synthetic-user
+endpoint_catalog:
+  service-health: https://test.example.invalid/health
+connections:
+  - id: test-connection
+    inventory_ref: test-inventory
+    host_alias: synthetic-host
+    remote_user_ref: test-operator
+    become_required: false
+    connection_timeout: 10
+    credential_env_ref: OPSPILOT_TEST_SSH_KEY_FILE
+service_controls:
+  - id: test-systemd
+    control_type: SYSTEMD
+    service_mapping:
+      demo-api: demo-api.service
+    allowed_operations: [get_service_status, restart_service]
+verifications:
+  - id: test-verification
+    checks:
+      - check_type: HTTP_HEALTH
+        endpoint_ref: service-health
+        expected_http_status: 200
+        required: true
+        applicable_actions: [get_service_status, restart_service]
+    retry_interval_seconds: 2
+    timeout_seconds: 30
+targets:
+  - profile_id: private-test-example
+    environment: test
+    service: demo-api
+    target_ref: demo-api-test
+    connection_profile_ref: test-connection
+    service_control_profile_ref: test-systemd
+    health_profile_ref: test-verification
+    allowed_actions: [get_service_status, restart_service]

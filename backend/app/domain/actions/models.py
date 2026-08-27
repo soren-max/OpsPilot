@@ -9,12 +9,13 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 SAFE_TARGET = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 SAFE_SERVICE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.@-]{0,127}$")
-SAFE_HEALTH_PATH = re.compile(r"^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$")
 
 
 class ActionType(StrEnum):
     GET_SERVICE_STATUS = "get_service_status"
     HEALTH_CHECK = "health_check"
+    START_SERVICE = "start_service"
+    STOP_SERVICE = "stop_service"
     RESTART_SERVICE = "restart_service"
 
 
@@ -46,15 +47,12 @@ class ServiceActionParams(StrictDomainModel):
     service: Annotated[str, Field(min_length=1, max_length=128, pattern=SAFE_SERVICE.pattern)]
 
 
-class HealthCheckParams(StrictDomainModel):
-    port: Annotated[int, Field(ge=1, le=65535)] = 80
-    path: Annotated[str, Field(min_length=1, max_length=256, pattern=SAFE_HEALTH_PATH.pattern)] = (
-        "/health"
-    )
-    expected_status: Annotated[int, Field(ge=100, le=599)] = 200
+# Health actions carry semantic identity only. Endpoint, port and success criteria are
+# operator-owned verification configuration rather than caller-controlled parameters.
+HealthCheckParams = ServiceActionParams
 
 
-ActionParameters = ServiceActionParams | HealthCheckParams
+ActionParameters = ServiceActionParams
 
 
 class ActionRequest(StrictDomainModel):
@@ -68,8 +66,10 @@ class ActionRequest(StrictDomainModel):
     def parameters_match_action(self) -> ActionRequest:
         expected_type = {
             ActionType.GET_SERVICE_STATUS: ServiceActionParams,
+            ActionType.START_SERVICE: ServiceActionParams,
+            ActionType.STOP_SERVICE: ServiceActionParams,
             ActionType.RESTART_SERVICE: ServiceActionParams,
-            ActionType.HEALTH_CHECK: HealthCheckParams,
+            ActionType.HEALTH_CHECK: ServiceActionParams,
         }[self.action_type]
         if not isinstance(self.parameters, expected_type):
             raise ValueError(

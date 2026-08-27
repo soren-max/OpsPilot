@@ -1,0 +1,45 @@
+---
+- name: Verify an operator-owned deployment success profile
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Require the fixed HTTP health endpoint
+      ansible.builtin.uri:
+        url: "{{ fixed_health_url }}"
+        method: GET
+        status_code: "{{ fixed_expected_http_status }}"
+      register: health_result
+      until: health_result.status == fixed_expected_http_status
+      retries: "{{ verification_retries }}"
+      delay: "{{ verification_delay }}"
+      changed_when: false
+      when: verify_http | bool
+
+    - name: Collect service manager facts
+      ansible.builtin.service_facts:
+      when: verify_systemd | bool
+
+    - name: Require the mapped systemd state
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services[fixed_systemd_unit].state == fixed_expected_service_state
+      when: verify_systemd | bool
+
+    - name: Read fixed-script service status with bounded argv
+      ansible.builtin.command:
+        argv:
+          - "{{ fixed_script_path }}"
+          - status
+          - "{{ fixed_service_id }}"
+      changed_when: false
+      failed_when: false
+      register: fixed_process_status
+      when: verify_process | bool
+
+    - name: Require the mapped fixed-script process state
+      ansible.builtin.assert:
+        that:
+          - >-
+            (fixed_expected_service_state == 'running' and fixed_process_status.rc == 0) or
+            (fixed_expected_service_state == 'stopped' and fixed_process_status.rc != 0)
+      when: verify_process | bool

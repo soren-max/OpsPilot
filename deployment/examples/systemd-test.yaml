@@ -1,0 +1,66 @@
+schema_version: "1"
+inventory_catalog:
+  systemd-lab: inventory/systemd-test.ini
+remote_user_catalog:
+  systemd-operator: opspilot
+endpoint_catalog:
+  demo-api-health: http://127.0.0.1:8080/health
+connections:
+  - id: systemd-ssh
+    inventory_ref: systemd-lab
+    host_alias: systemd-host
+    remote_user_ref: systemd-operator
+    become_required: true
+    connection_timeout: 20
+service_controls:
+  - id: systemd-service-control
+    control_type: SYSTEMD
+    service_mapping:
+      demo-api: opspilot-demo-api.service
+      demo-worker: opspilot-demo-worker.service
+    allowed_operations:
+      - get_service_status
+      - start_service
+      - stop_service
+      - restart_service
+verifications:
+  - id: systemd-state-and-http
+    checks:
+      - check_type: SYSTEMD_STATUS
+        expected_service_state: running
+        required: true
+        applicable_actions: [get_service_status, start_service, restart_service]
+      - check_type: SYSTEMD_STATUS
+        expected_service_state: stopped
+        required: true
+        applicable_actions: [stop_service]
+      - check_type: HTTP_HEALTH
+        endpoint_ref: demo-api-health
+        expected_http_status: 200
+        required: true
+        applicable_actions: [get_service_status, start_service, restart_service]
+    retry_interval_seconds: 2
+    timeout_seconds: 30
+observability:
+  - id: systemd-health-only
+    health: true
+    metrics: false
+    logs: false
+    tickets: false
+targets:
+  - profile_id: example-systemd-test
+    environment: test
+    service: demo-api
+    target_ref: demo-api
+    connection_profile_ref: systemd-ssh
+    service_control_profile_ref: systemd-service-control
+    health_profile_ref: systemd-state-and-http
+    observability_profile_ref: systemd-health-only
+    allowed_actions:
+      - get_service_status
+      - start_service
+      - stop_service
+      - restart_service
+required_ports:
+  - 22
+  - 8080

@@ -1,4 +1,4 @@
-.PHONY: demo demo-local demo-full demo-doctor demo-doctor-live demo-reset demo-down demo-transcript lab-up lab-up-full lab-inject lab-status lab-reset lab-down lab-demo memory-index memory-eval mcp-demo mcp-eval execution-demo harness-demo
+.PHONY: demo demo-local demo-full demo-doctor demo-doctor-live demo-reset demo-down demo-transcript lab-up lab-up-full lab-inject lab-status lab-reset lab-down lab-demo memory-index memory-eval mcp-demo mcp-eval execution-demo harness-demo deployment-preview deployment-doctor migration-assess legacy-demo legacy-reset legacy-down
 
 COMPOSE = docker compose -f lab/docker-compose.yml
 DEMO_CORE = postgres dependency web-01 web-02 prometheus loki promtail
@@ -68,3 +68,21 @@ execution-demo:
 harness-demo:
 	@test -n "$$OPSPILOT_HARNESS_API_KEY" || (echo "Set opt-in Harness credentials first"; exit 1)
 	uv run --project backend --no-sync python -m app.execution.harness_demo
+
+deployment-preview:
+	@uv run --project backend --no-sync python -m app.deployment.cli preview --profile "$(PROFILE)"
+
+deployment-doctor:
+	@uv run --project backend --no-sync python -m app.deployment.cli doctor --profile "$(PROFILE)"
+
+migration-assess:
+	@uv run --project backend --no-sync python -m app.deployment.cli assess --profile "$(PROFILE)"
+
+legacy-reset:
+	@docker compose -f lab/docker-compose.yml --profile legacy down -v --remove-orphans >/dev/null 2>&1 || true
+
+legacy-demo: legacy-reset
+	@docker compose -f lab/docker-compose.yml --profile legacy up --build --abort-on-container-exit --exit-code-from legacy-runner legacy-runner
+
+legacy-down:
+	@docker compose -f lab/docker-compose.yml --profile legacy down -v --remove-orphans
