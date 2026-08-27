@@ -1,6 +1,6 @@
 import asyncio
-from collections.abc import Awaitable
-from typing import Protocol
+from collections.abc import Awaitable, Coroutine
+from typing import Protocol, TypeVar
 
 from opentelemetry import trace
 
@@ -22,6 +22,7 @@ from app.capabilities.tickets import TicketQuery, TicketsCapability
 from app.domain.incidents.memory import KnowledgeQuery, KnowledgeRetriever
 
 tracer = trace.get_tracer("opspilot.mcp")
+InvokeResult = TypeVar("InvokeResult")
 
 
 class GovernedActionProposer(Protocol):
@@ -168,10 +169,12 @@ class McpCapabilityBroker:
             raise RuntimeError("Governed action proposal is unavailable")
         return await self._invoke("action.propose", self.action_proposer.propose(request, actor))
 
-    async def _invoke(self, capability: str, call: Awaitable[object]):
+    async def _invoke(
+        self, capability: str, call: Awaitable[InvokeResult]
+    ) -> InvokeResult:
         if self._failures.get(capability, 0) >= 3:
-            if hasattr(call, "close"):
-                call.close()  # type: ignore[attr-defined]
+            if isinstance(call, Coroutine):
+                call.close()
             raise RuntimeError(f"{capability} circuit is open")
         with tracer.start_as_current_span("opspilot.capability.invoke") as span:
             span.set_attribute("capability", capability)

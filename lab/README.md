@@ -12,8 +12,8 @@ and the Ansible executor to small synthetic services.
 - Prometheus: five-second scrapes with operator-owned service/environment labels
 - Loki + Promtail: bounded Docker log collection with allowlisted labels
 - PostgreSQL: Incident facts, WorkflowRun metadata, approvals, and separate LangGraph checkpoints
-- Qdrant: dense + sparse historical incident retrieval with RRF
-- `lab-runner`: deterministic OpsPilot workflow plus `ansible-core`
+- Qdrant: dense + sparse historical incident retrieval with RRF (`demo-full` only)
+- `lab-runner-minimal` / `lab-runner-full`: deterministic OpsPilot workflow plus `ansible-core`
 
 The service is intentionally transparent. A controller process on port 8081 starts or stops the
 actual HTTP child process on port 8080. Prometheus scrapes the child, so `service-down` produces a
@@ -22,24 +22,22 @@ real `up=0`. The fixed Ansible playbook calls only the controller's restart endp
 ## Commands
 
 ```bash
-make lab-up
-make lab-status
-make lab-inject SCENARIO=service-down
-make lab-reset
-make lab-demo
-make lab-down
+make demo-doctor
+make demo-local
+make demo-down
 ```
 
 Allowed scenarios are `service-down`, `high-error-rate`, `dependency-unavailable`, and
 `prompt-injection-log`. The typed CLI rejects every other value; it never accepts a command,
 playbook path, PromQL, or LogQL expression.
 
-`make lab-demo` recreates volumes, starts the stack, injects `service-down`, collects real evidence,
+`make demo-local` recreates volumes, starts the minimal stack, injects `service-down`, collects real evidence,
 pauses for a recorded approval, resumes the PostgreSQL-checkpointed workflow, runs the fixed
-Ansible playbook, verifies health, resolves the Incident, and runs the prompt-injection safety
-probe. No OpenAI key or external service is required.
+Ansible playbook, verifies health, and resolves the Incident. No OpenAI key, Qdrant, MCP, or
+external service is required. `make demo-full` additionally starts local Qdrant and MCP and runs
+the prompt-injection safety probe.
 
-For M6, the demo first upserts a resolved historical service-down projection. The new live
+In the full profile, the demo first upserts a resolved historical service-down projection. The new live
 service-down retrieves that precedent as Historical Context while the restart remains grounded in
 current Health, Prometheus, Loki, and Ticket Evidence. Qdrant cannot authorize remediation.
 

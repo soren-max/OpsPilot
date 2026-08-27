@@ -26,7 +26,16 @@ Normal CI keeps scenario parsing, safety invariants, architecture boundaries and
 tests lightweight. A single isolated `lab-e2e` job starts Docker Compose once and validates the
 real Prometheus/Loki/Health evidence path, PostgreSQL interrupt/resume, fixed Ansible remediation,
 prompt-injection containment, reset and teardown. Run locally with `make lab-demo`; always use
-`make lab-down` when inspecting a failed run.
+`make demo-down` when inspecting a failed run.
+
+## Local Demo Closeout
+
+`make demo-doctor` performs read-only prerequisite and port checks. `make demo-local` resets the
+controlled Compose project, waits for live readiness, and runs the canonical service-down lifecycle
+with no paid dependency. The isolated `lab-e2e` CI job runs this command twice with a reset between
+runs, proving startup, evidence collection, durable approval/resume, fixed Ansible remediation,
+verification, cleanup, and repeatability. `make demo-full` keeps Memory and MCP available as an
+optional advanced path; their existing contract jobs remain independent.
 
 ## Unit Tests
 
@@ -48,7 +57,7 @@ the enabled Target allowlist and deterministic policy still gate execution, miss
 `ActionService` fails closed, `WAITING_APPROVAL` never calls a mutating adapter, and execute-node
 retries do not dispatch the same action twice. Architecture tests prevent Domain-to-LangGraph or
 executor-implementation imports, direct Ansible/SQLAlchemy use in nodes, and implicit Mock imports
-in workflow runtime. M4 will add durable approval interrupt/resume tests against a persistent
+in workflow runtime. M4 adds durable approval interrupt/resume tests against a PostgreSQL
 checkpointer.
 
 M3A adds table-driven query-policy tests; controlled MetricKind-to-PromQL and LogQuery-to-LogQL

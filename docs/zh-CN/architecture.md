@@ -8,6 +8,22 @@ Ansible 或 Harness profile。ExecutionRecord 与 transactional outbox 原子提
 
 [English](../architecture.md) | [简体中文](architecture.md)
 
+## 本地演示架构快照
+
+默认 `demo-minimal` profile 在不依赖可选或付费服务的情况下验证已实现的安全链：
+
+```mermaid
+flowchart LR
+  Alert --> Incident --> Evidence[Prometheus / Loki / Health / Ticket 证据]
+  Evidence --> Investigator[确定性调查器] --> Action[结构化动作]
+  Action --> Policy --> Approval[持久化人工审批]
+  Approval --> Ansible[固定 Ansible Playbook] --> Verification[验证] --> Resolved
+  Optional[可选: RAG / MCP / OpenAI] -.-> Investigator
+```
+
+`demo-full` 增加本地 Qdrant 历史上下文和 MCP capability plane，但不改变 Policy、
+审批、执行器或验证的权威边界。Harness 与 GitOps 仍是未来 M8/M9 工作。
+
 ## 运行模型
 
 OpsPilot 将三个生命周期（lifecycle）彼此分离，它们各自拥有不同的权威（authority）与失败语义（failure semantics）。

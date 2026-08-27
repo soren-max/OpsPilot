@@ -14,27 +14,18 @@
 | M6 Historical Incident Memory / RAG | Done | Hybrid retrieval with provenance and eval |
 | M7 MCP Capability Boundary | Done | MCP 2026-07-28 typed interoperability and governed proposals |
 | M8 Multi-Backend Governed Execution | Done | Mock, Ansible, Harness, outbox, reconciliation |
-| M9 GitOps Change Workflow | Next | Governed change generation and review |
-| M8 Multi-backend Execution | Planned | Ansible plus a future Harness backend |
+| M8.5 Deployment Compatibility | Next | Typed profiles and a synthetic legacy-environment migration bridge |
 | M9 GitOps Change Workflow | Planned | Governed configuration and deployment change |
 | M10 Risk Reviewer & Evaluation | Planned | Advisory risk review and safety evaluation |
 | M11 Agent Observability | Planned | Workflow traces and operational telemetry |
 
-Harness and GitOps in M8/M9 are future enhancements. M1B includes no Harness SDK, production
-backend, or simulated implementation.
+M8 implements the governed Harness reference backend. M8.5 demonstrates bounded integration with
+traditional SSH-managed test environments without restoring the removed ServiceSSH abstraction.
 
-## Current Pause Point
+## Portfolio Entry Point
 
-**M3B represents the current stable portfolio milestone.** New core features are paused: the
-evidence-grounded investigation pipeline is complete, documented, and tested, and the boundary
-before mutating execution is explicit. The next engineering milestone is **M4 — Durable HITL +
-Postgres Checkpoint** (identity-bound approval and resumable state).
-# M4 — Durable HITL + PostgreSQL Checkpoint (complete)
+The canonical local demo remains the stable portfolio entry point. M1–M8 are implemented; the
+demonstration focuses on evidence, durable approval, governed execution, and independent
+verification. Historical Memory and MCP remain optional advanced demonstrations.
 
-- Durable PostgreSQL LangGraph continuation state
-- Auditable approval lifecycle and identity boundary
-- Interrupt/resume workflow with replay protection
-- Approval API and incident approval UI
-- Offline approve/resume/mock-execute/verify demo
-
-Next: **M8 Multi-backend Governed Execution**.
+Next: **M8.5 Deployment Compatibility & Legacy Migration Bridge**.

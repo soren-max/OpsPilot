@@ -1,6 +1,6 @@
 import json
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 from urllib.error import HTTPError
 from urllib.request import ProxyHandler, Request, build_opener
 
@@ -147,4 +147,7 @@ class QdrantIncidentMemory:
             method=method,
         )
         with self._opener.open(request, timeout=self.timeout_seconds) as response:
-            return json.loads(response.read())
+            payload = json.loads(response.read())
+        if not isinstance(payload, dict):
+            raise ValueError("Qdrant response must be an object")
+        return cast(dict[str, Any], payload)

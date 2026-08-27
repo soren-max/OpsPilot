@@ -225,7 +225,10 @@ class HarnessPipelineExecutionBackend:
                 },
             }
         }
-        return yaml.safe_dump(payload, sort_keys=True)
+        rendered = yaml.safe_dump(payload, sort_keys=True)
+        if not isinstance(rendered, str):
+            raise MalformedBackendResponse("Harness input set could not be rendered")
+        return rendered
 
     @staticmethod
     def _provider_execution_id(response: object) -> str:

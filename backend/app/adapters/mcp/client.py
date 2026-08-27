@@ -1,5 +1,6 @@
 import asyncio
 from dataclasses import dataclass
+from typing import TypeVar
 from urllib.parse import urlsplit
 
 from mcp import Client
@@ -14,6 +15,10 @@ from app.adapters.mcp.errors import (
 )
 from app.capabilities.health import HealthObservation, HealthQuery
 from app.capabilities.metrics import MetricObservation, MetricQuery
+
+ValidatedObservation = TypeVar(
+    "ValidatedObservation", MetricObservation, HealthObservation
+)
 
 
 @dataclass(frozen=True)
@@ -92,7 +97,9 @@ class McpCapabilityClientAdapter:
         return f"mcp:{self.config.server_name}:{remote_reference}"[:1000]
 
     @staticmethod
-    def _validate(model: type[MetricObservation] | type[HealthObservation], data: object):
+    def _validate(
+        model: type[ValidatedObservation], data: object
+    ) -> ValidatedObservation:
         try:
             return model.model_validate(data)
         except ValidationError as exc:
