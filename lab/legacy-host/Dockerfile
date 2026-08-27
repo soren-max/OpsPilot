@@ -4,6 +4,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends openssh-server \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --shell /bin/bash opspilot \
+    && passwd -d opspilot \
+    && printf '%s\n' 'PasswordAuthentication no' 'PermitRootLogin no' >> /etc/ssh/sshd_config \
     && mkdir -p /run/sshd /opt/opspilot-demo /var/lib/opspilot-demo \
     && chown -R opspilot:opspilot /var/lib/opspilot-demo
 
