@@ -6,7 +6,7 @@ This is design only. M1B adds no production implementation or unused interface.
 
 - **OpsPilot:** investigation, evidence, proposal, Target context, and risk context.
 - **Policy:** deterministic authorization and approval requirements.
-- **Harness:** possible future governed workflow execution for complex change.
+- **Harness:** implemented M8 reference backend for allowlisted governed workflow execution.
 - **GitOps:** possible future reconciliation path for deployment and configuration state.
 
 ## Candidate backend contract

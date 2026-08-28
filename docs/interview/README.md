@@ -125,6 +125,13 @@ numbering quirk and the files are intentionally not renamed.
 
 ## Ansible / Execution Safety
 
+- [Legacy System Migration](29-legacy-system-migration.md) — **M8.5**
+  Strangler adapters move selected operations into the governed path without a big-bang rewrite.
+- [SSH vs Service Abstraction](30-ssh-vs-service-abstraction.md) — **M8.5**
+  SSH remains an Ansible transport detail while the application expresses semantic actions.
+- [Deployment Knowledge as Configuration](31-deployment-knowledge-as-configuration.md) — **M8.5**
+  Strict operator profiles capture environment knowledge without exposing arbitrary execution.
+
 - [Executor and Ansible](06-executor-and-ansible.md) — **Implemented**
   The `ActionExecutor` port (`MockActionExecutor`, `AnsibleActionExecutor`, fixed Playbooks)
   isolates domain actions from infrastructure transports — the domain never sees SSH, subprocess

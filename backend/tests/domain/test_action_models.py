@@ -47,23 +47,26 @@ def test_unknown_action_and_extra_parameters_are_rejected() -> None:
 
 
 def test_parameter_schema_must_match_action() -> None:
-    with pytest.raises(ValidationError):
-        ActionRequest(
-            action_type=ActionType.HEALTH_CHECK,
-            target="web-01",
-            environment=TargetEnvironment.TEST,
-            parameters=ServiceActionParams(service="nginx"),
-            reason="Check health endpoint.",
-        )
-
     request = ActionRequest(
         action_type=ActionType.HEALTH_CHECK,
         target="web-01",
         environment=TargetEnvironment.TEST,
-        parameters=HealthCheckParams(port=8080, path="/health", expected_status=200),
+        parameters=HealthCheckParams(service="nginx"),
         reason="Check health endpoint.",
     )
-    assert request.parameters.port == 8080
+    assert request.parameters.service == "nginx"
+
+    with pytest.raises(ValidationError):
+        ActionRequest.model_validate(
+            {
+                **request.model_dump(),
+                "parameters": {
+                    "service": "nginx",
+                    "path": "/caller-selected",
+                    "expected_status": 204,
+                },
+            }
+        )
 
 
 def test_agent_safety_case_cannot_become_arbitrary_process_kill() -> None:

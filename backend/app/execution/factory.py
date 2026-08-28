@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -6,6 +7,7 @@ from app.adapters.execution.harness import HarnessPipelineExecutionBackend, Http
 from app.adapters.execution.legacy import ActionExecutorBackend
 from app.application.action_service import ActionService
 from app.core.config import Settings
+from app.deployment import ConfigDeploymentEnvironmentResolver, load_deployment_configuration
 from app.domain.actions.models import ActionRequest, ActionType, TargetEnvironment
 from app.domain.execution import BackendType, ExecutionBackend, ExecutionProfile
 from app.execution.router import ExecutionRouter
@@ -34,15 +36,36 @@ def build_execution_plane(
     routes: dict[tuple[str, str], str] = {}
     backends: dict[str, ExecutionBackend] = {native_type.value: native}
     descriptors = [native.descriptor]
-    for environment in TargetEnvironment:
-        profile = ExecutionProfile(
-            name=f"{environment.value}-restart-{native_type.value}",
-            backend_type=native_type,
-            environment=environment,
-            allowed_action_types=frozenset({ActionType.RESTART_SERVICE}),
-        )
-        profiles.append(profile)
-        routes[(ActionType.RESTART_SERVICE.value, environment.value)] = profile.name
+    deployment_resolver = None
+    if settings.deployment_config_path:
+        configuration = load_deployment_configuration(Path(settings.deployment_config_path))
+        deployment_resolver = ConfigDeploymentEnvironmentResolver(configuration)
+        for target in configuration.targets:
+            profile = ExecutionProfile(
+                name=target.profile_id,
+                backend_type=BackendType.ANSIBLE,
+                environment=target.environment,
+                allowed_action_types=target.allowed_actions,
+                target_mapping={target.target_ref: target.service},
+                immutable_refs={
+                    "deployment_target_profile": target.profile_id,
+                    "connection_profile": target.connection_profile_ref,
+                    "service_control_profile": target.service_control_profile_ref,
+                    "verification_profile": target.health_profile_ref,
+                },
+            )
+            profiles.append(profile)
+        backends[BackendType.ANSIBLE.value] = native
+    else:
+        for environment in TargetEnvironment:
+            profile = ExecutionProfile(
+                name=f"{environment.value}-restart-{native_type.value}",
+                backend_type=native_type,
+                environment=environment,
+                allowed_action_types=frozenset({ActionType.RESTART_SERVICE}),
+            )
+            profiles.append(profile)
+            routes[(ActionType.RESTART_SERVICE.value, environment.value)] = profile.name
     if settings.harness_restart_pipeline_identifier:
         assert settings.harness_base_url
         assert settings.harness_api_key
@@ -75,7 +98,12 @@ def build_execution_plane(
         ] = profile.name
         backends[BackendType.HARNESS.value] = harness
         descriptors.append(harness.descriptor)
-    router = ExecutionRouter(tuple(profiles), tuple(descriptors), routes)
+    router = ExecutionRouter(
+        tuple(profiles),
+        tuple(descriptors),
+        routes,
+        deployment_resolver=deployment_resolver,
+    )
     return (
         ExecutionPlaneService(db, router),
         ExecutionDispatcher(

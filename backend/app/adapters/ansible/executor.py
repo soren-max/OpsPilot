@@ -10,13 +10,14 @@ from app.domain.actions.models import (
     ActionResult,
     ActionStatus,
     ActionType,
-    HealthCheckParams,
     ServiceActionParams,
     VerificationResult,
 )
 
 PLAYBOOK_MAPPING: Mapping[ActionType, str] = {
     ActionType.GET_SERVICE_STATUS: "service_status.yml",
+    ActionType.START_SERVICE: "start_service.yml",
+    ActionType.STOP_SERVICE: "stop_service.yml",
     ActionType.RESTART_SERVICE: "restart_service.yml",
     ActionType.HEALTH_CHECK: "health_check.yml",
 }
@@ -81,12 +82,6 @@ class AnsibleActionExecutor:
     def _variables(action: ActionRequest) -> dict[str, str | int]:
         if isinstance(action.parameters, ServiceActionParams):
             return {"service_name": action.parameters.service}
-        if isinstance(action.parameters, HealthCheckParams):
-            return {
-                "health_port": action.parameters.port,
-                "health_path": action.parameters.path,
-                "expected_status": action.parameters.expected_status,
-            }
         raise TypeError("Unsupported validated action parameters")
 
     @staticmethod

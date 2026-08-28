@@ -40,6 +40,54 @@ x-lab-runner: &lab-runner
       exec python -m app.lab demo
 
 services:
+  legacy-host:
+    profiles: ["legacy"]
+    build:
+      context: ./legacy-host
+    volumes:
+      - legacy_ssh_keys:/run/opspilot-keys
+    ports:
+      - "127.0.0.1:12222:22"
+      - "127.0.0.1:18090:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  legacy-runner:
+    <<: *lab-runner
+    profiles: ["legacy"]
+    volumes:
+      - ../:/workspace:ro
+      - legacy_ssh_keys:/run/opspilot-secrets:ro
+    environment:
+      PYTHONUNBUFFERED: "1"
+      OPSPILOT_DATABASE_URL: postgresql+psycopg://opspilot:lab-only-password@postgres:5432/opspilot_lab
+      OPSPILOT_WORKFLOW_CHECKPOINT_BACKEND: postgres
+      OPSPILOT_SECRET_KEY: lab-only-secret-key-at-least-32-characters
+      OPSPILOT_EXECUTOR: ansible
+      OPSPILOT_DRY_RUN_ONLY: "false"
+      OPSPILOT_EXECUTION_ACKNOWLEDGED: "true"
+      OPSPILOT_ANSIBLE_BINARY_PATH: /src/.venv/bin/ansible-playbook
+      OPSPILOT_DEPLOYMENT_CONFIG_PATH: /workspace/deployment/examples/legacy-test.yaml
+      OPSPILOT_DEPLOYMENT_PLAYBOOK_DIRECTORY: /workspace/backend/app/deployment/playbooks
+      OPSPILOT_LEGACY_SSH_KEY_FILE: /run/opspilot-secrets/id_ed25519
+      OPSPILOT_CAPABILITY_TIMEOUT_SECONDS: "30"
+      ANSIBLE_HOST_KEY_CHECKING: "False"
+    command:
+      - sh
+      - -c
+      - >-
+        python -m alembic upgrade head >/tmp/opspilot-migrate.log 2>&1 ||
+        { echo 'Database migration failed:' >&2; tail -40 /tmp/opspilot-migrate.log >&2; exit 1; };
+        exec python -m app.deployment.demo
+    depends_on:
+      postgres:
+        condition: service_healthy
+      legacy-host:
+        condition: service_healthy
+
   qdrant:
     profiles: ["demo-full"]
     image: qdrant/qdrant:v1.15.4
@@ -205,6 +253,7 @@ services:
         condition: service_healthy
 
 volumes:
+  legacy_ssh_keys:
   postgres_data:
   loki_data:
   qdrant_data:

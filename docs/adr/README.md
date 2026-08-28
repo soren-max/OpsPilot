@@ -15,3 +15,7 @@ original content.
 | [0008](0008-durable-human-approval-boundary.md) | Durable Human Approval Boundary | Accepted | Approval identity and checkpoint continuation remain auditable and separate. |
 | [0009](0009-historical-incident-memory-is-context-not-evidence.md) | Historical Incident Memory Is Context, Not Evidence | Accepted | Retrieved precedent can inform reasoning but cannot prove facts or authorize action. |
 | [0010](0010-mcp-is-an-interoperability-boundary-not-an-authorization-boundary.md) | MCP Is an Interoperability Boundary | Accepted | Protocol interoperability cannot bypass typed ports, Policy, or HITL. |
+| [0011](0011-execution-routing-is-deterministic-and-operator-owned.md) | Execution Routing Is Deterministic and Operator-Owned | Accepted | Callers cannot select execution backends or profiles. |
+| [0012](0012-transactional-outbox-for-external-side-effects.md) | Transactional Outbox for External Side Effects | Accepted | Durable dispatch intent and reconciliation prevent unsafe retries. |
+| [0013](0013-ssh-is-an-infrastructure-detail.md) | SSH Is an Infrastructure Detail | Accepted | Ansible owns SSH details below semantic application contracts. |
+| [0014](0014-legacy-migration-uses-strangler-adapters.md) | Legacy Migration Uses Strangler Adapters | Accepted | Selected legacy operations migrate without bypassing governance. |

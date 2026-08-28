@@ -17,6 +17,7 @@ from app.api.routes import (
     catalog,
     executions,
     incidents,
+    legacy_compatibility,
     operations,
     system,
     workflows,
@@ -175,6 +176,7 @@ app.include_router(workflows.incident_router, prefix="/api/v1")
 app.include_router(workflows.workflow_router, prefix="/api/v1")
 app.include_router(approvals.router, prefix="/api/v1")
 app.include_router(executions.router, prefix="/api/v1")
+app.include_router(legacy_compatibility.router, prefix="/api/v1")
 
 
 # The offline package places the already-built Vite application beside backend/.

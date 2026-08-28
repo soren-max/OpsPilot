@@ -1,5 +1,18 @@
 # Testing Strategy
 
+## M8.5 Deployment Compatibility
+
+`backend/tests/deployment` covers strict configuration, duplicate/unknown/cross-environment target
+rejection, service and operation allowlists, systemd and fixed-script mapping, command-injection
+payloads, missing credentials, secret-safe previews, readiness assessment, legacy ticket mapping
+and compatibility API approval semantics. Architecture tests keep removed SSH domain classes absent
+and prevent Domain/Application/Workflow/LLM/MCP imports of SSH or Ansible implementations.
+
+The isolated `legacy-ssh-e2e` CI job builds a synthetic SSH server, generates an ephemeral key in a
+Docker volume, and proves the real Ansible-over-SSH fixed-script lifecycle through independent
+verification. It also runs the read-only deployment doctor, migration assessment and Ansible syntax
+check. No company system or credential is used.
+
 ## M8 Governed Execution Plane
 
 Execution tests cover strict backend contracts, deterministic routing, profile allowlists, Harness

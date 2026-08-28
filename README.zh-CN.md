@@ -32,8 +32,11 @@ flowchart LR
   Optional[可选: RAG / MCP / OpenAI] -.-> Investigator
 ```
 
-**当前状态：** M1–M8 已实现。标准本地演示仍是稳定的 Portfolio 入口。
-**下一工程里程碑：** M8.5 Deployment Compatibility & Legacy Migration Bridge。
+**当前状态：** M1–M8.5 已实现。标准本地演示仍是稳定的 Portfolio 入口。
+**下一工程里程碑：** M9 GitOps Change Workflow 或 Production-style Deployment Hardening。
+
+M8.5 增加严格部署 Profile、systemd / 固定脚本服务控制、只读 doctor、迁移就绪度评估、
+安全的遗留 API / Ticket 边界，以及 synthetic Ansible-over-SSH Lab。
 
 ## 演示 Profile
 
@@ -137,7 +140,6 @@ remediation proposal 并返回 approval reference，不能直接执行。运行 
 
 **计划中（Planned，尚未实现）：**
 
-- 部署兼容与遗留环境迁移桥（`M8.5`）
 - GitOps 受治理变更工作流（`M9`）
 - 高级评估与智能体可观测性（`M10`/`M11`）
 
@@ -237,6 +239,7 @@ LLM 模式需要有效的 `OPENAI_API_KEY` 与经运维确认的模型配置。P
 | M6 Historical Incident Memory / Hybrid RAG | **已实现** |
 | M7 MCP Capability Boundary | **已实现** |
 | M8 Multi-backend Governed Execution | **已实现** |
+| M8.5 Deployment Compatibility & Legacy Migration Bridge | **已实现** |
 
 Worker 每次迭代从选中的 Mock 或 Ansible 后端与启用的 Target 白名单构建一个由运维配置的
 `ActionService`，并把同一个策略/执行器边界注入普通 Operations 与 LangGraph 工作流；工作流
@@ -252,18 +255,18 @@ M1B 已移除遗留的 SSH 与服务脚本运行时。Ansible 可以按运维自
 
 | 里程碑 | 状态 |
 | --- | --- |
-| M1A – M8 | **已实现**（见当前状态） |
+| M1A – M8.5 | **已实现**（见当前状态） |
 | Local Demo Closeout | **已实现** |
 | M8 Harness Multi-backend Execution | **已实现** |
-| M8.5 Deployment Compatibility | **下一阶段** |
-| M9 GitOps | 未来 |
+| M8.5 Deployment Compatibility | **已实现** |
+| M9 GitOps | **下一阶段** |
 | M10 Risk Reviewer / Evaluation | 未来 |
 | M11 Agent Observability | 未来 |
 
 ### Portfolio 入口
 
-标准本地演示仍是稳定的公开 Portfolio 入口。M8 受治理多后端执行已实现；
-M8.5 将增加合成遗留环境的迁移桥。
+标准本地演示仍是稳定的公开 Portfolio 入口。M8 受治理多后端执行与 M8.5 合成遗留环境
+迁移桥均已实现。
 
 ## 这个项目有什么不同
 

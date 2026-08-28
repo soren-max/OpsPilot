@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     ansible_inventory_path: str | None = None
     ansible_playbook_directory: str | None = None
     ansible_binary_path: str | None = None
+    deployment_config_path: str | None = None
+    deployment_playbook_directory: str | None = None
     execution_timeout_seconds: int = Field(default=30, ge=1, le=300)
     execution_dispatch_lease_seconds: int = Field(default=60, ge=10, le=3600)
     harness_base_url: str | None = None
@@ -207,16 +209,17 @@ class Settings(BaseSettings):
         if self.selected_executor == "mock" and not self.dry_run_only:
             raise ValueError("Mock backend requires dry-run mode")
         if self.selected_executor == "ansible":
-            missing = [
-                name
-                for name, value in {
-                    "OPSPILOT_ANSIBLE_INVENTORY_PATH": self.ansible_inventory_path,
-                    "OPSPILOT_ANSIBLE_PLAYBOOK_DIRECTORY": self.ansible_playbook_directory,
-                }.items()
-                if not value
-            ]
-            if missing:
-                raise ValueError("Ansible backend requires: " + ", ".join(missing))
+            if not self.deployment_config_path:
+                missing = [
+                    name
+                    for name, value in {
+                        "OPSPILOT_ANSIBLE_INVENTORY_PATH": self.ansible_inventory_path,
+                        "OPSPILOT_ANSIBLE_PLAYBOOK_DIRECTORY": self.ansible_playbook_directory,
+                    }.items()
+                    if not value
+                ]
+                if missing:
+                    raise ValueError("Ansible backend requires: " + ", ".join(missing))
             if not self.execution_acknowledged:
                 raise ValueError("Ansible backend requires explicit execution acknowledgement")
         return self

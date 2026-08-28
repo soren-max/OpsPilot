@@ -5,7 +5,9 @@ from app.domain.actions.models import ActionRequest, ActionType, RiskAssessment,
 READ_ONLY_ACTIONS = frozenset(
     {ActionType.GET_SERVICE_STATUS, ActionType.HEALTH_CHECK}
 )
-MUTATING_ACTIONS = frozenset({ActionType.RESTART_SERVICE})
+MUTATING_ACTIONS = frozenset(
+    {ActionType.START_SERVICE, ActionType.STOP_SERVICE, ActionType.RESTART_SERVICE}
+)
 
 
 @dataclass(frozen=True)
@@ -36,7 +38,7 @@ class ActionPolicyEngine:
         if action.action_type in MUTATING_ACTIONS:
             return RiskAssessment(
                 risk_level=RiskLevel.MEDIUM,
-                reason="Restarting a service changes infrastructure state.",
+                reason="Changing service state modifies infrastructure.",
                 approval_required=True,
                 policy_rule="action.service_mutation",
                 allowed=approval_granted,

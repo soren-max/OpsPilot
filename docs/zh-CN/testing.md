@@ -1,5 +1,9 @@
 # 测试策略（Testing Strategy）
 
+M8.5 测试覆盖严格部署配置、双控制模式、command injection、未知/跨环境 Profile、缺失凭据、
+secret-safe preview、迁移就绪度、Ticket/API 兼容边界与架构约束。独立 `legacy-ssh-e2e` CI Job
+使用 synthetic SSH host 和运行时生成的临时密钥，验证真实 Ansible-over-SSH 与恢复后验证。
+
 M8 测试覆盖 deterministic routing、profile allowlist、outbox 幂等与 lease、worker crash、
 UNKNOWN recovery、Harness contract/status mapping、reconciliation、独立 verification、OTel、API
 与前端。默认 CI 不需要真实 Harness SaaS。

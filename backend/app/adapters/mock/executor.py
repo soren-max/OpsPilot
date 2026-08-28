@@ -23,15 +23,22 @@ class MockActionExecutor:
             target=action.target,
             executor=self.executor_name,
             operation=action.action_type.value,
-            changes_state=action.action_type is ActionType.RESTART_SERVICE,
+            changes_state=action.action_type
+            in {ActionType.START_SERVICE, ActionType.STOP_SERVICE, ActionType.RESTART_SERVICE},
         )
 
     async def execute(self, action: ActionRequest) -> ActionResult:
-        if action.action_type is ActionType.RESTART_SERVICE:
+        if action.action_type in {
+            ActionType.START_SERVICE,
+            ActionType.STOP_SERVICE,
+            ActionType.RESTART_SERVICE,
+        }:
             if not isinstance(action.parameters, ServiceActionParams):
-                raise TypeError("Restart action requires service parameters")
+                raise TypeError("Service control action requires service parameters")
             service = action.parameters.service
-            self._service_states[(action.target, service)] = True
+            self._service_states[(action.target, service)] = (
+                action.action_type is not ActionType.STOP_SERVICE
+            )
         return ActionResult(
             action_type=action.action_type,
             target=action.target,
@@ -44,12 +51,15 @@ class MockActionExecutor:
         verified = True
         if action.action_type in {
             ActionType.GET_SERVICE_STATUS,
+            ActionType.START_SERVICE,
+            ActionType.STOP_SERVICE,
             ActionType.RESTART_SERVICE,
         }:
             if not isinstance(action.parameters, ServiceActionParams):
                 raise TypeError("Service action requires service parameters")
             service = action.parameters.service
-            verified = self._service_states.get((action.target, service), True)
+            running = self._service_states.get((action.target, service), True)
+            verified = not running if action.action_type is ActionType.STOP_SERVICE else running
         return VerificationResult(
             action_type=action.action_type,
             target=action.target,

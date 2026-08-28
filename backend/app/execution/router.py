@@ -1,6 +1,12 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from app.domain.actions.models import ActionRequest, RiskAssessment, RiskLevel
+from app.application.deployment import DeploymentEnvironmentResolver
+from app.domain.actions.models import (
+    ActionRequest,
+    RiskAssessment,
+    RiskLevel,
+    ServiceActionParams,
+)
 from app.domain.execution import (
     ExecutionBackendDescriptor,
     ExecutionMode,
@@ -22,11 +28,30 @@ class ExecutionRouter:
     profiles: tuple[ExecutionProfile, ...]
     descriptors: tuple[ExecutionBackendDescriptor, ...]
     routes: dict[tuple[str, str], str]
+    deployment_resolver: DeploymentEnvironmentResolver | None = None
+    target_routes: dict[tuple[str, str, str], str] = field(default_factory=dict)
 
     def route(self, request: ActionRequest, assessment: RiskAssessment) -> ExecutionRoute:
         if assessment.risk_level in {RiskLevel.READ_ONLY, RiskLevel.FORBIDDEN}:
             raise ValueError("Read-only or forbidden actions have no execution route")
-        profile_name = self.routes.get((request.action_type.value, request.environment.value))
+        profile_name = self.target_routes.get(
+            (request.action_type.value, request.environment.value, request.target)
+        )
+        if self.deployment_resolver is not None:
+            if not isinstance(request.parameters, ServiceActionParams):
+                raise ValueError("Deployment execution requires semantic service parameters")
+            resolved = self.deployment_resolver.resolve(
+                service=request.parameters.service,
+                environment=request.environment,
+                target_ref=request.target,
+            )
+            if request.action_type not in resolved.allowed_actions:
+                raise ValueError("Deployment target profile does not allow this action")
+            profile_name = resolved.profile_id
+        if profile_name is None:
+            profile_name = self.routes.get(
+                (request.action_type.value, request.environment.value)
+            )
         if profile_name is None:
             raise ValueError("No operator-owned execution route is configured")
         profile = next((item for item in self.profiles if item.name == profile_name), None)

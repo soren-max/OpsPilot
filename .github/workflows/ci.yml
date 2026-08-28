@@ -181,3 +181,32 @@ jobs:
       - name: Tear down Lab
         if: always()
         run: make lab-down
+
+  legacy-ssh-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate synthetic legacy Compose
+        run: docker compose -f lab/docker-compose.yml --profile legacy config --quiet
+      - name: Run governed Ansible over SSH lifecycle
+        run: make legacy-demo
+      - name: Start read-only doctor prerequisites
+        run: docker compose -f lab/docker-compose.yml --profile legacy up -d --wait postgres legacy-host
+      - name: Run read-only deployment doctor
+        run: >-
+          docker compose -f lab/docker-compose.yml --profile legacy run --rm --no-deps legacy-runner
+          python -m app.deployment.cli doctor --profile example-legacy-test
+      - name: Validate migration assessment
+        run: >-
+          docker compose -f lab/docker-compose.yml --profile legacy run --rm --no-deps legacy-runner
+          python -m app.deployment.cli assess --profile example-legacy-test
+      - name: Validate fixed deployment playbooks
+        run: >-
+          docker compose -f lab/docker-compose.yml --profile legacy run --rm --no-deps legacy-runner
+          ansible-playbook --syntax-check
+          -i /workspace/deployment/examples/inventory/legacy-test.ini
+          /workspace/backend/app/deployment/playbooks/deployment_service_control.yml
+      - name: Tear down synthetic legacy Lab
+        if: always()
+        run: make legacy-down

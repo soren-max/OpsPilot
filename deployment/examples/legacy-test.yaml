@@ -1,0 +1,75 @@
+schema_version: "1"
+inventory_catalog:
+  legacy-lab: inventory/legacy-test.ini
+remote_user_catalog:
+  legacy-operator: opspilot
+endpoint_catalog:
+  demo-api-health: http://127.0.0.1:8080/health
+  legacy-ticket-api: http://legacy-host:8080
+connections:
+  - id: legacy-ssh
+    inventory_ref: legacy-lab
+    host_alias: legacy-host
+    remote_user_ref: legacy-operator
+    become_required: false
+    connection_timeout: 20
+    credential_env_ref: OPSPILOT_LEGACY_SSH_KEY_FILE
+service_controls:
+  - id: legacy-fixed-script
+    control_type: FIXED_SCRIPT
+    service_mapping:
+      demo-api: demo-api
+      demo-worker: demo-worker
+    allowed_operations:
+      - get_service_status
+      - start_service
+      - stop_service
+      - restart_service
+    fixed_script_path: /opt/opspilot-demo/services.sh
+verifications:
+  - id: legacy-http-and-process
+    checks:
+      - check_type: HTTP_HEALTH
+        endpoint_ref: demo-api-health
+        expected_http_status: 200
+        required: true
+        applicable_actions: [get_service_status, start_service, restart_service]
+      - check_type: PROCESS_STATUS
+        expected_service_state: running
+        required: true
+        applicable_actions: [get_service_status, start_service, restart_service]
+      - check_type: PROCESS_STATUS
+        expected_service_state: stopped
+        required: true
+        applicable_actions: [stop_service]
+    retry_interval_seconds: 1
+    timeout_seconds: 5
+tickets:
+  - id: synthetic-legacy-tickets
+    base_url_ref: legacy-ticket-api
+    tickets_path: /tickets
+observability:
+  - id: legacy-health-ticket
+    health: true
+    metrics: false
+    logs: false
+    tickets: true
+targets:
+  - profile_id: example-legacy-test
+    environment: test
+    service: demo-api
+    target_ref: demo-api
+    connection_profile_ref: legacy-ssh
+    service_control_profile_ref: legacy-fixed-script
+    health_profile_ref: legacy-http-and-process
+    ticket_profile_ref: synthetic-legacy-tickets
+    observability_profile_ref: legacy-health-ticket
+    allowed_actions:
+      - get_service_status
+      - start_service
+      - stop_service
+      - restart_service
+database_url_env_ref: OPSPILOT_DATABASE_URL
+required_ports:
+  - 22
+  - 8080

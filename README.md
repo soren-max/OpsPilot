@@ -36,8 +36,13 @@ flowchart LR
   Optional[Optional: RAG / MCP / OpenAI] -.-> Investigator
 ```
 
-**Current status:** M1–M8 implemented. The canonical local demo remains the stable portfolio entrypoint.
-**Next engineering milestone:** M8.5 Deployment Compatibility & Legacy Migration Bridge.
+**Current status:** M1–M8.5 implemented. The canonical local demo remains the stable portfolio entrypoint.
+**Next engineering milestone:** M9 GitOps Change Workflow or production-style deployment hardening.
+
+M8.5 adds strict deployment profiles, systemd and fixed-script service control, a read-only doctor,
+migration readiness assessment, a safe legacy API/ticket boundary, and a synthetic
+Ansible-over-SSH lab. Run `make deployment-preview PROFILE=example-legacy-test`,
+`make migration-assess PROFILE=example-legacy-test`, or `make legacy-demo`.
 
 ## Demo Profiles
 
@@ -138,7 +143,6 @@ No model output is passed to a shell, SSH client, inventory path, or playbook pa
 
 **Planned (not yet implemented):**
 
-- Deployment compatibility and legacy migration bridge (`M8.5`)
 - GitOps governed change workflow (`M9`)
 - Advanced evaluation and agent observability (`M10`/`M11`)
 
@@ -266,6 +270,7 @@ Copy `.env.example` to `.env` and replace every placeholder before starting the 
 | M6 Historical Incident Memory / Hybrid RAG | **Implemented** |
 | M7 MCP Capability Boundary | **Implemented** |
 | M8 Multi-backend Governed Execution | **Implemented** |
+| M8.5 Deployment Compatibility & Legacy Migration Bridge | **Implemented** |
 
 The worker builds one operator-configured `ActionService` per iteration from the selected Mock or
 Ansible backend and the enabled Target allowlist. It injects that same policy/executor boundary
@@ -282,18 +287,18 @@ according to operator-owned inventory, but that is not part of the Agent/API con
 
 | Milestone | Status |
 | --- | --- |
-| M1A – M8 | **Implemented** (see Current Status) |
+| M1A – M8.5 | **Implemented** (see Current Status) |
 | Local Demo Closeout | **Implemented** |
 | M8 Harness Multi-backend Execution | **Implemented** |
-| M8.5 Deployment Compatibility | **Next** |
-| M9 GitOps | Future |
+| M8.5 Deployment Compatibility | **Implemented** |
+| M9 GitOps | **Next** |
 | M10 Risk Reviewer / Evaluation | Future |
 | M11 Agent Observability | Future |
 
 ### Portfolio Entry Point
 
 The canonical local demonstration remains the stable public portfolio entry point. M8 governed
-multi-backend execution is implemented; M8.5 adds a synthetic legacy-environment migration bridge.
+multi-backend execution and the M8.5 synthetic legacy-environment migration bridge are implemented.
 
 ## Why this project is different
 
