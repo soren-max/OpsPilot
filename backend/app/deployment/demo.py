@@ -10,6 +10,7 @@ from app.db.session import SessionLocal
 from app.domain.approvals import ApprovalActor
 from app.domain.incidents.models import IncidentStatus, Severity
 from app.execution.factory import build_execution_plane
+from app.repositories.execution_models import ExecutionRecord
 from app.repositories.workflow_models import WorkflowRunStatus
 from app.schemas_incidents import IncidentCreate
 from app.worker import (
@@ -76,7 +77,22 @@ def main() -> None:
             "Current health evidence confirms the synthetic service is unavailable.",
         )
         completed = workflows.resume(approval_id)
-        assert completed.status is WorkflowRunStatus.SUCCEEDED, completed.last_error
+        execution = db.get(
+            ExecutionRecord,
+            str(completed.state_references.get("execution_id", "")),
+        )
+        execution_detail = (
+            "execution record unavailable"
+            if execution is None
+            else (
+                f"execution={execution.status.value}, "
+                f"provider={execution.safe_provider_status}, "
+                f"verification={execution.verification_status}"
+            )
+        )
+        assert completed.status is WorkflowRunStatus.SUCCEEDED, (
+            f"{completed.last_error}: {execution_detail}"
+        )
         assert IncidentService(db)._require(incident.id).status is IncidentStatus.RESOLVED
         print("Approval: APPROVED")
         print("Execution: SUCCEEDED")
