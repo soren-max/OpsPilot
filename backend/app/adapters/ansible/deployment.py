@@ -131,6 +131,12 @@ class DeploymentAnsibleActionExecutor:
             variables=self._control_variables(action, profile.service, control.id),
         )
         succeeded = result.exit_code == 0
+        if not succeeded:
+            print(
+                "Ansible service control failed:\n"
+                f"{result.stdout[-4000:]}\n{result.stderr[-2000:]}",
+                flush=True,
+            )
         return ActionResult(
             action_type=action.action_type,
             target=action.target,
