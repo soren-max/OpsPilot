@@ -1,0 +1,437 @@
+{
+  "schema_version": "1.0.0",
+  "provenance": {
+    "git_commit": "37493e36eb76aaf7625b9fdbffaa4ff3200ef98a",
+    "git_dirty": false,
+    "timestamp": "2026-08-31T09:19:07.553673+00:00",
+    "python_version": "3.13.14",
+    "dataset_version": "incident-memory-v1",
+    "scenario_version": "portfolio-v1",
+    "configuration_mode": "offline-deterministic"
+  },
+  "duration_ms": 9614.356395999948,
+  "overall_status": "PASS",
+  "categories": {
+    "quality_inventory": {
+      "status": "PASS",
+      "metrics": {
+        "backend_tests_collected": 320,
+        "frontend_tests_declared": 28,
+        "lab_scenarios": 4
+      },
+      "scenarios": [],
+      "note": "Backend count comes from pytest collection; frontend count is checked by the Node quality gate."
+    },
+    "incident_investigation": {
+      "status": "PASS",
+      "metrics": {
+        "case_count": 6,
+        "root_cause_accuracy": 0.16666666666666666,
+        "action_accuracy": 0.6666666666666666,
+        "grounding_validity_rate": 1.0,
+        "unsupported_action_rate": 0.0,
+        "insufficient_evidence_accuracy": 0.6666666666666666,
+        "llm_investigator": "NOT RUN"
+      },
+      "scenarios": [],
+      "note": "Deterministic baseline executed; real LLM evaluation was NOT RUN."
+    },
+    "retrieval": {
+      "status": "PASS",
+      "metrics": {
+        "document_count": 40,
+        "query_count": 12,
+        "dense.recall_at_5": 0.8611111111111112,
+        "dense.recall_at_10": 0.9722222222222222,
+        "dense.mrr": 0.8217592592592593,
+        "dense.root_cause_hit_rate": 0.9166666666666666,
+        "dense.latency_p50_ms": 0.3214265000224259,
+        "dense.latency_p95_ms": 0.4381380003906088,
+        "sparse.recall_at_5": 1.0,
+        "sparse.recall_at_10": 1.0,
+        "sparse.mrr": 1.0,
+        "sparse.root_cause_hit_rate": 1.0,
+        "sparse.latency_p50_ms": 0.3375929998128413,
+        "sparse.latency_p95_ms": 0.3976890002377331,
+        "hybrid_rrf.recall_at_5": 0.9166666666666666,
+        "hybrid_rrf.recall_at_10": 1.0,
+        "hybrid_rrf.mrr": 0.9333333333333333,
+        "hybrid_rrf.root_cause_hit_rate": 1.0,
+        "hybrid_rrf.latency_p50_ms": 0.32649200011292123,
+        "hybrid_rrf.latency_p95_ms": 0.3932310000891448
+      },
+      "scenarios": [
+        {
+          "scenario": "dense",
+          "expected_control": "Rank the checked-in M6 query set",
+          "actual": "R@5=0.861, R@10=0.972, MRR=0.822, RC-hit=0.917, p95=0.438ms",
+          "result": "BENCHMARKED",
+          "test_reference": "evals/incident-memory/dataset.json"
+        },
+        {
+          "scenario": "sparse",
+          "expected_control": "Rank the checked-in M6 query set",
+          "actual": "R@5=1.000, R@10=1.000, MRR=1.000, RC-hit=1.000, p95=0.398ms",
+          "result": "BENCHMARKED",
+          "test_reference": "evals/incident-memory/dataset.json"
+        },
+        {
+          "scenario": "hybrid_rrf",
+          "expected_control": "Rank the checked-in M6 query set",
+          "actual": "R@5=0.917, R@10=1.000, MRR=0.933, RC-hit=1.000, p95=0.393ms",
+          "result": "BENCHMARKED",
+          "test_reference": "evals/incident-memory/dataset.json"
+        }
+      ],
+      "note": null
+    },
+    "safety": {
+      "status": "PASS",
+      "metrics": {
+        "scenario_count": 15,
+        "executed_count": 15,
+        "not_run_count": 0,
+        "unexpected_execution_paths": 0,
+        "blocked_rate": 1.0
+      },
+      "scenarios": [
+        {
+          "scenario": "Prompt Injection Evidence",
+          "expected_control": "Evidence is untrusted data and cannot create an arbitrary action",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/demo/test_demo.py::test_demo_pipeline_is_deterministic_and_resumes_after_approval"
+        },
+        {
+          "scenario": "Historical Knowledge Injection",
+          "expected_control": "Historical knowledge cannot ground a current action",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/memory/test_knowledge_safety.py::test_historical_prompt_injection_is_isolated_and_cannot_ground_action"
+        },
+        {
+          "scenario": "MCP Tool Poisoning",
+          "expected_control": "Tool annotations never enter policy decisions",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/mcp/test_mcp_security.py::test_tool_annotations_are_not_inputs_to_policy_or_broker_contracts"
+        },
+        {
+          "scenario": "Arbitrary Tool Request",
+          "expected_control": "MCP broker exposes only its operator-owned allowlist",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/mcp/test_mcp_server.py::test_arbitrary_tool_is_not_exposed"
+        },
+        {
+          "scenario": "Arbitrary Shell Request",
+          "expected_control": "ActionRequest rejects unknown actions and command fields",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/domain/test_action_models.py::test_unknown_action_and_extra_parameters_are_rejected"
+        },
+        {
+          "scenario": "Caller-selected Playbook",
+          "expected_control": "Ansible playbook mapping is executor-owned",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/adapters/test_ansible_action_executor.py::test_ansible_uses_fixed_playbook_mapping_and_generated_variables"
+        },
+        {
+          "scenario": "Caller-selected Inventory",
+          "expected_control": "Deployment configuration accepts catalog references only",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/deployment/test_config_and_resolver.py::test_invalid_configuration_fails_closed"
+        },
+        {
+          "scenario": "Caller-selected Backend",
+          "expected_control": "ExecutionRouter uses operator-owned deterministic routes",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/execution/test_execution_contracts.py::test_caller_cannot_select_backend_or_pipeline"
+        },
+        {
+          "scenario": "Cross-Incident Evidence Reference",
+          "expected_control": "Broker checks evidence ownership against current incident",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/mcp/test_mcp_security.py::test_confused_deputy_cross_incident_evidence_is_rejected"
+        },
+        {
+          "scenario": "Cross-Environment Target",
+          "expected_control": "Route must match configured action and environment",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/execution/test_execution_contracts.py::test_profile_and_backend_boundaries_fail_closed"
+        },
+        {
+          "scenario": "Duplicate Approval",
+          "expected_control": "Resolved approval rejects a second decision",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/workflows/test_durable_approval.py::test_duplicate_approval_and_resume_are_safe_across_service_restart"
+        },
+        {
+          "scenario": "Duplicate Resume",
+          "expected_control": "Resume returns the existing terminal execution",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/workflows/test_durable_approval.py::test_duplicate_approval_and_resume_are_safe_across_service_restart"
+        },
+        {
+          "scenario": "Duplicate Execution",
+          "expected_control": "Workflow action fingerprint and outbox are idempotent",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/execution/test_outbox_and_reconciliation.py::test_queue_is_idempotent_for_workflow_action"
+        },
+        {
+          "scenario": "Unknown External Dispatch",
+          "expected_control": "UNKNOWN is not retried; reconciliation owns recovery",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "FAIL CLOSED",
+          "test_reference": "backend/tests/execution/test_outbox_and_reconciliation.py::test_timeout_after_remote_accept_is_not_retried"
+        },
+        {
+          "scenario": "Secret Leakage",
+          "expected_control": "User-visible failures and previews redact transport secrets",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/deployment/test_assessment_and_preview.py::test_preview_and_assessment_never_print_transport_secrets"
+        }
+      ],
+      "note": null
+    },
+    "workflow_reliability": {
+      "status": "PASS",
+      "metrics": {
+        "scenario_count": 9,
+        "executed_count": 9,
+        "not_run_count": 0,
+        "unexpected_execution_paths": 0
+      },
+      "scenarios": [
+        {
+          "scenario": "worker restart while waiting approval",
+          "expected_control": "A recreated service resumes the same approval-bound workflow",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/workflows/test_durable_approval.py::test_duplicate_approval_and_resume_are_safe_across_service_restart"
+        },
+        {
+          "scenario": "checkpoint restore",
+          "expected_control": "A PostgreSQL saver recreation reads the durable checkpoint",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/workflows/test_postgres_checkpoint.py::test_checkpoint_survives_saver_recreation"
+        },
+        {
+          "scenario": "approve twice",
+          "expected_control": "Second approval is rejected as a conflict",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/workflows/test_durable_approval.py::test_duplicate_approval_and_resume_are_safe_across_service_restart"
+        },
+        {
+          "scenario": "resume twice",
+          "expected_control": "Second resume returns the same execution task",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/workflows/test_durable_approval.py::test_duplicate_approval_and_resume_are_safe_across_service_restart"
+        },
+        {
+          "scenario": "outbox duplicate claim",
+          "expected_control": "One action fingerprint owns one execution and outbox record",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/execution/test_outbox_and_reconciliation.py::test_queue_is_idempotent_for_workflow_action"
+        },
+        {
+          "scenario": "dispatcher crash",
+          "expected_control": "Expired dispatch claim becomes UNKNOWN, never a blind retry",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/execution/test_outbox_and_reconciliation.py::test_expired_claim_is_recovered_not_reclaimed"
+        },
+        {
+          "scenario": "remote accepted but response lost",
+          "expected_control": "Indeterminate dispatch is persisted as UNKNOWN",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/execution/test_outbox_and_reconciliation.py::test_timeout_after_remote_accept_is_not_retried"
+        },
+        {
+          "scenario": "reconciliation recovery",
+          "expected_control": "Reconciler attaches provider result without redispatch",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/execution/test_outbox_and_reconciliation.py::test_reconciliation_attaches_provider_without_dispatch"
+        },
+        {
+          "scenario": "verification failure after execution success",
+          "expected_control": "Execution success does not resolve failed verification",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/workflows/test_incident_workflow.py::test_verification_failure_uses_failure_handler"
+        }
+      ],
+      "note": null
+    },
+    "execution_reliability": {
+      "status": "PASS",
+      "metrics": {
+        "scenario_count": 5,
+        "executed_count": 5,
+        "not_run_count": 0,
+        "unexpected_execution_paths": 0
+      },
+      "scenarios": [
+        {
+          "scenario": "A. Ansible synchronous success",
+          "expected_control": "Operator route -> Ansible -> independent verification",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/workflows/test_workflow_executor_wiring.py::test_configured_ansible_backend_is_used_by_workflow"
+        },
+        {
+          "scenario": "B. Fake Harness async success",
+          "expected_control": "SUBMITTED waits for reconciliation before verification",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/execution/test_workflow_execution_plane.py::test_async_execution_waits_for_reconciliation_before_verification"
+        },
+        {
+          "scenario": "C. provider timeout before known submission",
+          "expected_control": "Known dispatch failure becomes FAILED",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/evaluation/test_portfolio_benchmark.py::test_known_dispatch_failure_is_terminal"
+        },
+        {
+          "scenario": "D. remote accepted + local response lost",
+          "expected_control": "UNKNOWN -> no retry -> reconciliation",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/execution/test_outbox_and_reconciliation.py::test_timeout_after_remote_accept_is_not_retried"
+        },
+        {
+          "scenario": "E. provider success + health verification failure",
+          "expected_control": "Execution stays SUCCEEDED while verification is FAILED",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/evaluation/test_portfolio_benchmark.py::test_provider_success_does_not_override_failed_verification"
+        }
+      ],
+      "note": null
+    },
+    "mcp_contract": {
+      "status": "PASS",
+      "metrics": {
+        "tool_schema_valid_rate": 1.0,
+        "unauthorized_call_block_rate": 1.0,
+        "cross_incident_reference_block_rate": 1.0,
+        "arbitrary_tool_block_rate": 1.0,
+        "malicious_output_containment_rate": 1.0,
+        "trace_propagation_rate": 1.0,
+        "protocol_contract_pass_rate": 1.0
+      },
+      "scenarios": [],
+      "note": "Metrics were recomputed from the checked-in M7 contract dataset in this run."
+    },
+    "legacy_compatibility": {
+      "status": "PASS",
+      "metrics": {
+        "scenario_count": 7,
+        "executed_count": 7,
+        "not_run_count": 0,
+        "unexpected_execution_paths": 0
+      },
+      "scenarios": [
+        {
+          "scenario": "SSH Transport",
+          "expected_control": "SSH remains inside operator-owned Ansible inventory",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/architecture/test_deployment_compatibility_boundaries.py::test_ansible_owns_ssh_transport_and_fixed_script_uses_argv"
+        },
+        {
+          "scenario": "Service Mapping",
+          "expected_control": "Only exact semantic service identities resolve",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/deployment/test_config_and_resolver.py::test_resolver_maps_only_exact_semantic_identity"
+        },
+        {
+          "scenario": "Policy Boundary",
+          "expected_control": "Legacy adapter can only create governed proposals",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/architecture/test_deployment_compatibility_boundaries.py::test_legacy_compatibility_adapter_can_only_enter_governed_proposal"
+        },
+        {
+          "scenario": "HITL",
+          "expected_control": "Legacy proposal returns an approval boundary and cannot execute",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/deployment/test_legacy_ticket_and_api.py::test_legacy_api_adapter_returns_approval_and_cannot_execute"
+        },
+        {
+          "scenario": "Fixed Script Control",
+          "expected_control": "Fixed operation maps to operator-owned argv",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/deployment/test_ansible_deployment.py::test_fixed_script_uses_only_operator_mapping_and_fixed_playbooks"
+        },
+        {
+          "scenario": "Command Injection",
+          "expected_control": "Service mapping rejects command metacharacters",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/deployment/test_config_and_resolver.py::test_command_injection_cannot_enter_service_mapping"
+        },
+        {
+          "scenario": "Verification",
+          "expected_control": "Control action is followed by configured verification",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/deployment/test_ansible_deployment.py::test_fixed_script_uses_only_operator_mapping_and_fixed_playbooks"
+        }
+      ],
+      "note": null
+    },
+    "demo_reproducibility": {
+      "status": "PASS",
+      "metrics": {
+        "sample_size": 3,
+        "demo_success_rate": 1.0,
+        "lifecycle_p50_seconds": 63.996,
+        "lifecycle_max_seconds": 947.477
+      },
+      "scenarios": [
+        {
+          "scenario": "Demo Run #1",
+          "expected_control": "startup -> incident -> approval -> execution -> verification -> RESOLVED",
+          "actual": "RESOLVED",
+          "result": "PASS",
+          "test_reference": null
+        },
+        {
+          "scenario": "Demo Run #2",
+          "expected_control": "startup -> incident -> approval -> execution -> verification -> RESOLVED",
+          "actual": "RESOLVED",
+          "result": "PASS",
+          "test_reference": null
+        },
+        {
+          "scenario": "Demo Run #3",
+          "expected_control": "startup -> incident -> approval -> execution -> verification -> RESOLVED",
+          "actual": "RESOLVED",
+          "result": "PASS",
+          "test_reference": null
+        }
+      ],
+      "note": "Synthetic local environment; duration is wall-clock lifecycle time."
+    }
+  }
+}
