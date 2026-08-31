@@ -2,9 +2,12 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-**Evidence-driven, human-controlled incident response.** OpsPilot collects current operational
-evidence, produces a grounded diagnosis and structured action, enforces deterministic policy and
-durable approval, executes through a fixed Ansible boundary, and verifies recovery.
+**Evidence-grounded, human-controlled incident response.** OpsPilot turns a synthetic alert into
+current evidence, a grounded diagnosis and typed action, deterministic policy, durable approval,
+governed Ansible/Harness execution, independent verification, and an auditable result. A model may
+propose; it cannot authorize or select the execution path.
+
+**Current Stable Portfolio Release: v1.0 architecture (M1–M8.5).** M9+ is explicit future work.
 
 ## Quick Demo
 
@@ -12,32 +15,84 @@ durable approval, executes through a fixed Ansible boundary, and verifies recove
 make demo-local
 ```
 
-The current milestone (M8) adds a governed multi-backend execution plane. Mock and Ansible remain,
-while allowlisted Harness CD pipelines add asynchronous delivery with a transactional outbox,
-indeterminate-dispatch recovery, reconciliation, and independent verification. LLM and MCP callers
-cannot select a backend or pipeline.
+The canonical `service-down` demo is a disposable local environment—not a production claim. It
+needs no OpenAI key, Harness SaaS, remote MCP server, or company network and uses Prometheus, Loki,
+PostgreSQL checkpointing, Policy/HITL, fixed Ansible remediation, and current health verification.
+Use the [3–5 minute interview walkthrough](docs/demo/portfolio-demo.md) or the
+[10-minute mentor walkthrough](docs/demo/mentor-demo.md).
 
-M7 added an MCP `2026-07-28` interoperability plane to the complete
-**Observability → Evidence → LLM Investigator → Grounding Guard → Structured Action → Policy →
-Durable Human Approval → Ansible → Verification** pipeline against a reproducible local Lab.
-The default walkthrough is deterministic and requires no model API key.
-
-**Fault → Evidence → Diagnosis → Human Approval → Ansible → Verified Recovery**
-
-The canonical `service-down` demonstration is synthetic, deterministic, repeatable, and needs no
-OpenAI key or external SaaS. It uses real Prometheus, Loki, PostgreSQL checkpointing, Policy/HITL,
-fixed Ansible remediation, and health verification. Start with `make demo-doctor`; clean up with
-`make demo-down`. See the [10-minute mentor walkthrough](docs/demo/mentor-demo.md).
+## Architecture Freeze
 
 ```mermaid
-flowchart LR
-  Alert --> Incident --> Evidence --> Investigator --> Action[Structured Action]
-  Action --> Policy --> Approval[Human Approval] --> Ansible --> Verification
-  Optional[Optional: RAG / MCP / OpenAI] -.-> Investigator
+flowchart TD
+  Obs[Observability / Alert] --> Evidence[Current Evidence]
+  Evidence --> Investigator
+  Memory[Historical Memory] --> Investigator
+  Investigator --> Action[Structured Action Proposal]
+  Action --> Policy[Deterministic Policy]
+  Policy --> HITL[Human Approval]
+  HITL --> Workflow[Durable Workflow Resume]
+  Workflow --> Plane[Governed Execution Plane]
+  Plane --> Ansible
+  Plane --> Harness
+  Ansible --> Verify[Independent Verification]
+  Harness --> Verify
+  MCP[MCP Interoperability] -. typed proposals / evidence .-> Evidence
+  Data[(PostgreSQL / Audit / OpenTelemetry)] --- Workflow
+  Data --- Plane
 ```
 
-**Current status:** M1–M8.5 implemented. The canonical local demo remains the stable portfolio entrypoint.
-**Next engineering milestone:** M9 GitOps Change Workflow or production-style deployment hardening.
+The frozen chain is **Alert/Fault → Incident → Evidence → Historical Memory → Investigator →
+Structured Action → Policy → HITL → Resume → Governed Execution → Verification → Audit/Telemetry**.
+No GitOps, Kubernetes, new Agent framework/vector database/LLM provider/execution backend, or new MCP
+feature is introduced by the v1.0 closeout.
+
+## Verifiable Portfolio Evidence
+
+<!-- portfolio-metric backend_tests=320 -->
+<!-- portfolio-metric frontend_tests=28 -->
+<!-- portfolio-metric lab_scenarios=4 -->
+<!-- portfolio-metric investigation_cases=6 -->
+<!-- portfolio-metric retrieval_queries=12 -->
+<!-- portfolio-metric safety_scenarios=15 -->
+<!-- portfolio-metric safety_blocked_rate=1.000 -->
+<!-- portfolio-metric mcp_contract_rate=1.000 -->
+<!-- portfolio-metric demo_sample_size=3 -->
+<!-- portfolio-metric demo_success_rate=1.000 -->
+
+| Evidence | Result | Trace |
+| --- | --- | --- |
+| Backend / frontend tests | 320 collected / 28 declared | Generated benchmark + quality gate |
+| Incident investigation | 6 real deterministic fixtures; LLM `NOT RUN` | [Benchmark entry](docs/evaluation/portfolio-benchmark.md) |
+| Hybrid retrieval | 40 documents / 12 queries; Dense, Sparse, Hybrid RRF | [Retrieval evaluation](docs/evaluation/retrieval-benchmark.md) |
+| Safety containment | 15/15 controls, 0 unexpected execution paths | [Safety matrix](docs/evaluation/safety-matrix.md) |
+| MCP contract | 7/7 metrics recomputed at 1.000 | Generated artifact |
+| Reproducible Lab | 4 failure scenarios; service-down demo 3/3 RESOLVED | Generated artifact |
+| Ansible over SSH | Synthetic fixed-script lifecycle covered | [Migration guide](docs/migration/legacy-environment-guide.md) |
+
+Run `make portfolio-benchmark` to regenerate JSON and Markdown under `artifacts/`, then
+`make portfolio-check` for the release gate. README metric comments are verified by
+`scripts/check-portfolio-metrics.py`; host-sensitive latency remains only in the artifact.
+
+## External Execution Failure Handling
+
+```mermaid
+flowchart TD
+  Tx[DB Transaction] --> Record[ExecutionRecord]
+  Tx --> Outbox[Outbox]
+  Outbox --> Dispatcher
+  Dispatcher --> Backend[External Backend]
+  Backend --> Unknown{UNKNOWN?}
+  Unknown -- Yes --> NoRetry[NO BLIND RETRY]
+  NoRetry --> Reconciler
+  Unknown -- No / terminal success --> Verification
+  Reconciler --> Verification
+  Verification --> Result[Incident result]
+```
+
+`UNKNOWN != FAILED`, and `execution SUCCEEDED != incident RESOLVED`. See the
+[trade-offs](docs/portfolio/tradeoffs.md), [interview guide](docs/portfolio/interview-guide.md),
+[resume pack](docs/portfolio/resume.md), and [explicit limitations](docs/evaluation/limitations.md).
 
 M8.5 adds strict deployment profiles, systemd and fixed-script service control, a read-only doctor,
 migration readiness assessment, a safe legacy API/ticket boundary, and a synthetic
@@ -141,7 +196,7 @@ No model output is passed to a shell, SSH client, inventory path, or playbook pa
 - Governed Mock, Ansible, and allowlisted Harness execution profiles with reconciliation (`M8`)
 - Audit / evaluation foundation: evaluation fixtures, safety cases, secret scan in CI
 
-**Planned (not yet implemented):**
+**Future work (outside stable v1.0):**
 
 - GitOps governed change workflow (`M9`)
 - Advanced evaluation and agent observability (`M10`/`M11`)
@@ -291,9 +346,10 @@ according to operator-owned inventory, but that is not part of the Agent/API con
 | Local Demo Closeout | **Implemented** |
 | M8 Harness Multi-backend Execution | **Implemented** |
 | M8.5 Deployment Compatibility | **Implemented** |
-| M9 GitOps | **Next** |
-| M10 Risk Reviewer / Evaluation | Future |
-| M11 Agent Observability | Future |
+| Portfolio v1.0 evidence and release closeout | **Current stable release** |
+| M9 GitOps Change Workflow | Future work / next engineering milestone |
+| M10 Risk Reviewer / Advanced Eval | Future work |
+| M11 Agent Observability / Production Hardening | Future work |
 
 ### Portfolio Entry Point
 
@@ -323,6 +379,9 @@ multi-backend execution and the M8.5 synthetic legacy-environment migration brid
 - [Roadmap](docs/roadmap.md)
 - [Development guide](docs/development.md)
 - [Testing strategy](docs/testing.md)
+- [Portfolio benchmark](docs/evaluation/portfolio-benchmark.md)
+- [Resume pack](docs/portfolio/resume.md)
+- [Interview guide](docs/portfolio/interview-guide.md)
 - [Design docs](docs/design/)
 - [Architecture decisions (ADR)](docs/adr/)
 - [Interview notes](docs/interview/)

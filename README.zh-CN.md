@@ -11,7 +11,7 @@
 make demo-local
 ```
 
-当前里程碑（M8）增加 governed multi-backend execution plane。Mock、Ansible 继续保留，并通过
+稳定 Portfolio v1.0（M1–M8.5）包含 governed multi-backend execution plane。Mock、Ansible 继续保留，并通过
 allowlisted Harness CD pipeline 支持异步执行、transactional outbox、UNKNOWN 副作用恢复、
 reconciliation 与独立 verification。LLM 和 MCP 都不能选择 backend 或 pipeline。
 
@@ -33,7 +33,7 @@ flowchart LR
 ```
 
 **当前状态：** M1–M8.5 已实现。标准本地演示仍是稳定的 Portfolio 入口。
-**下一工程里程碑：** M9 GitOps Change Workflow 或 Production-style Deployment Hardening。
+**下一工程里程碑：** M9 GitOps Change Workflow（Future Work，不属于 v1.0）。
 
 M8.5 增加严格部署 Profile、systemd / 固定脚本服务控制、只读 doctor、迁移就绪度评估、
 安全的遗留 API / Ticket 边界，以及 synthetic Ansible-over-SSH Lab。
@@ -138,7 +138,7 @@ allowlist 的 typed observability 与 historical-memory 工具。MCP annotations
 Evidence ownership、durable HITL 和固定 Executor 仍是唯一安全边界。唯一写操作工具只创建
 remediation proposal 并返回 approval reference，不能直接执行。运行 `make mcp-demo` 验证互操作。
 
-**计划中（Planned，尚未实现）：**
+**Future Work（不属于稳定 v1.0）：**
 
 - GitOps 受治理变更工作流（`M9`）
 - 高级评估与智能体可观测性（`M10`/`M11`）
@@ -259,9 +259,10 @@ M1B 已移除遗留的 SSH 与服务脚本运行时。Ansible 可以按运维自
 | Local Demo Closeout | **已实现** |
 | M8 Harness Multi-backend Execution | **已实现** |
 | M8.5 Deployment Compatibility | **已实现** |
-| M9 GitOps | **下一阶段** |
-| M10 Risk Reviewer / Evaluation | 未来 |
-| M11 Agent Observability | 未来 |
+| Portfolio v1.0 Evidence & Release Closeout | **当前稳定版本** |
+| M9 GitOps Change Workflow | Future Work / 下一工程里程碑 |
+| M10 Risk Reviewer / Advanced Eval | Future Work |
+| M11 Agent Observability / Production Hardening | Future Work |
 
 ### Portfolio 入口
 
