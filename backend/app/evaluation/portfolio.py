@@ -362,9 +362,15 @@ def _git(*args: str) -> str:
 
 
 def provenance(now: datetime | None = None) -> Provenance:
+    generated_outputs = {
+        "artifacts/portfolio-benchmark.json",
+        "artifacts/portfolio-benchmark.md",
+    }
+    status_lines = _git("status", "--porcelain").splitlines()
+    source_dirty = any(line[3:] not in generated_outputs for line in status_lines)
     return Provenance(
         git_commit=_git("rev-parse", "HEAD"),
-        git_dirty=bool(_git("status", "--porcelain")),
+        git_dirty=source_dirty,
         timestamp=(now or datetime.now(UTC)).isoformat(),
         python_version=platform.python_version(),
         dataset_version=DATASET_VERSION,
