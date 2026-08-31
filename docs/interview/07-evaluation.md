@@ -1,6 +1,6 @@
 # Evaluation
 
-Status: **Foundation in M3B; broader evaluation planned**
+Status: **Portfolio v1.0 offline benchmark implemented; large-scale model evaluation is future work**
 
 ## Concept
 
@@ -11,8 +11,9 @@ repeatable incidents.
 
 Current deterministic tests cover action safety. M3B adds reusable `InvestigationEvalCase`
 fixtures, safety cases, and metrics (Evidence Precision, Evidence Recall, Action Accuracy,
-Grounding Validity, Unsupported Action Rate). Full incident datasets and large-scale model
-evaluation are planned for later milestones.
+Grounding Validity, Unsupported Action Rate). Portfolio v1.0 consolidates investigation, retrieval,
+safety, reliability, MCP, compatibility, and demo evidence. Large-scale real-model and production
+traffic evaluation remain explicit future work.
 
 ## Why
 

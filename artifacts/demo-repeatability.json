@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0.0",
+  "scenario": "service-down",
+  "environment": "synthetic local Docker Lab",
+  "sample_size": 3,
+  "success_count": 3,
+  "demo_success_rate": 1.0,
+  "runs": [
+    {
+      "run": 1,
+      "timestamp": "2026-08-31T08:59:29.657238+00:00",
+      "startup_success": true,
+      "incident_created": true,
+      "approval": true,
+      "execution": true,
+      "verification": true,
+      "final_state": "RESOLVED",
+      "duration_seconds": 947.477,
+      "phase_seconds": {
+        "startup": 931.963,
+        "evidence_collection": 3.535,
+        "investigation": 0.0,
+        "approval_resume": 3.195,
+        "execution": 0.0,
+        "verification": 0.005
+      },
+      "result": "PASS",
+      "return_code": 0
+    },
+    {
+      "run": 2,
+      "timestamp": "2026-08-31T09:00:33.651210+00:00",
+      "startup_success": true,
+      "incident_created": true,
+      "approval": true,
+      "execution": true,
+      "verification": true,
+      "final_state": "RESOLVED",
+      "duration_seconds": 63.996,
+      "phase_seconds": {
+        "startup": 48.625,
+        "evidence_collection": 3.306,
+        "investigation": 0.0,
+        "approval_resume": 3.165,
+        "execution": 0.0,
+        "verification": 0.004
+      },
+      "result": "PASS",
+      "return_code": 0
+    },
+    {
+      "run": 3,
+      "timestamp": "2026-08-31T09:01:30.905471+00:00",
+      "startup_success": true,
+      "incident_created": true,
+      "approval": true,
+      "execution": true,
+      "verification": true,
+      "final_state": "RESOLVED",
+      "duration_seconds": 57.257,
+      "phase_seconds": {
+        "startup": 41.967,
+        "evidence_collection": 3.299,
+        "investigation": 0.0,
+        "approval_resume": 3.206,
+        "execution": 0.0,
+        "verification": 0.004
+      },
+      "result": "PASS",
+      "return_code": 0
+    }
+  ]
+}

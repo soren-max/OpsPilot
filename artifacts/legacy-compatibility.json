@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "timestamp": "2026-08-31T09:06:17.608862+00:00",
+  "environment": "synthetic legacy Docker host",
+  "duration_seconds": 30.082,
+  "live_lifecycle": "PASS",
+  "contract_tests": "PASS",
+  "controls": {
+    "ssh_transport": "PASS",
+    "service_mapping": "PASS",
+    "policy_boundary": "PASS",
+    "hitl": "PASS",
+    "fixed_script_control": "PASS",
+    "command_injection": "BLOCKED",
+    "verification": "PASS"
+  },
+  "result": "PASS"
+}

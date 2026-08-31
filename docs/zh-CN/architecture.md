@@ -58,7 +58,7 @@ Observe                         Remediate                         Change
    v                                v                                v
 Read-only capabilities       Structured Action              Governed Workflow
 metrics / logs / ticket      -> deterministic Policy        -> Harness / GitOps
-status / health              -> human approval              (planned)
+status / health              -> human approval              -> Harness（已实现）
                               -> Ansible
                               -> verification
 ```

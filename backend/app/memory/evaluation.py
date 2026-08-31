@@ -5,7 +5,7 @@ import math
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from statistics import mean
+from statistics import mean, median
 
 from app.memory.embedding import DeterministicHashEmbedding, tokenize
 
@@ -33,6 +33,17 @@ class RetrievalMetrics:
     mrr: float
     root_cause_hit_rate: float
     latency_ms: float
+    latency_p50_ms: float
+    latency_p95_ms: float
+
+
+def percentile(values: list[float], percentile_value: float) -> float:
+    """Return a dependency-free nearest-rank percentile for small benchmark samples."""
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    index = max(0, math.ceil(percentile_value * len(ordered)) - 1)
+    return ordered[index]
 
 
 def load_dataset(path: Path) -> tuple[tuple[EvalDocument, ...], tuple[EvalQuery, ...]]:
@@ -114,6 +125,8 @@ class OfflineRetrievalEvaluator:
             mrr=mean(reciprocal_ranks),
             root_cause_hit_rate=mean(root_cause_hits),
             latency_ms=mean(latencies),
+            latency_p50_ms=median(latencies),
+            latency_p95_ms=percentile(latencies, 0.95),
         )
 
     def _dense_ranks(self, query: str) -> tuple[EvalDocument, ...]:

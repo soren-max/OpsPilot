@@ -1,6 +1,6 @@
 # Human in the Loop
 
-Status: **Partial**
+Status: **Implemented in M4**
 
 ## Concept
 
@@ -8,8 +8,8 @@ HITL pauses a state-changing workflow until an authorized person reviews the exa
 
 ## Where in OpsPilot
 
-Medium-risk policy results block execution without approval. Durable workflow interrupt and
-checkpoint integration is planned.
+Medium-risk policy results block execution without approval. M4 adds identity-bound durable
+approval, PostgreSQL checkpoint resume, duplicate-decision conflict, and idempotent replay.
 
 ## Why
 

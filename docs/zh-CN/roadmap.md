@@ -1,7 +1,6 @@
 # 路线图（Roadmap）
 
-M8.5 Deployment Compatibility & Legacy Migration Bridge 已完成；下一阶段是
-M9 GitOps Change Workflow 或 Production-style Deployment Hardening。
+M1–M8.5 已冻结为 Stable Portfolio v1.0；M9+ 是明确的 Future Work。
 
 [English](../roadmap.md) | [简体中文](roadmap.md)
 
@@ -20,9 +19,10 @@ M9 GitOps Change Workflow 或 Production-style Deployment Hardening。
 | M7 MCP Capability Boundary | Done | Optional interoperable capability boundary |
 | M8 Multi-backend Execution | Done | Mock, Ansible, Harness, outbox, reconciliation |
 | M8.5 Deployment Compatibility | Done | 类型化 Profile 与合成遗留环境迁移桥 |
-| M9 GitOps Change Workflow | Next | Governed configuration and deployment change |
-| M10 Risk Reviewer & Evaluation | Planned | Advisory risk review and safety evaluation |
-| M11 Agent Observability | Planned | Workflow traces and operational telemetry |
+| Stable Portfolio v1.0: M1–M8.5 | 当前稳定版本 | Architecture freeze 与可追溯评测 |
+| M9 GitOps Change Workflow | Future Work | Governed configuration and deployment change |
+| M10 Risk Reviewer / Advanced Eval | Future Work | Advisory risk review and expanded evaluation |
+| M11 Agent Observability / Production Hardening | Future Work | Workflow telemetry and resilience |
 
 M8 已实现受治理的 Harness 参考后端。M8.5 演示如何在不恢复 ServiceSSH 抽象的
 前提下，安全集成传统 SSH 管理的测试环境。
@@ -30,4 +30,4 @@ M8 已实现受治理的 Harness 参考后端。M8.5 演示如何在不恢复 Se
 ## Portfolio 入口
 
 标准本地演示仍是稳定的公开 Portfolio 入口。M1–M8.5 已实现；
-下一工程里程碑是 **M9 GitOps Change Workflow** 或生产风格部署加固。
+项目当前作为 Portfolio v1.0 已完整收口；下一工程里程碑是 **M9 GitOps Change Workflow**。
