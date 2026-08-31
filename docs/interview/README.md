@@ -34,10 +34,10 @@ numbering quirk and the files are intentionally not renamed.
   prompt. M1C provides the Incident, Evidence, Hypothesis, Diagnosis, and AuditEvent boundaries;
   M2 adds a LangGraph workflow that composes them while keeping node names separate from stable
   Incident business status.
-- [Human in the Loop](05-hitl.md) — **Partial** (durable interrupt/resume planned for M4)
+- [Human in the Loop](05-hitl.md) — **Implemented in M4**
   HITL pauses a state-changing workflow until an authorized person reviews the exact action.
   Medium-risk policy results already block execution without approval; durable workflow
-  interrupt and checkpoint integration is planned.
+  interrupt and PostgreSQL checkpoint integration are implemented.
 - [Tool Calling](02-tool-calling.md) — **Planned**
   Planned capability for a model to select a narrow capability port and validated arguments,
   which limits model authority and makes observations explicit.
@@ -59,7 +59,7 @@ numbering quirk and the files are intentionally not renamed.
   Evidence is a first-class concept: observations keep type, source, time, provenance,
   collector, and stable identity. Raw logs and metric series are stored as bounded excerpts and
   summaries rather than dumped into the Incident database.
-- [Incident Memory](10-incident-memory.md) — **Knowledge projection in M1C; retrieval planned for M6**
+- [Incident Memory](10-incident-memory.md) — **Projection and hybrid retrieval implemented in M6**
   Only resolved or closed incidents enter memory, so provisional hypotheses are never indexed
   as trusted history. The Action domain stays incident-free; an application-layer
   `IncidentActionLink` provides traceability.
@@ -114,10 +114,10 @@ numbering quirk and the files are intentionally not renamed.
 
 ## Evaluation
 
-- [Evaluation](07-evaluation.md) — **Foundation in M3B; broader evaluation planned**
+- [Evaluation](07-evaluation.md) — **Portfolio v1.0 offline benchmark implemented**
   Deterministic action-safety tests exist today; M3B adds `InvestigationEvalCase` fixtures,
-  safety cases, and metrics. Full incident datasets and large-scale model evaluation are planned
-  for later milestones.
+  safety cases, and metrics. Large-scale real-model and production-traffic evaluation remain future
+  work for later milestones.
 - [Agent Evaluation](18-agent-evaluation.md) — **M3B**
   Reusable `InvestigationEvalCase` fixtures report Evidence Precision/Recall, Action Accuracy,
   Grounding Validity, Unsupported Action Rate, and more. The same cases run deterministically,

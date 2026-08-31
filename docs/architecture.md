@@ -118,8 +118,8 @@ Alert / User
 Incident, Evidence, Hypothesis, Diagnosis, append-only AuditEvent, timeline, optimistic locking,
 and the resolved-incident knowledge projection are implemented in M1C. M2 adds LangGraph
 orchestration over those application capabilities. M3B adds evidence-grounded structured LLM
-reasoning behind an injected provider port. Runtime retrieval/RAG and
-multi-agent behavior remain planned.
+reasoning behind an injected provider port. M6 adds runtime hybrid historical retrieval; v1.0 does
+not add multi-agent behavior.
 
 ```text
 Observe                         Remediate                         Change
@@ -127,7 +127,7 @@ Observe                         Remediate                         Change
    v                                v                                v
 Read-only capabilities       Structured Action              Governed Workflow
 metrics / logs / ticket      -> deterministic Policy        -> Harness / GitOps
-status / health              -> human approval              (planned)
+status / health              -> human approval              -> Harness (implemented)
                               -> Ansible
                               -> verification
 ```
@@ -140,9 +140,8 @@ Remediation is bounded recovery such as restart or reload. The API constructs a 
 orchestrates preview/execute/verify, and an injected Mock or Ansible adapter runs only an
 application-owned mapping.
 
-Change includes deploy, rollback, configuration, and IaC. These require rollout, promotion, and
-rollback lifecycles, so they remain outside remediation. A future governed backend may integrate
-Harness and GitOps; neither is implemented in M1B.
+Change includes deploy, rollback, configuration, and IaC. Harness is implemented as an operator-owned
+governed execution backend in M8. GitOps remains an M9 future workflow and is outside v1.0.
 
 ## Portable boundary
 

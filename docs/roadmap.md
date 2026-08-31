@@ -15,9 +15,10 @@
 | M7 MCP Capability Boundary | Done | MCP 2026-07-28 typed interoperability and governed proposals |
 | M8 Multi-Backend Governed Execution | Done | Mock, Ansible, Harness, outbox, reconciliation |
 | M8.5 Deployment Compatibility | Done | Typed profiles and a synthetic legacy-environment migration bridge |
-| M9 GitOps Change Workflow | Next | Governed configuration and deployment change |
-| M10 Risk Reviewer & Evaluation | Planned | Advisory risk review and safety evaluation |
-| M11 Agent Observability | Planned | Workflow traces and operational telemetry |
+| **Stable Portfolio v1.0: M1–M8.5** | **Current stable release** | Architecture frozen; benchmark and release evidence |
+| M9 GitOps Change Workflow | Future work | Governed configuration and deployment change |
+| M10 Risk Reviewer / Advanced Eval | Future work | Advisory risk review and expanded evaluation |
+| M11 Agent Observability / Production Hardening | Future work | Operational telemetry, deployment and resilience |
 
 M8 implements the governed Harness reference backend. M8.5 demonstrates bounded integration with
 traditional SSH-managed test environments without restoring the removed ServiceSSH abstraction.
@@ -28,4 +29,5 @@ The canonical local demo remains the stable portfolio entry point. M1–M8.5 are
 demonstration focuses on evidence, durable approval, governed execution, and independent
 verification. Historical Memory and MCP remain optional advanced demonstrations.
 
-Next: **M9 GitOps Change Workflow** or production-style deployment hardening.
+The project is complete as a stable Portfolio v1.0. The next engineering milestone, when resumed, is
+**M9 GitOps Change Workflow**; it is not part of the current release.

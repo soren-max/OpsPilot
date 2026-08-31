@@ -1,6 +1,6 @@
 # Incident Memory
 
-Status: **Knowledge projection implemented in M1C; retrieval planned for M6**
+Status: **Knowledge projection and hybrid retrieval implemented in M6**
 
 ## Why does ActionRequest not contain incident_id?
 
@@ -22,8 +22,8 @@ provenance. Useful retrieval needs curated sources, access control, filters, tim
 context, source references, evaluation, and explicit evidence semantics. M1C creates that stable
 projection without prematurely binding the domain to a vector product.
 
-## What changes in M6?
+## What changed in M6?
 
-M6 can feed `IncidentKnowledgeRecord` into an adapter behind `KnowledgeRetriever`, add indexing
-and retrieval evaluation, and return provenance-bearing Retrieved Evidence. Incident and Action
-schemas do not need to change.
+M6 feeds `IncidentKnowledgeRecord` into a Qdrant adapter behind the retrieval port, adds deterministic
+offline Dense/Sparse/Hybrid RRF evaluation, and returns provenance-bearing `RetrievedKnowledge`.
+Historical results remain separate from current Incident Evidence.

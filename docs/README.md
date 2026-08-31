@@ -52,7 +52,10 @@ For a runnable tour, use the [Offline Demo and Recording Guide](demo.md).
 - [LLM Investigator](design/llm-investigator.md) — bounded-evidence to structured investigation (简体中文: [zh-CN/design/llm-investigator.md](zh-CN/design/llm-investigator.md))
 - [LangGraph Incident Workflow](design/langgraph-incident-workflow.md) — deterministic workflow orchestration (简体中文: [zh-CN/design/langgraph-incident-workflow.md](zh-CN/design/langgraph-incident-workflow.md))
 - [Governed Execution](design/governed-execution-plane.md) — implemented M8 routing, outbox and reconciliation
-- [Incident Memory and RAG](design/incident-memory-and-rag.md) — English only (projection implemented; retrieval planned)
+- [Incident Memory and RAG](design/incident-memory-and-rag.md) — English only (projection and hybrid retrieval implemented)
+- [Portfolio Benchmark](evaluation/portfolio-benchmark.md) — generated evidence entry point
+- [Portfolio Demo](demo/portfolio-demo.md) — canonical 3–5 minute walkthrough
+- [Resume Pack](portfolio/resume.md) and [Interview Guide](portfolio/interview-guide.md)
 
 ## Architecture Decision Records (ADR)
 

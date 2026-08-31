@@ -1,9 +1,10 @@
 # Incident Memory and RAG
 
-Status: **M1C projection implemented; retrieval runtime planned for M6**
+Status: **Superseded by the implemented M6 design in `incident-memory-rag.md`**
 
-M1C deliberately stops at a deterministic `IncidentKnowledgeRecord`. It adds no embedding
-library, vector database, RAGFlow dependency, or retrieval runtime.
+This document records the earlier M1C projection boundary. M6 subsequently implemented the Qdrant
+hybrid adapter, deterministic offline embedding, workflow retrieval, and evaluation. See
+[`incident-memory-rag.md`](incident-memory-rag.md) for current behavior.
 
 ## Knowledge flow
 
@@ -32,7 +33,7 @@ evidence summaries, diagnosis, contributing factors, remediation, verification, 
 resolution time. Raw log bodies stay in Loki, Prometheus, ticketing, or another source system and
 are referenced by provenance.
 
-## Future port
+## Original port sketch
 
 ```python
 class KnowledgeRetriever(Protocol):
@@ -50,10 +51,10 @@ class KnowledgeRetriever(Protocol):
 The port returns bounded, provenance-bearing evidence rather than an untyped text blob. Ranking,
 hybrid search, authorization filters, freshness, and source trust remain adapter concerns.
 
-Planned candidate adapters:
+Original candidate adapters:
 
-- `QdrantHybridRetriever` — planned, not implemented.
-- `RAGFlowKnowledgeAdapter` — planned, not implemented.
+- Qdrant hybrid retrieval — implemented in M6 behind the memory adapter boundary.
+- RAGFlow adapter — not implemented and not part of Portfolio v1.0.
 
-The domain does not select either backend. M6 must evaluate retrieval quality and enforce tenant,
-environment, and service authorization before retrieved material reaches a workflow.
+The domain does not select a backend. M6 evaluates retrieval quality and keeps retrieved historical
+material distinct from evidence; deployment-specific authorization remains operator-owned.

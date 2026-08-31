@@ -33,7 +33,7 @@
 - **Incident 领域（Incident Domain）** — [`08-incident-domain.md`](../../interview/08-incident-domain.md) · 状态：**M1C 已实现（Implemented in M1C）**
   Evidence 是一等公民：观察记录保留类型、来源、时间、provenance、采集器与稳定身份，可去重、可追溯、可审计；原始日志不落入 Incident 数据库，只保存有界摘录、摘要与指纹。
 
-- **Incident 记忆（Incident Memory）** — [`10-incident-memory.md`](../../interview/10-incident-memory.md) · 状态：**M1C 知识投影已实现；M6 检索计划中（retrieval planned for M6）**
+- **Incident 记忆（Incident Memory）** — [`10-incident-memory.md`](../../interview/10-incident-memory.md) · 状态：**M6 知识投影与 Hybrid Retrieval 已实现**
   `ActionRequest` 不携带 `incident_id`，让 Action 领域可复用于无 Incident 的运维场景，由应用层的 `IncidentActionLink` 关联；只有已解决/关闭的 Incident 才进入记忆，避免把进行中的竞争性假设当作权威历史索引。
 
 ## 审计
