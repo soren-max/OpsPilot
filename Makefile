@@ -1,4 +1,4 @@
-.PHONY: demo demo-local demo-full demo-doctor demo-doctor-live demo-reset demo-down demo-transcript lab-up lab-up-full lab-inject lab-status lab-reset lab-down lab-demo memory-index memory-eval mcp-demo mcp-eval execution-demo harness-demo deployment-preview deployment-doctor migration-assess legacy-demo legacy-reset legacy-down
+.PHONY: demo demo-local demo-full demo-doctor demo-doctor-live demo-reset demo-down demo-transcript lab-up lab-up-full lab-inject lab-status lab-reset lab-down lab-demo memory-index memory-eval mcp-demo mcp-eval execution-demo harness-demo deployment-preview deployment-doctor migration-assess legacy-demo legacy-reset legacy-down portfolio-benchmark portfolio-demo-repeatability portfolio-legacy-compatibility portfolio-check
 
 COMPOSE = docker compose -f lab/docker-compose.yml
 DEMO_CORE = postgres dependency web-01 web-02 prometheus loki promtail
@@ -86,3 +86,16 @@ legacy-demo: legacy-reset
 
 legacy-down:
 	@docker compose -f lab/docker-compose.yml --profile legacy down -v --remove-orphans
+
+portfolio-benchmark:
+	@uv run --project backend --no-sync python -m app.evaluation.portfolio
+
+portfolio-demo-repeatability:
+	@python3 scripts/run_demo_repeatability.py --runs 3
+	@$(MAKE) portfolio-benchmark >/dev/null
+
+portfolio-legacy-compatibility:
+	@python3 scripts/run_legacy_compatibility.py
+
+portfolio-check:
+	@python3 scripts/portfolio_check.py

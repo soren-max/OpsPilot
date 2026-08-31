@@ -16,11 +16,12 @@ def main() -> None:
     documents, queries = load_dataset(args.dataset)
     evaluator = OfflineRetrievalEvaluator(documents)
     results = tuple(evaluator.evaluate(queries, mode) for mode in ("dense", "sparse", "hybrid_rrf"))
-    print("Retriever       Recall@5  Recall@10  MRR    RC Hit  Latency ms")
+    print("Retriever       Recall@5  Recall@10  MRR    RC Hit  p50 ms  p95 ms")
     for item in results:
         print(
             f"{item.retriever:<15} {item.recall_at_5:>8.3f}  {item.recall_at_10:>9.3f}  "
-            f"{item.mrr:>5.3f}  {item.root_cause_hit_rate:>6.3f}  {item.latency_ms:>10.3f}"
+            f"{item.mrr:>5.3f}  {item.root_cause_hit_rate:>6.3f}  "
+            f"{item.latency_p50_ms:>6.3f}  {item.latency_p95_ms:>6.3f}"
         )
     if args.json_output:
         args.json_output.write_text(
