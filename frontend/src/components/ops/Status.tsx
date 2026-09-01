@@ -1,6 +1,23 @@
-import { AlertTriangle, CheckCircle2, CircleDashed, Clock3, Info, XCircle } from "lucide-react";
+import {
+  AlertOctagon,
+  AlertTriangle,
+  CheckCircle2,
+  CircleDashed,
+  Clock3,
+  Info,
+  XCircle,
+} from "lucide-react";
 
-export type StatusDomain = "task" | "service" | "host" | "audit" | "generic";
+export type StatusDomain =
+  | "task"
+  | "service"
+  | "host"
+  | "audit"
+  | "incident"
+  | "approval"
+  | "execution"
+  | "verification"
+  | "generic";
 export type StatusTone =
   | "success"
   | "warning"
@@ -25,23 +42,40 @@ function statusTone(status: string): StatusTone {
       "EXECUTABLE",
       "AVAILABLE",
       "NOT_REQUIRED",
+      "APPROVED",
+      "RESOLVED",
+      "CLOSED",
+      "VERIFIED",
     ].includes(status)
   )
     return "success";
-  if (["RUNNING", "INSPECTING"].includes(status)) return "running";
-  if (["PENDING", "QUEUED"].includes(status)) return "pending";
-  if (["STOPPED", "OFFLINE", "DISABLED", "CANCELLED", "UNAVAILABLE"].includes(status)) {
+  if (
+    [
+      "RUNNING",
+      "INSPECTING",
+      "INVESTIGATING",
+      "MITIGATING",
+      "VERIFYING",
+      "DISPATCHING",
+      "SUBMITTED",
+    ].includes(status)
+  )
+    return "running";
+  if (["PENDING", "QUEUED", "WAITING", "PLANNED"].includes(status)) return "pending";
+  if (status === "OPEN") return "info";
+  if (["STOPPED", "OFFLINE", "DISABLED", "CANCELLED", "UNAVAILABLE", "EXPIRED"].includes(status)) {
     return "offline";
   }
   if (status === "UNKNOWN" || status === "NOT_CONNECTED") return "unknown";
-  if (["PARTIALLY_SUCCEEDED", "DEGRADED", "TIMED_OUT"].includes(status)) return "warning";
+  if (["PARTIALLY_SUCCEEDED", "DEGRADED", "TIMED_OUT", "RECONCILIATION_REQUIRED"].includes(status))
+    return "warning";
   if (
     ["NOT_READY", "NOT_CONFIGURED", "NOT_FOUND", "NOT_EXECUTABLE", "PENDING_CONFIRMATION"].includes(
       status,
     )
   )
     return "warning";
-  if (["FAILED", "ERROR", "REJECTED", "UNHEALTHY"].includes(status)) return "danger";
+  if (["FAILED", "ERROR", "REJECTED", "UNHEALTHY", "CRITICAL"].includes(status)) return "danger";
   return "unknown";
 }
 
@@ -76,6 +110,44 @@ function statusLabel(status: string, domain: StatusDomain) {
       DISABLED: "主机已禁用",
     },
     audit: { SUCCESS: "成功", WARNING: "风险提示", FAILED: "失败" },
+    incident: {
+      OPEN: "Open",
+      INVESTIGATING: "Investigating",
+      MITIGATING: "Mitigating",
+      VERIFYING: "Verifying",
+      RESOLVED: "Resolved",
+      CLOSED: "Closed",
+      FAILED: "Failed",
+    },
+    approval: {
+      PENDING: "Waiting approval",
+      APPROVED: "Approved",
+      REJECTED: "Rejected",
+      EXPIRED: "Expired",
+    },
+    execution: {
+      PLANNED: "Planned",
+      APPROVED: "Approved",
+      QUEUED: "Queued",
+      DISPATCHING: "Dispatching",
+      SUBMITTED: "Submitted",
+      PENDING: "Pending",
+      RUNNING: "Running",
+      SUCCEEDED: "Succeeded",
+      FAILED: "Failed",
+      UNKNOWN: "Unknown outcome",
+      RECONCILIATION_REQUIRED: "Reconciliation required",
+      CANCELLED: "Cancelled",
+    },
+    verification: {
+      PENDING: "Pending verification",
+      RUNNING: "Verifying",
+      SUCCEEDED: "Verified",
+      SUCCESS: "Verified",
+      FAILED: "Verification failed",
+      NOT_REQUIRED: "Not required",
+      UNKNOWN: "Verification unknown",
+    },
     generic: {
       SUCCEEDED: "成功",
       SUCCESS: "正常",
@@ -87,6 +159,10 @@ function statusLabel(status: string, domain: StatusDomain) {
       EXECUTABLE: "可执行",
       AVAILABLE: "可用",
       NOT_REQUIRED: "不适用",
+      APPROVED: "已批准",
+      RESOLVED: "已解决",
+      CLOSED: "已关闭",
+      VERIFIED: "已验证",
       NOT_READY: "未就绪",
       NOT_CONFIGURED: "未配置",
       NOT_FOUND: "未找到",
@@ -96,6 +172,7 @@ function statusLabel(status: string, domain: StatusDomain) {
       FAILED: "失败",
       TIMED_OUT: "超时",
       PENDING: "待执行",
+      WAITING: "等待中",
       RUNNING: "运行中",
       CANCELLED: "已取消",
       REJECTED: "已拒绝",
@@ -107,6 +184,7 @@ function statusLabel(status: string, domain: StatusDomain) {
       DISABLED: "已禁用",
       ERROR: "错误",
       UNHEALTHY: "异常",
+      RECONCILIATION_REQUIRED: "需要对账",
     },
   };
   return labels[domain][status] ?? status;
@@ -138,6 +216,18 @@ export function StatusBadge({
     <span className={`status-badge status-badge--${tone}`} title={status}>
       <Icon size={compact ? 12 : 14} aria-hidden="true" />
       <span>{statusLabel(status, domain)}</span>
+    </span>
+  );
+}
+
+export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+
+export function SeverityBadge({ severity }: { severity: Severity }) {
+  const Icon = severity === "CRITICAL" ? AlertOctagon : AlertTriangle;
+  return (
+    <span className={`severity-badge severity-badge--${severity.toLowerCase()}`}>
+      <Icon size={13} aria-hidden="true" />
+      <span>{severity}</span>
     </span>
   );
 }

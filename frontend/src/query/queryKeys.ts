@@ -18,13 +18,14 @@ export const queryKeys = {
   task: (taskId: string | null) => ["task", taskId] as const,
   taskLogs: (taskId: string | undefined) => ["task-logs", taskId] as const,
   audits: ["audits"] as const,
+  approvals: ["approvals"] as const,
+  executions: ["executions"] as const,
   incidents: (environment: string) => ["incidents", environment] as const,
   incident: (incidentId: string | undefined) => ["incident", incidentId] as const,
   incidentTimeline: (incidentId: string | undefined) => ["incident-timeline", incidentId] as const,
   incidentWorkflows: (incidentId: string | undefined) =>
     ["incident-workflows", incidentId] as const,
-  incidentRelated: (incidentId: string | undefined) =>
-    ["incident-related", incidentId] as const,
+  incidentRelated: (incidentId: string | undefined) => ["incident-related", incidentId] as const,
   incidentExecutions: (incidentId: string | undefined) =>
     ["incident-executions", incidentId] as const,
   incidentApprovals: (incidentId: string | undefined) =>
