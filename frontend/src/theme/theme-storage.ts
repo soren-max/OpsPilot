@@ -54,7 +54,7 @@ export function applyThemeAttribute(theme: ResolvedTheme): void {
   // Also update meta theme-color for browser chrome
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    meta.setAttribute("content", theme === "dark" ? "#0D0F14" : "#F6F8FA");
+    meta.setAttribute("content", theme === "dark" ? "#161616" : "#f4f4f4");
   }
 }
 

@@ -22,12 +22,14 @@ export function PageHeader({
 }
 
 export function PageSection({
+  id,
   title,
   description,
   actions,
   children,
   className = "",
 }: {
+  id?: string;
   title?: string;
   description?: string;
   actions?: ReactNode;
@@ -35,7 +37,7 @@ export function PageSection({
   className?: string;
 }) {
   return (
-    <section className={`page-section section-card ${className}`.trim()}>
+    <section id={id} className={`page-section section-card ${className}`.trim()}>
       {(title || actions) && (
         <header className="section-card__header">
           <div>

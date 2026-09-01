@@ -1,5 +1,6 @@
-import { X } from "lucide-react";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+/* eslint-disable react-refresh/only-export-components -- sanitization is part of the drawer contract */
+import { Check, Copy, ShieldCheck, X } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 export function DetailDrawer({
   open,
@@ -79,5 +80,86 @@ export function DetailDrawer({
         <div className="detail-drawer__body">{children}</div>
       </aside>
     </div>
+  );
+}
+
+const sensitiveKey = /token|secret|password|credential|private[_-]?key|authorization|cookie/i;
+
+export function sanitizeTechnicalData(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sanitizeTechnicalData);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+        key,
+        sensitiveKey.test(key) ? "[REDACTED]" : sanitizeTechnicalData(item),
+      ]),
+    );
+  }
+  return value;
+}
+
+export function CopyableId({ value, label }: { value: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    await navigator.clipboard?.writeText(value);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1_500);
+  };
+  return (
+    <span className="copyable-id">
+      {label && <span>{label}</span>}
+      <code title={value}>{value}</code>
+      <button type="button" onClick={() => void copy()} aria-label={`复制${label ?? "标识符"}`}>
+        {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+        <span>{copied ? "已复制" : "复制"}</span>
+      </button>
+    </span>
+  );
+}
+
+export function TechnicalDetailDrawer({
+  open,
+  title,
+  subtitle,
+  identifiers = [],
+  detail,
+  children,
+  onClose,
+}: {
+  open: boolean;
+  title: string;
+  subtitle?: string;
+  identifiers?: Array<{ label: string; value: string | null | undefined }>;
+  detail?: unknown;
+  children?: ReactNode;
+  onClose: () => void;
+}) {
+  const safeDetail = sanitizeTechnicalData(detail);
+  return (
+    <DetailDrawer
+      open={open}
+      title={title}
+      subtitle={subtitle}
+      className="technical-detail-drawer"
+      onClose={onClose}
+    >
+      <div className="technical-detail-drawer__trust">
+        <ShieldCheck size={16} aria-hidden="true" />
+        <span>Technical detail is read-only. Known secret fields are redacted.</span>
+      </div>
+      {identifiers.length ? (
+        <div className="technical-detail-drawer__ids">
+          {identifiers.map(({ label, value }) =>
+            value ? <CopyableId key={label} label={label} value={value} /> : null,
+          )}
+        </div>
+      ) : null}
+      {children}
+      {detail !== undefined ? (
+        <pre className="technical-detail-drawer__payload">
+          {JSON.stringify(safeDetail, null, 2)}
+        </pre>
+      ) : null}
+    </DetailDrawer>
   );
 }

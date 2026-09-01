@@ -115,6 +115,7 @@ function ProtectedApp() {
             <DashboardPage
               environmentId={environmentId}
               environmentName={environmentName}
+              environmentCode={currentEnvironment?.code ?? environmentName}
               environmentLevel={environmentLevel}
               security={security.data!}
               readiness={readiness.data}
