@@ -18,6 +18,7 @@ New readers can follow this path for a concise architecture and interview walkth
 5. [LLM Investigator](design/llm-investigator.md) — grounded reasoning without authority.
 6. [Roadmap](roadmap.md) — implemented scope through M8.5 and next options.
 7. [Deployment Compatibility](design/deployment-compatibility.md) — safe legacy SSH migration.
+8. [GitOps Change Workflow](design/gitops-change-workflow.md) — governed desired-state changes.
 
 For a runnable tour, use the [Offline Demo and Recording Guide](demo.md) and the
 [Portfolio Screenshot Guide](demo/screenshots.md).
@@ -47,6 +48,10 @@ For a runnable tour, use the [Offline Demo and Recording Guide](demo.md) and the
 ## Design Docs
 
 - [OpsPilot Operations Design System](../DESIGN.md) — canonical frontend visual and interaction contract
+- [GitOps Change Workflow](design/gitops-change-workflow.md) — M9 architecture and lifecycle
+- [Change Policy](design/change-policy.md) — deterministic semantic authorization
+- [Git Side-effect Reconciliation](design/git-side-effect-reconciliation.md) — outbox, UNKNOWN, and correlation
+- [Synthetic GitOps Demo](demo/gitops-demo.md) — offline E2E and manual live-lab boundary
 - [Portfolio Screenshot Guide](demo/screenshots.md) — canonical synthetic-data captures and responsive review
 - [Deployment Compatibility](design/deployment-compatibility.md) — M8.5 typed profiles, Ansible over SSH, verification and readiness
 - [Legacy Environment Migration Guide](migration/legacy-environment-guide.md) — synthetic-to-private migration steps
@@ -75,6 +80,9 @@ All ADRs are English only.
 - [ADR 0007: LLM reasoning with deterministic authorization](adr/0007-llm-reasoning-with-deterministic-authorization.md)
 - [ADR 0013: SSH is an infrastructure detail](adr/0013-ssh-is-an-infrastructure-detail.md)
 - [ADR 0014: Legacy migration uses Strangler adapters](adr/0014-legacy-migration-uses-strangler-adapters.md)
+- [ADR 0015: CHANGE uses GitOps, not imperative execution](adr/0015-change-uses-gitops-not-imperative-execution.md)
+- [ADR 0016: OpsPilot does not merge its own change PRs](adr/0016-opspilot-does-not-merge-its-own-change-prs.md)
+- [ADR 0017: Git side effects use outbox and reconciliation](adr/0017-git-side-effects-use-outbox-and-reconciliation.md)
 
 ## Interview Notes
 

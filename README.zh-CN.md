@@ -9,6 +9,8 @@
 
 ```bash
 make demo-local
+# 独立、确定性的 M9 演示（无需集群或 GitHub 凭据）
+make gitops-demo
 ```
 
 稳定 Portfolio v1.0（M1–M8.5）包含 governed multi-backend execution plane。Mock、Ansible 继续保留，并通过
@@ -32,8 +34,13 @@ flowchart LR
   Optional[可选: RAG / MCP / OpenAI] -.-> Investigator
 ```
 
-**当前状态：** M1–M8.5 已实现。标准本地演示仍是稳定的 Portfolio 入口。
-**下一工程里程碑：** M9 GitOps Change Workflow（Future Work，不属于 v1.0）。
+**当前状态：** 稳定 Portfolio v1.0 仍冻结于 M1–M8.5；M9 GitOps Change Workflow
+已作为独立的当前开发里程碑实现。下一工程里程碑是 M10。
+
+```text
+REMEDIATE：Action → Policy → HITL → Governed Execution → Verification
+CHANGE：   Structured Change → Policy → HITL → PR → Git Review → GitOps → Verification
+```
 
 M8.5 增加严格部署 Profile、systemd / 固定脚本服务控制、只读 doctor、迁移就绪度评估、
 安全的遗留 API / Ticket 边界，以及 synthetic Ansible-over-SSH Lab。
@@ -129,6 +136,8 @@ ActionRequest -> ActionPolicyEngine -> approval boundary -> ActionExecutor -> ve
 - 确定性策略引擎：目标白名单与 fail-closed 规则
 - 依赖注入端口背后的 Mock 与固定映射 Ansible 执行器（`M1A`/`M1B`）
 - 受治理的 Mock、Ansible 和 allowlisted Harness 执行 Profile 及 reconciliation（`M8`）
+- 受治理的 GitOps 变更工作流：语义 diff、独立 Git review、pull-based reconciliation、
+  revision correlation 与独立验证（`M9`）
 - 审计 / 评估基础：评估夹具、安全用例、CI 中的 secret 扫描
 
 ## MCP Capability Plane
@@ -138,9 +147,8 @@ allowlist 的 typed observability 与 historical-memory 工具。MCP annotations
 Evidence ownership、durable HITL 和固定 Executor 仍是唯一安全边界。唯一写操作工具只创建
 remediation proposal 并返回 approval reference，不能直接执行。运行 `make mcp-demo` 验证互操作。
 
-**Future Work（不属于稳定 v1.0）：**
+**Future Work：**
 
-- GitOps 受治理变更工作流（`M9`）
 - 高级评估与智能体可观测性（`M10`/`M11`）
 
 ## 安全模型
@@ -240,6 +248,7 @@ LLM 模式需要有效的 `OPENAI_API_KEY` 与经运维确认的模型配置。P
 | M7 MCP Capability Boundary | **已实现** |
 | M8 Multi-backend Governed Execution | **已实现** |
 | M8.5 Deployment Compatibility & Legacy Migration Bridge | **已实现** |
+| M9 GitOps Change Workflow | **已实现（当前开发里程碑）** |
 
 Worker 每次迭代从选中的 Mock 或 Ansible 后端与启用的 Target 白名单构建一个由运维配置的
 `ActionService`，并把同一个策略/执行器边界注入普通 Operations 与 LangGraph 工作流；工作流
@@ -255,19 +264,19 @@ M1B 已移除遗留的 SSH 与服务脚本运行时。Ansible 可以按运维自
 
 | 里程碑 | 状态 |
 | --- | --- |
-| M1A – M8.5 | **已实现**（见当前状态） |
+| M1A – M9 | **已实现**（见当前状态） |
 | Local Demo Closeout | **已实现** |
 | M8 Harness Multi-backend Execution | **已实现** |
 | M8.5 Deployment Compatibility | **已实现** |
 | Portfolio v1.0 Evidence & Release Closeout | **当前稳定版本** |
-| M9 GitOps Change Workflow | Future Work / 下一工程里程碑 |
+| M9 GitOps Change Workflow | **已实现（当前开发里程碑）** |
 | M10 Risk Reviewer / Advanced Eval | Future Work |
 | M11 Agent Observability / Production Hardening | Future Work |
 
 ### Portfolio 入口
 
-标准本地演示仍是稳定的公开 Portfolio 入口。M8 受治理多后端执行与 M8.5 合成遗留环境
-迁移桥均已实现。
+标准本地演示仍是稳定的 Portfolio v1.0 入口。M9 新增独立的 `make gitops-demo`
+desired-state 变更证据路径；下一工程里程碑是 M10。
 
 ## 这个项目有什么不同
 

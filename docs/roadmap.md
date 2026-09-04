@@ -16,7 +16,7 @@
 | M8 Multi-Backend Governed Execution | Done | Mock, Ansible, Harness, outbox, reconciliation |
 | M8.5 Deployment Compatibility | Done | Typed profiles and a synthetic legacy-environment migration bridge |
 | **Stable Portfolio v1.0: M1–M8.5** | **Current stable release** | Architecture frozen; benchmark and release evidence |
-| M9 GitOps Change Workflow | Future work | Governed configuration and deployment change |
+| M9 GitOps Change Workflow | Done | Typed change intent, two human gates, Git PR, GitOps reconciliation, verification |
 | M10 Risk Reviewer / Advanced Eval | Future work | Advisory risk review and expanded evaluation |
 | M11 Agent Observability / Production Hardening | Future work | Operational telemetry, deployment and resilience |
 
@@ -29,5 +29,5 @@ The canonical local demo remains the stable portfolio entry point. M1–M8.5 are
 demonstration focuses on evidence, durable approval, governed execution, and independent
 verification. Historical Memory and MCP remain optional advanced demonstrations.
 
-The project is complete as a stable Portfolio v1.0. The next engineering milestone, when resumed, is
-**M9 GitOps Change Workflow**; it is not part of the current release.
+Portfolio v1.0 remains the stable M1–M8.5 release. M9 is implemented as the current development
+milestone and preserves that frozen remediation architecture. The next milestone is **M10**.
