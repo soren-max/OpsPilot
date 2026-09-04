@@ -51,7 +51,16 @@ def main() -> None:
     checks = (
         Check(
             "Backend tests",
-            ("uv", "run", "--project", "backend", "--no-sync", "pytest", "backend/tests"),
+            (
+                "uv",
+                "run",
+                "--project",
+                "backend",
+                "--no-sync",
+                "pytest",
+                "-s",
+                "backend/tests",
+            ),
         ),
         Check(
             "Ruff",

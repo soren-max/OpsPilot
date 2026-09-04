@@ -1,4 +1,4 @@
-.PHONY: demo demo-local demo-full demo-doctor demo-doctor-live demo-reset demo-down demo-transcript lab-up lab-up-full lab-inject lab-status lab-reset lab-down lab-demo memory-index memory-eval mcp-demo mcp-eval execution-demo harness-demo deployment-preview deployment-doctor migration-assess legacy-demo legacy-reset legacy-down portfolio-benchmark portfolio-demo-repeatability portfolio-legacy-compatibility portfolio-check
+.PHONY: demo demo-local demo-full demo-doctor demo-doctor-live demo-reset demo-down demo-transcript lab-up lab-up-full lab-inject lab-status lab-reset lab-down lab-demo memory-index memory-eval mcp-demo mcp-eval execution-demo harness-demo deployment-preview deployment-doctor migration-assess legacy-demo legacy-reset legacy-down portfolio-benchmark portfolio-demo-repeatability portfolio-legacy-compatibility portfolio-check gitops-lab-up gitops-lab-status gitops-demo gitops-review gitops-merge gitops-lab-reset gitops-lab-down gitops-e2e
 
 COMPOSE = docker compose -f lab/docker-compose.yml
 DEMO_CORE = postgres dependency web-01 web-02 prometheus loki promtail
@@ -99,3 +99,30 @@ portfolio-legacy-compatibility:
 
 portfolio-check:
 	@python3 scripts/portfolio_check.py
+
+gitops-lab-up:
+	@echo "GitOps lab profile ready (offline deterministic provider). For Kind + Argo CD, follow docs/demo/gitops-demo.md."
+
+gitops-lab-status:
+	@uv run --project backend --no-sync python -m app.change.demo | tail -n 10
+
+gitops-demo:
+	@uv run --project backend --no-sync python -m app.change.demo
+
+gitops-review:
+	@test -n "$(CHANGE_ID)" || (echo "CHANGE_ID is required; this command represents an external synthetic reviewer."; exit 1)
+	@echo "External synthetic review recorded for $(CHANGE_ID). OpsPilot has no review or merge capability."
+
+gitops-merge:
+	@test -n "$(CHANGE_ID)" || (echo "CHANGE_ID is required; this command represents an external synthetic Git boundary."; exit 1)
+	@echo "External synthetic merge requested for $(CHANGE_ID). Run the watcher to observe it."
+
+gitops-lab-reset:
+	@echo "Offline GitOps lab is in-memory and already reset."
+
+gitops-lab-down:
+	@echo "Offline GitOps lab stopped."
+
+gitops-e2e:
+	@uv run --project backend --no-sync pytest -s backend/tests/change backend/tests/architecture/test_gitops_change_boundaries.py backend/tests/test_m9_migration.py -q
+	@uv run --project backend --no-sync python -m app.change.demo

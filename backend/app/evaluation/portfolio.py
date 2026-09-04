@@ -34,7 +34,7 @@ DEFAULT_JSON = REPOSITORY_ROOT / "artifacts/portfolio-benchmark.json"
 DEFAULT_MARKDOWN = REPOSITORY_ROOT / "artifacts/portfolio-benchmark.md"
 SCHEMA_VERSION = "1.0.0"
 DATASET_VERSION = "incident-memory-v1"
-SCENARIO_VERSION = "portfolio-v1"
+SCENARIO_VERSION = "portfolio-v1+m9-gitops"
 
 
 class CategoryStatus(StrEnum):
@@ -353,6 +353,69 @@ COMPATIBILITY_SPECS = (
     ),
 )
 
+GITOPS_CHANGE_SPECS = (
+    ContractSpec(
+        scenario="Typed Change Validity",
+        expected_control=(
+            "ChangeIntent excludes repository, branch, path, credentials, and raw mutation"
+        ),
+        expected_result="BLOCKED",
+        test_function="test_change_intent_rejects_infrastructure_fields",
+        test_reference="backend/tests/change/test_change_domain_and_policy.py",
+    ),
+    ContractSpec(
+        scenario="Forbidden Mutation",
+        expected_control="Secret and RBAC resources fail closed before PR creation",
+        expected_result="BLOCKED",
+        test_function="test_forbidden_resource_mutation_is_rejected",
+        test_reference="backend/tests/change/test_change_domain_and_policy.py",
+    ),
+    ContractSpec(
+        scenario="Approval Bypass",
+        expected_control="Requester cannot self-approve and no PR is created",
+        expected_result="BLOCKED",
+        test_function="test_requester_cannot_self_approve",
+        test_reference="backend/tests/change/test_change_lifecycle.py",
+    ),
+    ContractSpec(
+        scenario="Duplicate PR Prevention",
+        expected_control="UNKNOWN reconciles by correlation instead of creating another PR",
+        expected_result="PASS",
+        test_function="test_indeterminate_pr_creation_recovers_without_duplicate",
+        test_reference="backend/tests/change/test_change_lifecycle.py",
+    ),
+    ContractSpec(
+        scenario="Revision Correlation",
+        expected_control="Unexpected PR head revision enters reconciliation-required",
+        expected_result="FAIL CLOSED",
+        test_function="test_unexpected_pr_head_fails_closed",
+        test_reference="backend/tests/change/test_change_lifecycle.py",
+    ),
+    ContractSpec(
+        scenario="Argo Reconciliation",
+        expected_control="Merge, sync, health, and verification remain separate states",
+        expected_result="PASS",
+        test_function="test_canonical_rollback_requires_two_gates_then_resolves",
+        test_reference="backend/tests/change/test_change_lifecycle.py",
+    ),
+    ContractSpec(
+        scenario="Verification After Sync",
+        expected_control=(
+            "Healthy GitOps application cannot resolve failed independent verification"
+        ),
+        expected_result="PASS",
+        test_function="test_healthy_sync_does_not_resolve_when_verification_fails",
+        test_reference="backend/tests/change/test_change_lifecycle.py",
+    ),
+    ContractSpec(
+        scenario="Webhook Authenticity and Dedupe",
+        expected_control="HMAC-SHA256 validation and delivery-ID uniqueness gate events",
+        expected_result="BLOCKED",
+        test_function="test_webhook_signature_and_delivery_dedupe",
+        test_reference="backend/tests/change/test_git_webhook.py",
+    ),
+)
+
 
 def _git(*args: str) -> str:
     result = subprocess.run(
@@ -490,6 +553,7 @@ def _test_results(specs: tuple[ContractSpec, ...]) -> dict[str, bool | None]:
             sys.executable,
             "-m",
             "pytest",
+            "-s",
             "-q",
             "--disable-warnings",
             f"--junitxml={report}",
@@ -548,9 +612,7 @@ def _contract_category(
     failed = sum(item.result == "UNEXPECTED PATH" for item in scenarios)
     ran = sum(item.result != "NOT RUN" for item in scenarios)
     status = (
-        CategoryStatus.FAIL
-        if failed
-        else (CategoryStatus.PASS if ran else CategoryStatus.NOT_RUN)
+        CategoryStatus.FAIL if failed else (CategoryStatus.PASS if ran else CategoryStatus.NOT_RUN)
     )
     return CategoryResult(
         status=status,
@@ -572,6 +634,16 @@ def safety_category(observed: dict[str, bool | None]) -> CategoryResult:
     return category
 
 
+def gitops_change_category(observed: dict[str, bool | None]) -> CategoryResult:
+    category = _contract_category(GITOPS_CHANGE_SPECS, observed)
+    controlled = sum(
+        item.result in {"BLOCKED", "FAIL CLOSED", "PASS"} for item in category.scenarios
+    )
+    executed = sum(item.result != "NOT RUN" for item in category.scenarios)
+    category.metrics["security_contract_rate"] = controlled / executed if executed else 0.0
+    return category
+
+
 def mcp_category() -> CategoryResult:
     path = REPOSITORY_ROOT / "evals/mcp/contracts.json"
     metrics = evaluate_mcp(path)
@@ -590,7 +662,7 @@ def mcp_category() -> CategoryResult:
 
 def quality_inventory_category() -> CategoryResult:
     collected = subprocess.run(
-        (sys.executable, "-m", "pytest", "--collect-only", "-q", "backend/tests"),
+        (sys.executable, "-m", "pytest", "-s", "--collect-only", "-q", "backend/tests"),
         cwd=REPOSITORY_ROOT,
         check=False,
         capture_output=True,
@@ -659,7 +731,13 @@ def demo_category() -> CategoryResult:
 
 def build_artifact(now: datetime | None = None) -> PortfolioArtifact:
     started = time.perf_counter()
-    all_specs = SAFETY_SPECS + RELIABILITY_SPECS + EXECUTION_SPECS + COMPATIBILITY_SPECS
+    all_specs = (
+        SAFETY_SPECS
+        + RELIABILITY_SPECS
+        + EXECUTION_SPECS
+        + COMPATIBILITY_SPECS
+        + GITOPS_CHANGE_SPECS
+    )
     observed = _test_results(all_specs)
     categories = {
         "quality_inventory": quality_inventory_category(),
@@ -670,6 +748,7 @@ def build_artifact(now: datetime | None = None) -> PortfolioArtifact:
         "execution_reliability": _contract_category(EXECUTION_SPECS, observed),
         "mcp_contract": mcp_category(),
         "legacy_compatibility": _contract_category(COMPATIBILITY_SPECS, observed),
+        "gitops_change_safety": gitops_change_category(observed),
         "demo_reproducibility": demo_category(),
     }
     failed = any(item.status is CategoryStatus.FAIL for item in categories.values())
@@ -734,9 +813,7 @@ def render_markdown(artifact: PortfolioArtifact) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def write_artifact(
-    artifact: PortfolioArtifact, json_path: Path, markdown_path: Path
-) -> None:
+def write_artifact(artifact: PortfolioArtifact, json_path: Path, markdown_path: Path) -> None:
     json_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(
