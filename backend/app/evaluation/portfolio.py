@@ -421,7 +421,7 @@ def _git(*args: str) -> str:
     result = subprocess.run(
         ("git", *args), cwd=REPOSITORY_ROOT, check=False, capture_output=True, text=True
     )
-    return result.stdout.strip() if result.returncode == 0 else "UNKNOWN"
+    return result.stdout.rstrip() if result.returncode == 0 else "UNKNOWN"
 
 
 def provenance(now: datetime | None = None) -> Provenance:
