@@ -15,7 +15,9 @@ from app.api.routes import (
     approvals,
     auth,
     catalog,
+    changes,
     executions,
+    git_webhooks,
     incidents,
     legacy_compatibility,
     operations,
@@ -176,6 +178,8 @@ app.include_router(workflows.incident_router, prefix="/api/v1")
 app.include_router(workflows.workflow_router, prefix="/api/v1")
 app.include_router(approvals.router, prefix="/api/v1")
 app.include_router(executions.router, prefix="/api/v1")
+app.include_router(changes.router, prefix="/api/v1")
+app.include_router(git_webhooks.router, prefix="/api/v1")
 app.include_router(legacy_compatibility.router, prefix="/api/v1")
 
 
