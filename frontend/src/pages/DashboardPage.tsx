@@ -6,13 +6,16 @@ import {
   Clock3,
   Database,
   HardDrive,
+  PlayCircle,
   SearchCheck,
   Server,
+  ShieldAlert,
+  Siren,
   Workflow,
 } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { auditsApi, catalogApi, systemApi, tasksApi } from "../api";
+import { approvalsApi, auditsApi, catalogApi, incidentsApi, systemApi, tasksApi } from "../api";
 import { StatusCheckComposer } from "../components/dashboard/StatusCheckComposer";
 import { EmptyState, ErrorState, LoadingState } from "../components/PageState";
 import {
@@ -32,6 +35,7 @@ import type { Audit, SecurityContext, SystemReady, Task } from "../types";
 export function DashboardPage({
   environmentId,
   environmentName,
+  environmentCode,
   environmentLevel,
   security,
   readiness,
@@ -40,6 +44,7 @@ export function DashboardPage({
 }: {
   environmentId: string;
   environmentName: string;
+  environmentCode: string;
   environmentLevel: "DEVELOPMENT" | "TEST" | "PRODUCTION";
   security: SecurityContext;
   readiness?: SystemReady;
@@ -74,6 +79,21 @@ export function DashboardPage({
     queryFn: () => tasksApi.statusSnapshots(environmentId),
     refetchInterval: 10_000,
   });
+  const incidents = useQuery({
+    queryKey: queryKeys.incidents(environmentCode),
+    queryFn: () => incidentsApi.list(environmentCode),
+    refetchInterval: 10_000,
+  });
+  const approvals = useQuery({
+    queryKey: queryKeys.approvals,
+    queryFn: () => approvalsApi.list(),
+    refetchInterval: 10_000,
+  });
+  const executions = useQuery({
+    queryKey: queryKeys.executions,
+    queryFn: () => incidentsApi.executions(),
+    refetchInterval: 5_000,
+  });
   const environmentTasks = useMemo(
     () => (tasks.data ?? []).filter((item) => item.environment_id === environmentId),
     [environmentId, tasks.data],
@@ -83,12 +103,7 @@ export function DashboardPage({
     return (audits.data ?? []).filter((item) => item.task_id && taskIds.has(item.task_id));
   }, [audits.data, environmentTasks]);
   const assets = useMemo(
-    () =>
-      mapHostsToAssets(
-        hosts.data ?? [],
-        security.environment,
-        snapshots.data ?? [],
-      ),
+    () => mapHostsToAssets(hosts.data ?? [], security.environment, snapshots.data ?? []),
     [hosts.data, security.environment, snapshots.data],
   );
   const dashboard = useMemo(
@@ -108,6 +123,24 @@ export function DashboardPage({
   const recentAudits = [...environmentAudits]
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
     .slice(0, 5);
+  const environmentIncidents = incidents.data?.items ?? [];
+  const environmentIncidentIds = new Set(environmentIncidents.map((item) => item.id));
+  const activeIncidents = environmentIncidents
+    .filter((item) => !["RESOLVED", "CLOSED"].includes(item.status))
+    .sort((left, right) => Date.parse(right.updated_at) - Date.parse(left.updated_at));
+  const waitingApprovals = (approvals.data ?? []).filter(
+    (item) => item.status === "PENDING" && environmentIncidentIds.has(item.incident_id),
+  );
+  const environmentExecutions = (executions.data ?? []).filter((item) =>
+    environmentIncidentIds.has(item.incident_id),
+  );
+  const runningExecutions = environmentExecutions.filter((item) => item.status === "RUNNING");
+  const failedVerifications = environmentExecutions.filter(
+    (item) => item.verification_status === "FAILED",
+  );
+  const resolvedIncidents = environmentIncidents.filter((item) =>
+    ["RESOLVED", "CLOSED"].includes(item.status),
+  );
   return (
     <div className="page-stack dashboard-page dashboard-operations">
       <PageHeader
@@ -188,6 +221,62 @@ export function DashboardPage({
         </section>
       </div>
 
+      <section className="operational-signal-strip" aria-label="Operational incident signals">
+        <OperationalKpi
+          label="Open Incidents"
+          value={incidents.isLoading ? "—" : activeIncidents.length}
+          detail="Requires operator awareness"
+          to="/incidents"
+          tone={activeIncidents.length ? "danger" : "success"}
+          icon={<Siren size={17} aria-hidden="true" />}
+        />
+        <OperationalKpi
+          label="Waiting Approval"
+          value={approvals.isLoading ? "—" : waitingApprovals.length}
+          detail="Governed actions paused"
+          to={
+            waitingApprovals[0]
+              ? `/incidents/${waitingApprovals[0].incident_id}#approval`
+              : "/incidents"
+          }
+          tone={waitingApprovals.length ? "warning" : "neutral"}
+          icon={<ShieldAlert size={17} aria-hidden="true" />}
+        />
+        <OperationalKpi
+          label="Running Execution"
+          value={executions.isLoading ? "—" : runningExecutions.length}
+          detail="Provider work in progress"
+          to="/tasks"
+          tone={runningExecutions.length ? "info" : "neutral"}
+          icon={<PlayCircle size={17} aria-hidden="true" />}
+        />
+        <OperationalKpi
+          label="Failed Verification"
+          value={executions.isLoading ? "—" : failedVerifications.length}
+          detail="Execution and health diverged"
+          to={
+            failedVerifications[0]
+              ? `/incidents/${failedVerifications[0].incident_id}#execution`
+              : "/incidents"
+          }
+          tone={failedVerifications.length ? "danger" : "neutral"}
+          icon={<AlertTriangle size={17} aria-hidden="true" />}
+        />
+        <OperationalKpi
+          label="Recent Resolved"
+          value={incidents.isLoading ? "—" : resolvedIncidents.length}
+          detail="Current incident result set"
+          to="/incidents"
+          tone="success"
+          icon={<CheckCircle2 size={17} aria-hidden="true" />}
+        />
+      </section>
+      {incidents.error || approvals.error || executions.error ? (
+        <InlineNotice title="Some incident signals are unavailable" tone="warning">
+          Unknown data is not counted as healthy. Open the related page to retry its data source.
+        </InlineNotice>
+      ) : null}
+
       {primaryLoading ? (
         <LoadingState variant="cards" label="正在汇总运行数据" />
       ) : primaryError ? (
@@ -236,6 +325,46 @@ export function DashboardPage({
       )}
 
       <div className="dashboard-workbench">
+        <PageSection
+          className="dashboard-incident-panel"
+          title="Active incidents"
+          description="Updated operational incidents in the selected environment"
+          actions={
+            <Link className="section-link" to="/incidents">
+              Open incident queue
+            </Link>
+          }
+        >
+          {incidents.isLoading ? (
+            <LoadingState variant="cards" label="Loading incidents" />
+          ) : incidents.error ? (
+            <ErrorState error={incidents.error} onRetry={() => void incidents.refetch()} />
+          ) : activeIncidents.length ? (
+            <ul className="dashboard-incident-list">
+              {activeIncidents.slice(0, 5).map((item) => (
+                <li key={item.id}>
+                  <span
+                    className={`incident-priority incident-priority--${item.severity.toLowerCase()}`}
+                  >
+                    {item.severity}
+                  </span>
+                  <span>
+                    <Link to={`/incidents/${item.id}`}>{item.title}</Link>
+                    <small>
+                      {item.service} · {item.environment} · {compactDate(item.updated_at)}
+                    </small>
+                  </span>
+                  <StatusBadge status={item.status} domain="incident" compact />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState
+              title="No active incidents"
+              message="Resolved incidents remain available in the incident queue."
+            />
+          )}
+        </PageSection>
         <PageSection
           className="dashboard-task-table"
           title="最近任务"
@@ -378,6 +507,33 @@ function SystemStatusItem({
       </span>
       <StatusBadge status={status} compact />
     </div>
+  );
+}
+
+function OperationalKpi({
+  label,
+  value,
+  detail,
+  to,
+  tone,
+  icon,
+}: {
+  label: string;
+  value: string | number;
+  detail: string;
+  to: string;
+  tone: "neutral" | "success" | "warning" | "danger" | "info";
+  icon: React.ReactNode;
+}) {
+  return (
+    <Link className={`operational-signal operational-signal--${tone}`} to={to}>
+      <span className="operational-signal__icon">{icon}</span>
+      <span>
+        <small>{label}</small>
+        <strong>{value}</strong>
+        <b>{detail}</b>
+      </span>
+    </Link>
   );
 }
 

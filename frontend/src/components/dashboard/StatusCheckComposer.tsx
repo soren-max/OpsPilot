@@ -112,9 +112,7 @@ export function StatusCheckComposer({
           : "创建任务后自动进入实时任务详情"
       }
     >
-      <div
-        className={`operation-console__topline ${isAnsible ? "is-integration" : ""}`}
-      >
+      <div className={`operation-console__topline ${isAnsible ? "is-integration" : ""}`}>
         <span>
           {isAnsible ? (
             <ShieldAlert size={17} aria-hidden="true" />
@@ -193,9 +191,7 @@ export function StatusCheckComposer({
               !actionCapability.canInitiate || !serviceId || !hostIds.length || create.isPending
             }
             onClick={submit}
-            className={`button ${
-              action === "restart" ? "button--warning" : "button--primary"
-            }`}
+            className={`button ${action === "restart" ? "button--warning" : "button--primary"}`}
           >
             {create.isPending
               ? "正在创建任务…"

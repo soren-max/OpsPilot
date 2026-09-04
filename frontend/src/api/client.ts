@@ -44,7 +44,10 @@ async function readResponse(response: Response): Promise<unknown | null> {
       return JSON.parse(text) as unknown;
     } catch {
       if (import.meta.env.DEV) {
-        console.warn("OPSPILOT API returned malformed JSON", { status: response.status, contentType });
+        console.warn("OPSPILOT API returned malformed JSON", {
+          status: response.status,
+          contentType,
+        });
       }
       return null;
     }

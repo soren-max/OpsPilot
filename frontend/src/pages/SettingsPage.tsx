@@ -111,10 +111,7 @@ export function SettingsPage({
                 </div>
               </div>
               <dl className="sensitive-field-list">
-                {[
-                  "operator.inventory",
-                  "application.playbook_mapping",
-                ].map((field) => (
+                {["operator.inventory", "application.playbook_mapping"].map((field) => (
                   <div key={field}>
                     <dt className="mono">{field}</dt>
                     <dd>不下发</dd>
@@ -172,13 +169,7 @@ function SettingFlag({
   );
 }
 
-function Allowlist({
-  label,
-  values,
-}: {
-  label: string;
-  values: string[];
-}) {
+function Allowlist({ label, values }: { label: string; values: string[] }) {
   return (
     <div className="allowlist-row">
       <span className="mono">{label}</span>

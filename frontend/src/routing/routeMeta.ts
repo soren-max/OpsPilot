@@ -4,14 +4,14 @@ export interface RouteMeta {
 }
 
 export const routeMeta: RouteMeta[] = [
-  { path: "/", label: "运维总览" },
-  { path: "/services", label: "服务管理" },
-  { path: "/hosts", label: "主机管理" },
-  { path: "/incidents", label: "事件中心" },
-  { path: "/tasks", label: "任务中心" },
-  { path: "/audits", label: "操作审计" },
-  { path: "/access", label: "权限管理" },
-  { path: "/settings", label: "系统配置" },
+  { path: "/", label: "Overview" },
+  { path: "/services", label: "Services" },
+  { path: "/hosts", label: "Hosts" },
+  { path: "/incidents", label: "Incidents" },
+  { path: "/tasks", label: "Executions" },
+  { path: "/audits", label: "Audit" },
+  { path: "/access", label: "Capabilities" },
+  { path: "/settings", label: "Settings" },
 ];
 
 export function matchRouteMeta(pathname: string): RouteMeta {

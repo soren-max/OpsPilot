@@ -35,6 +35,25 @@ test("design tokens match the OPSPILOT operations console contract", async () =>
   assert.ok(contrastRatio("#c6c6c6", "#262626") >= 4.5);
 });
 
+test("theme controls preserve the same semantic token system in dark mode", async () => {
+  const tokens = await source("../src/design-tokens.css");
+  const switcher = await source("../src/components/ThemeSwitcher.tsx");
+  const storage = await source("../src/theme/theme-storage.ts");
+
+  assert.match(tokens, /\[data-theme="dark"\]/);
+  assert.match(tokens, /--opspilot-bg:\s*#161616/i);
+  assert.match(tokens, /--opspilot-surface:\s*#262626/i);
+  assert.match(tokens, /--opspilot-text:\s*#f4f4f4/i);
+  assert.match(tokens, /--opspilot-terminal:\s*#161616/i);
+  assert.match(switcher, /浅色模式/);
+  assert.match(switcher, /深色值班模式/);
+  assert.match(switcher, /跟随系统/);
+  assert.match(switcher, /e\.key === "Escape"/);
+  assert.match(storage, /prefers-color-scheme: dark/);
+  assert.match(storage, /#161616/);
+  assert.match(storage, /#f4f4f4/);
+});
+
 test("dashboard uses the operations operations information architecture", async () => {
   const dashboard = await source("../src/pages/DashboardPage.tsx");
 
@@ -77,14 +96,8 @@ test("shell owns one viewport-bound, keyboard-scrollable main content region", a
   assert.match(shell, /id="main-content" className="ops-content" tabIndex=\{0\}/);
   assert.doesNotMatch(referenceStyles, /html,\s*body,\s*#root\s*\{[^}]*overflow:\s*hidden/s);
   assert.match(referenceStyles, /\.ops-main\s*\{[^}]*min-height:\s*0/s);
-  assert.match(
-    referenceStyles,
-    /\.ops-content\s*\{[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/s,
-  );
-  assert.match(
-    operationsStyles,
-    /\.ops-shell\s*\{[^}]*height:\s*100dvh[^}]*overflow:\s*hidden/s,
-  );
+  assert.match(referenceStyles, /\.ops-content\s*\{[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/s);
+  assert.match(operationsStyles, /\.ops-shell\s*\{[^}]*height:\s*100dvh[^}]*overflow:\s*hidden/s);
   assert.doesNotMatch(shell, /onWheel|addEventListener\([^)]*["']wheel/);
 });
 
@@ -110,7 +123,7 @@ test("settings and routing metadata are present", async () => {
   const settings = await source("../src/pages/SettingsPage.tsx");
 
   assert.match(app, /path="\/settings"/);
-  assert.match(routes, /系统配置/);
+  assert.match(routes, /Settings/);
   assert.match(settings, /Operator-owned 配置/);
   assert.match(settings, /只读视图/);
   assert.match(app, /systemApi\.ready/);

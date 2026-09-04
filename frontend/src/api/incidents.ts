@@ -14,8 +14,9 @@ export const incidentsApi = {
   detail: (incidentId: string) => api<Incident>(`/incidents/${incidentId}`),
   timeline: (incidentId: string) => api<TimelineItem[]>(`/incidents/${incidentId}/timeline`),
   workflows: (incidentId: string) => api<WorkflowRun[]>(`/incidents/${incidentId}/workflows`),
-  related: (incidentId: string) =>
-    api<RetrievedKnowledge[]>(`/incidents/${incidentId}/related`),
-  executions: (incidentId: string) =>
-    api<ExecutionRecord[]>(`/executions?incident_id=${encodeURIComponent(incidentId)}`),
+  related: (incidentId: string) => api<RetrievedKnowledge[]>(`/incidents/${incidentId}/related`),
+  executions: (incidentId?: string) =>
+    api<ExecutionRecord[]>(
+      incidentId ? `/executions?incident_id=${encodeURIComponent(incidentId)}` : "/executions",
+    ),
 };

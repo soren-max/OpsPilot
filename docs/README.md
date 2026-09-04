@@ -19,7 +19,8 @@ New readers can follow this path for a concise architecture and interview walkth
 6. [Roadmap](roadmap.md) — implemented scope through M8.5 and next options.
 7. [Deployment Compatibility](design/deployment-compatibility.md) — safe legacy SSH migration.
 
-For a runnable tour, use the [Offline Demo and Recording Guide](demo.md).
+For a runnable tour, use the [Offline Demo and Recording Guide](demo.md) and the
+[Portfolio Screenshot Guide](demo/screenshots.md).
 
 ## Architecture
 
@@ -45,6 +46,8 @@ For a runnable tour, use the [Offline Demo and Recording Guide](demo.md).
 
 ## Design Docs
 
+- [OpsPilot Operations Design System](../DESIGN.md) — canonical frontend visual and interaction contract
+- [Portfolio Screenshot Guide](demo/screenshots.md) — canonical synthetic-data captures and responsive review
 - [Deployment Compatibility](design/deployment-compatibility.md) — M8.5 typed profiles, Ansible over SSH, verification and readiness
 - [Legacy Environment Migration Guide](migration/legacy-environment-guide.md) — synthetic-to-private migration steps
 - [Private Adapter Boundary](migration/private-adapter-boundary.md) — public code versus private deployment knowledge
