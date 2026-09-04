@@ -241,3 +241,11 @@ The intended dependency direction is:
 `design-tokens.css → shared primitives → feature styles`
 
 `styles.css` and `reference-console.css` contain frozen compatibility selectors from earlier iterations. Do not add new feature-specific rules there. New product work belongs in `operations-console.css` until those compatibility layers can be removed through verified, incremental migration. Temporary aliases in `design-tokens.css` must resolve to canonical `--opspilot-*` tokens and must not introduce independent values.
+
+## GitOps Change UX
+
+The Change Console keeps the two human gates visibly independent: OpsPilot approval authorizes PR
+creation, while protected-branch Git review authorizes merge. Its primary order is lifecycle,
+target/risk identity, gates, semantic diff, revisions, reconciliation, verification, then audit.
+Raw Git diff is technical disclosure. `PR_CREATED`, `MERGED`, `SYNCED`, `HEALTHY`, and `VERIFIED`
+remain distinct; only independent verification may present the incident as resolved.

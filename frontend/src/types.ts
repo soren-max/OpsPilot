@@ -362,3 +362,83 @@ export interface ExecutionRecord {
   git_commit_sha: string | null;
   created_at: string;
 }
+
+export type ChangeStatus =
+  | "PROPOSED"
+  | "POLICY_APPROVED"
+  | "WAITING_APPROVAL"
+  | "APPROVED"
+  | "PLANNED"
+  | "VALIDATED"
+  | "QUEUED"
+  | "BRANCH_CREATED"
+  | "COMMITTED"
+  | "PR_CREATED"
+  | "WAITING_REVIEW"
+  | "APPROVED_FOR_MERGE"
+  | "MERGED"
+  | "RECONCILING"
+  | "SYNCED"
+  | "HEALTHY"
+  | "VERIFIED"
+  | "RESOLVED"
+  | "REJECTED"
+  | "FAILED"
+  | "UNKNOWN"
+  | "RECONCILIATION_REQUIRED";
+
+export interface ChangeRecord {
+  id: string;
+  incident_id: string;
+  workflow_id: string;
+  profile_id: string;
+  change_type: "ROLLBACK_IMAGE" | "SCALE_REPLICAS";
+  status: ChangeStatus;
+  source_revision: string | null;
+  branch: string | null;
+  commit_sha: string | null;
+  pull_request_id: string | null;
+  pull_request_url: string | null;
+  merged_revision: string | null;
+  gitops_application_ref: string;
+  policy_result_ref: string | null;
+  approval_id: string | null;
+  approval_actor: string | null;
+  approval_reason: string | null;
+  approval_decided_at: string | null;
+  verification_id: string | null;
+  verification_status: string | null;
+  sync_status: string | null;
+  health_status: string | null;
+  review_state: string | null;
+  failure_category: string | null;
+  safe_failure_message: string | null;
+  created_at: string;
+  updated_at: string;
+  version: number;
+}
+
+export interface ChangePage {
+  items: ChangeRecord[];
+  count: number;
+}
+
+export interface ChangePreview {
+  resource: string;
+  field: string;
+  before: string | number;
+  after: string | number;
+  blast_radius: number;
+  artifact: string | null;
+  environment: string;
+  verification_plan: { profile_ref: string; signals: string[] };
+  raw_diff: string;
+}
+
+export interface ChangeTimelineItem {
+  id: string;
+  event_type: string;
+  occurred_at: string;
+  summary: string;
+  metadata: Record<string, unknown>;
+}

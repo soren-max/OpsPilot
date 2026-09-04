@@ -8,6 +8,7 @@ export { ApiError, TOKEN_KEY } from "./api/client";
 export { auditsApi } from "./api/audits";
 export { authApi } from "./api/auth";
 export { catalogApi } from "./api/catalog";
+export { changesApi } from "./api/changes";
 export { incidentsApi } from "./api/incidents";
 export { approvalsApi } from "./api/approvals";
 export { systemApi } from "./api/system";
