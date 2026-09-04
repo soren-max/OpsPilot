@@ -1,22 +1,22 @@
 {
   "schema_version": "1.0.0",
   "provenance": {
-    "git_commit": "37493e36eb76aaf7625b9fdbffaa4ff3200ef98a",
+    "git_commit": "0433c9da6d30a1b3d5cf37fdc17e8c9d6a2f103e",
     "git_dirty": false,
-    "timestamp": "2026-08-31T09:19:07.553673+00:00",
-    "python_version": "3.13.14",
+    "timestamp": "2026-09-04T08:20:00.000901+00:00",
+    "python_version": "3.13.15",
     "dataset_version": "incident-memory-v1",
-    "scenario_version": "portfolio-v1",
+    "scenario_version": "portfolio-v1+m9-gitops",
     "configuration_mode": "offline-deterministic"
   },
-  "duration_ms": 9614.356395999948,
+  "duration_ms": 12736.592083999767,
   "overall_status": "PASS",
   "categories": {
     "quality_inventory": {
       "status": "PASS",
       "metrics": {
-        "backend_tests_collected": 320,
-        "frontend_tests_declared": 28,
+        "backend_tests_collected": 359,
+        "frontend_tests_declared": 41,
         "lab_scenarios": 4
       },
       "scenarios": [],
@@ -45,40 +45,40 @@
         "dense.recall_at_10": 0.9722222222222222,
         "dense.mrr": 0.8217592592592593,
         "dense.root_cause_hit_rate": 0.9166666666666666,
-        "dense.latency_p50_ms": 0.3214265000224259,
-        "dense.latency_p95_ms": 0.4381380003906088,
+        "dense.latency_p50_ms": 0.331346999928428,
+        "dense.latency_p95_ms": 0.4980819999218511,
         "sparse.recall_at_5": 1.0,
         "sparse.recall_at_10": 1.0,
         "sparse.mrr": 1.0,
         "sparse.root_cause_hit_rate": 1.0,
-        "sparse.latency_p50_ms": 0.3375929998128413,
-        "sparse.latency_p95_ms": 0.3976890002377331,
+        "sparse.latency_p50_ms": 0.33722350008247304,
+        "sparse.latency_p95_ms": 0.39988700018511736,
         "hybrid_rrf.recall_at_5": 0.9166666666666666,
         "hybrid_rrf.recall_at_10": 1.0,
         "hybrid_rrf.mrr": 0.9333333333333333,
         "hybrid_rrf.root_cause_hit_rate": 1.0,
-        "hybrid_rrf.latency_p50_ms": 0.32649200011292123,
-        "hybrid_rrf.latency_p95_ms": 0.3932310000891448
+        "hybrid_rrf.latency_p50_ms": 0.3344225001455925,
+        "hybrid_rrf.latency_p95_ms": 0.39127999980337336
       },
       "scenarios": [
         {
           "scenario": "dense",
           "expected_control": "Rank the checked-in M6 query set",
-          "actual": "R@5=0.861, R@10=0.972, MRR=0.822, RC-hit=0.917, p95=0.438ms",
+          "actual": "R@5=0.861, R@10=0.972, MRR=0.822, RC-hit=0.917, p95=0.498ms",
           "result": "BENCHMARKED",
           "test_reference": "evals/incident-memory/dataset.json"
         },
         {
           "scenario": "sparse",
           "expected_control": "Rank the checked-in M6 query set",
-          "actual": "R@5=1.000, R@10=1.000, MRR=1.000, RC-hit=1.000, p95=0.398ms",
+          "actual": "R@5=1.000, R@10=1.000, MRR=1.000, RC-hit=1.000, p95=0.400ms",
           "result": "BENCHMARKED",
           "test_reference": "evals/incident-memory/dataset.json"
         },
         {
           "scenario": "hybrid_rrf",
           "expected_control": "Rank the checked-in M6 query set",
-          "actual": "R@5=0.917, R@10=1.000, MRR=0.933, RC-hit=1.000, p95=0.393ms",
+          "actual": "R@5=0.917, R@10=1.000, MRR=0.933, RC-hit=1.000, p95=0.391ms",
           "result": "BENCHMARKED",
           "test_reference": "evals/incident-memory/dataset.json"
         }
@@ -207,8 +207,8 @@
       "status": "PASS",
       "metrics": {
         "scenario_count": 9,
-        "executed_count": 9,
-        "not_run_count": 0,
+        "executed_count": 8,
+        "not_run_count": 1,
         "unexpected_execution_paths": 0
       },
       "scenarios": [
@@ -222,8 +222,8 @@
         {
           "scenario": "checkpoint restore",
           "expected_control": "A PostgreSQL saver recreation reads the durable checkpoint",
-          "actual": "Referenced contract test passed in this benchmark run",
-          "result": "PASS",
+          "actual": "NOT RUN (required local integration dependency or test unavailable)",
+          "result": "NOT RUN",
           "test_reference": "backend/tests/workflows/test_postgres_checkpoint.py::test_checkpoint_survives_saver_recreation"
         },
         {
@@ -396,6 +396,75 @@
           "actual": "Referenced contract test passed in this benchmark run",
           "result": "PASS",
           "test_reference": "backend/tests/deployment/test_ansible_deployment.py::test_fixed_script_uses_only_operator_mapping_and_fixed_playbooks"
+        }
+      ],
+      "note": null
+    },
+    "gitops_change_safety": {
+      "status": "PASS",
+      "metrics": {
+        "scenario_count": 8,
+        "executed_count": 8,
+        "not_run_count": 0,
+        "unexpected_execution_paths": 0,
+        "security_contract_rate": 1.0
+      },
+      "scenarios": [
+        {
+          "scenario": "Typed Change Validity",
+          "expected_control": "ChangeIntent excludes repository, branch, path, credentials, and raw mutation",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/change/test_change_domain_and_policy.py::test_change_intent_rejects_infrastructure_fields"
+        },
+        {
+          "scenario": "Forbidden Mutation",
+          "expected_control": "Secret and RBAC resources fail closed before PR creation",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/change/test_change_domain_and_policy.py::test_forbidden_resource_mutation_is_rejected"
+        },
+        {
+          "scenario": "Approval Bypass",
+          "expected_control": "Requester cannot self-approve and no PR is created",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/change/test_change_lifecycle.py::test_requester_cannot_self_approve"
+        },
+        {
+          "scenario": "Duplicate PR Prevention",
+          "expected_control": "UNKNOWN reconciles by correlation instead of creating another PR",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/change/test_change_lifecycle.py::test_indeterminate_pr_creation_recovers_without_duplicate"
+        },
+        {
+          "scenario": "Revision Correlation",
+          "expected_control": "Unexpected PR head revision enters reconciliation-required",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "FAIL CLOSED",
+          "test_reference": "backend/tests/change/test_change_lifecycle.py::test_unexpected_pr_head_fails_closed"
+        },
+        {
+          "scenario": "Argo Reconciliation",
+          "expected_control": "Merge, sync, health, and verification remain separate states",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/change/test_change_lifecycle.py::test_canonical_rollback_requires_two_gates_then_resolves"
+        },
+        {
+          "scenario": "Verification After Sync",
+          "expected_control": "Healthy GitOps application cannot resolve failed independent verification",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/change/test_change_lifecycle.py::test_healthy_sync_does_not_resolve_when_verification_fails"
+        },
+        {
+          "scenario": "Webhook Authenticity and Dedupe",
+          "expected_control": "HMAC-SHA256 validation and delivery-ID uniqueness gate events",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/change/test_git_webhook.py::test_webhook_signature_and_delivery_dedupe"
         }
       ],
       "note": null
