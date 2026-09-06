@@ -28,6 +28,7 @@ from app.application.workflow_service import WorkflowService
 from app.capabilities import IncidentCapabilities
 from app.capabilities.policy import CapabilityQueryPolicy
 from app.capabilities.tickets import TicketsCapability
+from app.change.controller import tick as change_tick
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
 from app.db.session import SessionLocal
@@ -229,6 +230,8 @@ def main() -> None:
     while running:
         with SessionLocal() as db:
             action_service = build_action_service(db, settings)
+            capabilities = build_incident_capabilities(db, settings, action_service)
+            change_tick(db, settings, capabilities)
             execution_plane, execution_dispatcher = build_execution_plane(
                 db, settings, action_service
             )

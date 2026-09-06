@@ -8,6 +8,7 @@ export const routeMeta: RouteMeta[] = [
   { path: "/services", label: "Services" },
   { path: "/hosts", label: "Hosts" },
   { path: "/incidents", label: "Incidents" },
+  { path: "/changes", label: "Changes" },
   { path: "/tasks", label: "Executions" },
   { path: "/audits", label: "Audit" },
   { path: "/access", label: "Capabilities" },

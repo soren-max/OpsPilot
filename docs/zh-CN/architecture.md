@@ -29,7 +29,8 @@ flowchart LR
 ```
 
 `demo-full` 增加本地 Qdrant 历史上下文和 MCP capability plane，但不改变 Policy、
-审批、执行器或验证的权威边界。Harness 已在 M8 实现；GitOps 属于 M9。
+审批、执行器或验证的权威边界。Harness 已在 M8 实现；GitOps 已在 M9 实现为独立的
+desired-state 变更路径（pull-based reconciliation，处于 v1.0 REMEDIATE 链之外）。
 
 ## 运行模型
 
@@ -67,7 +68,7 @@ status / health              -> human approval              -> Harness（已实�
 
 修复（Remediation）是有边界的恢复操作，例如重启或重载。API 构造严格的 `ActionRequest`；`ActionPolicyEngine` 对其授权，HITL（Human-in-the-loop，人在回路）审批状态变更，`ActionService` 编排预览/执行/验证（preview/execute/verify），注入的 Mock 或 Ansible 适配器（Adapter）只运行应用自有的映射。
 
-变更（Change）包括部署、回滚、配置与 IaC。它们需要发布（rollout）、提升（promotion）与回滚生命周期，因此仍处于修复范畴之外。未来的受管控后端（governed backend）可能集成 Harness 与 GitOps；二者在 M1B 中均未实现。
+变更（Change）包括部署、回滚、配置与 IaC。它们需要发布（rollout）、提升（promotion）与回滚生命周期，因此仍处于修复范畴之外。Harness 已在 M8 实现为受治理的执行后端；GitOps 已在 M9 实现为独立的 desired-state 变更路径（Git PR → pull-based reconciliation → 独立验证），二者都在 v1.0 REMEDIATE 链之外。
 
 ## 可移植边界
 

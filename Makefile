@@ -1,4 +1,4 @@
-.PHONY: demo demo-local demo-full demo-doctor demo-doctor-live demo-reset demo-down demo-transcript lab-up lab-up-full lab-inject lab-status lab-reset lab-down lab-demo memory-index memory-eval mcp-demo mcp-eval execution-demo harness-demo deployment-preview deployment-doctor migration-assess legacy-demo legacy-reset legacy-down portfolio-benchmark portfolio-demo-repeatability portfolio-legacy-compatibility portfolio-check
+.PHONY: demo demo-local demo-full demo-doctor demo-doctor-live demo-reset demo-down demo-transcript lab-up lab-up-full lab-inject lab-status lab-reset lab-down lab-demo memory-index memory-eval mcp-demo mcp-eval execution-demo harness-demo deployment-preview deployment-doctor migration-assess legacy-demo legacy-reset legacy-down portfolio-benchmark portfolio-demo-repeatability portfolio-legacy-compatibility portfolio-check gitops-lab-up gitops-lab-status gitops-demo gitops-review gitops-merge gitops-lab-reset gitops-lab-down gitops-e2e
 
 COMPOSE = docker compose -f lab/docker-compose.yml
 DEMO_CORE = postgres dependency web-01 web-02 prometheus loki promtail
@@ -99,3 +99,35 @@ portfolio-legacy-compatibility:
 
 portfolio-check:
 	@python3 scripts/portfolio_check.py
+
+gitops-lab-up:
+	@uv run --project backend --no-sync python -m app.change.lab up
+
+gitops-lab-status:
+	@uv run --project backend --no-sync python -m app.change.lab status
+
+gitops-demo:
+	@uv run --project backend --no-sync python -m app.change.demo
+
+gitops-review:
+	@uv run --project backend --no-sync python -m app.change.lab review --change-id "$(CHANGE_ID)"
+
+gitops-merge:
+	@uv run --project backend --no-sync python -m app.change.lab merge --change-id "$(CHANGE_ID)"
+
+.PHONY: gitops-approve gitops-reconcile
+gitops-approve:
+	@uv run --project backend --no-sync python -m app.change.lab approve --change-id "$(CHANGE_ID)"
+
+gitops-reconcile:
+	@uv run --project backend --no-sync python -m app.change.lab reconcile --change-id "$(CHANGE_ID)"
+
+gitops-lab-reset:
+	@uv run --project backend --no-sync python -m app.change.lab reset
+
+gitops-lab-down:
+	@uv run --project backend --no-sync python -m app.change.lab down
+
+gitops-e2e:
+	@uv run --project backend --no-sync pytest -s backend/tests/change backend/tests/architecture/test_gitops_change_boundaries.py backend/tests/test_m9_migration.py -q
+	@uv run --project backend --no-sync python -m app.change.demo

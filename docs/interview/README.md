@@ -26,6 +26,12 @@ numbering quirk and the files are intentionally not renamed.
 | Execution Safety | [Agent Safety](04-agent-safety.md) | Structured actions and fail-closed policy constrain authority. |
 | Observability | [Observability Capabilities](13-observability-capabilities.md) | Typed ports replace arbitrary PromQL and LogQL. |
 | Ansible Boundary | [Executor and Ansible](06-executor-and-ansible.md) | Fixed mappings keep transport and playbook selection outside model control. |
+| Remediation vs Change | [Remediation vs Change](32-remediation-vs-change.md) | Operational recovery and desired-state mutation use separate execution semantics. |
+| GitOps | [Why GitOps](33-why-gitops.md) | Git review and pull reconciliation replace imperative cluster mutation. |
+| Two Human Gates | [Two Human Gates](34-two-human-gates.md) | OpsPilot approval cannot authorize merge. |
+| Git Idempotency | [Git Side-effect Idempotency](35-git-side-effect-idempotency.md) | UNKNOWN is reconciled by stable correlation, never blind retry. |
+| Sync vs Verification | [Why Sync Is Not Verification](36-why-sync-is-not-verification.md) | Argo health does not prove incident recovery. |
+| Revert | [Git-native Revert](37-git-native-revert.md) | Rollback is a new reviewed desired-state change. |
 
 ## Agent Workflow
 

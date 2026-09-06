@@ -7,12 +7,16 @@ current evidence, a grounded diagnosis and typed action, deterministic policy, d
 governed Ansible/Harness execution, independent verification, and an auditable result. A model may
 propose; it cannot authorize or select the execution path.
 
-**Current Stable Portfolio Release: v1.0 architecture (M1–M8.5).** M9+ is explicit future work.
+**Stable Portfolio Release: v1.0 architecture (M1–M8.5).** The current development milestone adds
+the M9 GitOps Change Workflow, implemented with deterministic offline verification and CI E2E;
+live Kind/Argo and real-GitHub integration remain operator opt-in paths under acceptance review.
 
 ## Quick Demo
 
 ```bash
 make demo-local
+# Separate, deterministic M9 walkthrough (no cluster or GitHub credentials required)
+make gitops-demo
 ```
 
 The canonical `service-down` demo is a disposable local environment—not a production claim. It
@@ -44,13 +48,18 @@ flowchart TD
 
 The frozen chain is **Alert/Fault → Incident → Evidence → Historical Memory → Investigator →
 Structured Action → Policy → HITL → Resume → Governed Execution → Verification → Audit/Telemetry**.
-No GitOps, Kubernetes, new Agent framework/vector database/LLM provider/execution backend, or new MCP
-feature is introduced by the v1.0 closeout.
+The v1.0 chain remains frozen. M9 adds a separate desired-state change path; it does not route a
+GitOps change through `ActionExecutor` or introduce direct Kubernetes execution.
+
+```text
+REMEDIATE: Action → Policy → HITL → Governed Execution → Verification
+CHANGE:    Structured Change → Policy → HITL → PR → Git Review → GitOps → Verification
+```
 
 ## Verifiable Portfolio Evidence
 
-<!-- portfolio-metric backend_tests=320 -->
-<!-- portfolio-metric frontend_tests=28 -->
+<!-- portfolio-metric backend_tests=394 -->
+<!-- portfolio-metric frontend_tests=42 -->
 <!-- portfolio-metric lab_scenarios=4 -->
 <!-- portfolio-metric investigation_cases=6 -->
 <!-- portfolio-metric retrieval_queries=12 -->
@@ -62,7 +71,7 @@ feature is introduced by the v1.0 closeout.
 
 | Evidence | Result | Trace |
 | --- | --- | --- |
-| Backend / frontend tests | 320 collected / 28 declared | Generated benchmark + quality gate |
+| Backend / frontend tests | 394 collected / 42 declared | Generated benchmark + quality gate |
 | Incident investigation | 6 real deterministic fixtures; LLM `NOT RUN` | [Benchmark entry](docs/evaluation/portfolio-benchmark.md) |
 | Hybrid retrieval | 40 documents / 12 queries; Dense, Sparse, Hybrid RRF | [Retrieval evaluation](docs/evaluation/retrieval-benchmark.md) |
 | Safety containment | 15/15 controls, 0 unexpected execution paths | [Safety matrix](docs/evaluation/safety-matrix.md) |
@@ -194,11 +203,12 @@ No model output is passed to a shell, SSH client, inventory path, or playbook pa
 - Deterministic policy engine with target allowlists and fail-closed rules
 - Mock and fixed-mapping Ansible executors behind a dependency-injected port (`M1A`/`M1B`)
 - Governed Mock, Ansible, and allowlisted Harness execution profiles with reconciliation (`M8`)
+- Governed GitOps change workflow with semantic diffs, independent Git review, pull-based
+  reconciliation, revision correlation, and independent verification (`M9`)
 - Audit / evaluation foundation: evaluation fixtures, safety cases, secret scan in CI
 
-**Future work (outside stable v1.0):**
+**Future work:**
 
-- GitOps governed change workflow (`M9`)
 - Advanced evaluation and agent observability (`M10`/`M11`)
 
 ## Safety Model
@@ -326,6 +336,7 @@ Copy `.env.example` to `.env` and replace every placeholder before starting the 
 | M7 MCP Capability Boundary | **Implemented** |
 | M8 Multi-backend Governed Execution | **Implemented** |
 | M8.5 Deployment Compatibility & Legacy Migration Bridge | **Implemented** |
+| M9 GitOps Change Workflow | **Implemented** — deterministic demo and CI E2E verified; live Lab & real GitHub are operator opt-in |
 
 The worker builds one operator-configured `ActionService` per iteration from the selected Mock or
 Ansible backend and the enabled Target allowlist. It injects that same policy/executor boundary
@@ -347,14 +358,14 @@ according to operator-owned inventory, but that is not part of the Agent/API con
 | M8 Harness Multi-backend Execution | **Implemented** |
 | M8.5 Deployment Compatibility | **Implemented** |
 | Portfolio v1.0 evidence and release closeout | **Current stable release** |
-| M9 GitOps Change Workflow | Future work / next engineering milestone |
+| M9 GitOps Change Workflow | **Implemented** — deterministic demo and CI E2E verified; live Lab & real GitHub are operator opt-in |
 | M10 Risk Reviewer / Advanced Eval | Future work |
 | M11 Agent Observability / Production Hardening | Future work |
 
 ### Portfolio Entry Point
 
-The canonical local demonstration remains the stable public portfolio entry point. M8 governed
-multi-backend execution and the M8.5 synthetic legacy-environment migration bridge are implemented.
+The canonical local demonstration remains the stable v1.0 portfolio entry point. M9 adds the
+separate `make gitops-demo` evidence path for desired-state changes; M10 is next.
 
 ## Why this project is different
 

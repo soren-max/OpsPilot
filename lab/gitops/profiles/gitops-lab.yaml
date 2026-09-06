@@ -1,0 +1,16 @@
+profile_id: gitops-lab
+service: demo-api
+environment: gitops-lab
+repository_ref: synthetic/desired-state
+base_branch: main
+manifest_strategy: PLAIN_KUBERNETES
+manifest_root: apps/demo-api/deployment.yaml
+application_ref: demo-api
+allowed_change_types: [ROLLBACK_IMAGE]
+allowed_resources: [Deployment/demo-api]
+allowed_fields: [spec.template.spec.containers[0].image]
+artifact_registry_allowlist: [registry.example]
+max_replicas: 5
+verification_profile_ref: demo-health
+known_good_images:
+  Deployment/demo-api: registry.example/demo-api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa

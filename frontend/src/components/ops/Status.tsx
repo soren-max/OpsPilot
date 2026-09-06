@@ -17,6 +17,7 @@ export type StatusDomain =
   | "approval"
   | "execution"
   | "verification"
+  | "change"
   | "generic";
 export type StatusTone =
   | "success"
@@ -147,6 +148,30 @@ function statusLabel(status: string, domain: StatusDomain) {
       FAILED: "Verification failed",
       NOT_REQUIRED: "Not required",
       UNKNOWN: "Verification unknown",
+    },
+    change: {
+      PROPOSED: "Proposed",
+      POLICY_APPROVED: "Policy approved",
+      WAITING_APPROVAL: "Waiting OpsPilot approval",
+      APPROVED: "OpsPilot approved",
+      PLANNED: "Planned",
+      VALIDATED: "Validated",
+      QUEUED: "Queued",
+      BRANCH_CREATED: "Branch created",
+      COMMITTED: "Committed",
+      PR_CREATED: "PR created",
+      WAITING_REVIEW: "Waiting Git review",
+      APPROVED_FOR_MERGE: "Git review approved",
+      MERGED: "Merged",
+      RECONCILING: "Reconciling",
+      SYNCED: "Synced",
+      HEALTHY: "Healthy",
+      VERIFIED: "Verified",
+      RESOLVED: "Resolved",
+      REJECTED: "Rejected",
+      FAILED: "Failed",
+      UNKNOWN: "Unknown outcome",
+      RECONCILIATION_REQUIRED: "Reconciliation required",
     },
     generic: {
       SUCCEEDED: "成功",

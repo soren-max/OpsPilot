@@ -19,3 +19,6 @@ original content.
 | [0012](0012-transactional-outbox-for-external-side-effects.md) | Transactional Outbox for External Side Effects | Accepted | Durable dispatch intent and reconciliation prevent unsafe retries. |
 | [0013](0013-ssh-is-an-infrastructure-detail.md) | SSH Is an Infrastructure Detail | Accepted | Ansible owns SSH details below semantic application contracts. |
 | [0014](0014-legacy-migration-uses-strangler-adapters.md) | Legacy Migration Uses Strangler Adapters | Accepted | Selected legacy operations migrate without bypassing governance. |
+| [0015](0015-change-uses-gitops-not-imperative-execution.md) | CHANGE Uses GitOps, Not Imperative Execution | Accepted | Desired-state mutation goes through reviewed Git and pull reconciliation. |
+| [0016](0016-opspilot-does-not-merge-its-own-change-prs.md) | OpsPilot Does Not Merge Its Own Change PRs | Accepted | Git review and merge remain an independent governance boundary. |
+| [0017](0017-git-side-effects-use-outbox-and-reconciliation.md) | Git Side Effects Use Outbox and Reconciliation | Accepted | Indeterminate PR creation is correlated, never blindly retried. |

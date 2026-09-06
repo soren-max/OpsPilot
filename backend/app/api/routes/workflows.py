@@ -13,9 +13,7 @@ incident_router = APIRouter(prefix="/incidents", tags=["workflows"])
 workflow_router = APIRouter(prefix="/workflows", tags=["workflows"])
 
 
-@incident_router.post(
-    "/{incident_id}/workflows", status_code=status.HTTP_202_ACCEPTED
-)
+@incident_router.post("/{incident_id}/workflows", status_code=status.HTTP_202_ACCEPTED)
 def start_workflow(
     incident_id: str,
     request: Request,

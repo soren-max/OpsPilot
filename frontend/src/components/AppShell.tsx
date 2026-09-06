@@ -3,6 +3,7 @@ import {
   ClipboardList,
   Siren,
   FileClock,
+  GitPullRequest,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -29,6 +30,7 @@ const navGroups = [
     items: [
       ["/", "Overview", LayoutDashboard],
       ["/incidents", "Incidents", Siren],
+      ["/changes", "Changes", GitPullRequest],
       ["/tasks", "Executions", ClipboardList],
       ["/audits", "Audit", FileClock],
     ],

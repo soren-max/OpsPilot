@@ -1,6 +1,7 @@
 # 路线图（Roadmap）
 
-M1–M8.5 已冻结为 Stable Portfolio v1.0；M9+ 是明确的 Future Work。
+M1–M8.5 仍冻结为 Stable Portfolio v1.0；M9 已作为独立的当前开发里程碑实现
+（确定性演示与 CI E2E 已验证；真实 Kind/Argo 与真实 GitHub 仍为操作者手动 opt-in）。
 
 [English](../roadmap.md) | [简体中文](roadmap.md)
 
@@ -20,7 +21,7 @@ M1–M8.5 已冻结为 Stable Portfolio v1.0；M9+ 是明确的 Future Work。
 | M8 Multi-backend Execution | Done | Mock, Ansible, Harness, outbox, reconciliation |
 | M8.5 Deployment Compatibility | Done | 类型化 Profile 与合成遗留环境迁移桥 |
 | Stable Portfolio v1.0: M1–M8.5 | 当前稳定版本 | Architecture freeze 与可追溯评测 |
-| M9 GitOps Change Workflow | Future Work | Governed configuration and deployment change |
+| M9 GitOps Change Workflow | Done | 类型化变更、双人工门禁、Git PR、GitOps reconciliation 与独立验证（确定性 E2E 已验证；真实 Lab/真实 GitHub 为操作者 opt-in） |
 | M10 Risk Reviewer / Advanced Eval | Future Work | Advisory risk review and expanded evaluation |
 | M11 Agent Observability / Production Hardening | Future Work | Workflow telemetry and resilience |
 
@@ -29,5 +30,5 @@ M8 已实现受治理的 Harness 参考后端。M8.5 演示如何在不恢复 Se
 
 ## Portfolio 入口
 
-标准本地演示仍是稳定的公开 Portfolio 入口。M1–M8.5 已实现；
-项目当前作为 Portfolio v1.0 已完整收口；下一工程里程碑是 **M9 GitOps Change Workflow**。
+标准本地演示仍是稳定的 Portfolio v1.0 入口。M9 的独立证据路径运行
+`make gitops-demo`；下一工程里程碑是 **M10**。

@@ -28,6 +28,16 @@ class Settings(BaseSettings):
     deployment_playbook_directory: str | None = None
     execution_timeout_seconds: int = Field(default=30, ge=1, le=300)
     execution_dispatch_lease_seconds: int = Field(default=60, ge=10, le=3600)
+    gitops_profiles_path: str | None = None
+    gitops_provider: str = "disabled"
+    github_repository: str | None = Field(
+        default=None, pattern=r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    )
+    github_base_branch: str = Field(default="main", pattern=r"^[A-Za-z0-9][A-Za-z0-9_./-]{0,119}$")
+    github_token: SecretStr | None = None
+    github_webhook_secret: SecretStr | None = None
+    argocd_base_url: str | None = None
+    argocd_token: SecretStr | None = None
     harness_base_url: str | None = None
     harness_account_id: str | None = Field(default=None, max_length=120)
     harness_org_id: str | None = Field(default=None, max_length=120)
@@ -131,6 +141,7 @@ class Settings(BaseSettings):
         "loki_base_url",
         "qdrant_base_url",
         "harness_base_url",
+        "argocd_base_url",
         mode="before",
     )
     @classmethod
@@ -173,6 +184,14 @@ class Settings(BaseSettings):
             raise ValueError("Memory backend must be disabled or qdrant")
         if self.memory_backend == "qdrant" and not self.qdrant_base_url:
             raise ValueError("Qdrant memory backend requires OPSPILOT_QDRANT_BASE_URL")
+        if self.gitops_provider not in {"disabled", "github"}:
+            raise ValueError("GitOps provider must be disabled or github")
+        if self.gitops_provider == "github" and not all(
+            (self.github_repository, self.github_token, self.argocd_base_url, self.argocd_token)
+        ):
+            raise ValueError(
+                "GitHub GitOps requires repository, token, Argo CD URL, and Argo CD token"
+            )
         if self.harness_restart_pipeline_identifier:
             missing_harness = [
                 name

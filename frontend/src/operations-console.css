@@ -1106,6 +1106,205 @@
   }
 }
 
+/* M9 GitOps change workflow */
+.change-lifecycle {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--opspilot-border);
+  border-radius: var(--opspilot-radius-lg);
+  background: var(--opspilot-surface);
+  overflow: hidden;
+}
+.change-lifecycle li {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  color: var(--opspilot-text-muted);
+  border-right: 1px solid var(--opspilot-border);
+  font-size: 12px;
+}
+.change-lifecycle li:last-child {
+  border-right: 0;
+}
+.change-lifecycle li > span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--opspilot-surface-raised);
+}
+.change-lifecycle .is-complete {
+  color: var(--opspilot-success);
+}
+.change-lifecycle .is-current {
+  color: var(--opspilot-accent);
+  background: var(--opspilot-accent-soft);
+}
+.change-identity,
+.change-uncertain {
+  padding: var(--opspilot-space-4);
+  border: 1px solid var(--opspilot-border);
+  border-radius: var(--opspilot-radius-lg);
+  background: var(--opspilot-surface);
+}
+.change-identity dl,
+.semantic-diff dl {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--opspilot-space-3);
+  margin: var(--opspilot-space-4) 0 0;
+}
+.change-identity dt,
+.semantic-diff dt {
+  color: var(--opspilot-text-muted);
+  font-size: 12px;
+}
+.change-identity dd,
+.semantic-diff dd {
+  margin: 4px 0 0;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.change-gates,
+.change-gitops-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--opspilot-space-4);
+}
+.gate-state,
+.change-revision {
+  display: flex;
+  align-items: center;
+  gap: var(--opspilot-space-3);
+}
+.boundary-note {
+  padding: var(--opspilot-space-3);
+  border-left: 3px solid var(--opspilot-warning);
+  background: var(--opspilot-warning-soft);
+}
+.change-decision label {
+  display: grid;
+  gap: 6px;
+}
+.change-decision textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+.change-decision > div {
+  display: flex;
+  gap: var(--opspilot-space-2);
+  margin-top: var(--opspilot-space-3);
+}
+.semantic-diff > header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--opspilot-space-3);
+}
+.semantic-diff > header span {
+  color: var(--opspilot-text-muted);
+}
+.semantic-diff > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--opspilot-space-3);
+  margin-top: var(--opspilot-space-3);
+}
+.semantic-diff section {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: var(--opspilot-space-3);
+  border: 1px solid var(--opspilot-border);
+  border-radius: var(--opspilot-radius-md);
+}
+.semantic-diff code,
+.change-revision code {
+  overflow-wrap: anywhere;
+}
+.change-revision {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--opspilot-border);
+}
+.change-revision span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.change-uncertain {
+  display: flex;
+  align-items: center;
+  gap: var(--opspilot-space-3);
+  border-color: var(--opspilot-warning);
+}
+.change-uncertain p {
+  margin: 3px 0 0;
+}
+.change-uncertain button {
+  margin-left: auto;
+}
+.change-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.change-timeline li {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 12px;
+  padding-bottom: var(--opspilot-space-4);
+}
+.change-timeline li > span {
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--opspilot-accent);
+  box-shadow: 0 0 0 4px var(--opspilot-accent-soft);
+}
+.change-timeline p {
+  margin: 4px 0;
+}
+.change-timeline time {
+  color: var(--opspilot-text-muted);
+  font-size: 12px;
+}
+.raw-git-diff {
+  overflow: auto;
+  white-space: pre;
+  font-size: 12px;
+}
+@media (max-width: 900px) {
+  .change-lifecycle {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .change-gates,
+  .change-gitops-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .change-lifecycle {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .change-identity dl,
+  .semantic-diff dl,
+  .semantic-diff > div {
+    grid-template-columns: 1fr;
+  }
+  .change-uncertain {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .change-uncertain button {
+    margin-left: 0;
+  }
+}
+
 /* Final OPSPILOT operations surface: flat hierarchy, compact controls, one blue accent. */
 body {
   color: var(--opspilot-text);

@@ -37,6 +37,9 @@ const TasksPage = lazy(() =>
 const IncidentsPage = lazy(() =>
   import("./pages/IncidentsPage").then((module) => ({ default: module.IncidentsPage })),
 );
+const ChangesPage = lazy(() =>
+  import("./pages/ChangesPage").then((module) => ({ default: module.ChangesPage })),
+);
 const SettingsPage = lazy(() =>
   import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })),
 );
@@ -149,6 +152,10 @@ function ProtectedApp() {
         <Route
           path="/incidents/:incidentId?"
           element={<IncidentsPage environment={currentEnvironment?.code ?? environmentName} />}
+        />
+        <Route
+          path="/changes/:changeId?"
+          element={<ChangesPage environment={currentEnvironment?.code ?? environmentName} />}
         />
         <Route
           path="/tasks"

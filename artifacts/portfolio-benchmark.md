@@ -6,12 +6,12 @@ Overall: **PASS**
 
 | Field | Value |
 | --- | --- |
-| Git commit | `37493e36eb76aaf7625b9fdbffaa4ff3200ef98a` |
+| Git commit | `46589557d01c5687ece14924ec5031a7721a1367` |
 | Git dirty | `false` |
-| Timestamp | `2026-08-31T09:19:07.553673+00:00` |
-| Python | `3.13.14` |
+| Timestamp | `2026-09-06T13:58:03.389709+00:00` |
+| Python | `3.13.15` |
 | Dataset | `incident-memory-v1` |
-| Scenarios | `portfolio-v1` |
+| Scenarios | `portfolio-v1+m9-gitops` |
 | Mode | `offline-deterministic` |
 
 ## Quality Inventory
@@ -20,8 +20,8 @@ Status: **PASS**
 
 | Metric | Value |
 | --- | ---: |
-| `backend_tests_collected` | 320 |
-| `frontend_tests_declared` | 28 |
+| `backend_tests_collected` | 394 |
+| `frontend_tests_declared` | 42 |
 | `lab_scenarios` | 4 |
 
 Backend count comes from pytest collection; frontend count is checked by the Node quality gate.
@@ -54,26 +54,26 @@ Status: **PASS**
 | `dense.recall_at_10` | 0.972 |
 | `dense.mrr` | 0.822 |
 | `dense.root_cause_hit_rate` | 0.917 |
-| `dense.latency_p50_ms` | 0.321 |
-| `dense.latency_p95_ms` | 0.438 |
+| `dense.latency_p50_ms` | 0.306 |
+| `dense.latency_p95_ms` | 0.374 |
 | `sparse.recall_at_5` | 1.000 |
 | `sparse.recall_at_10` | 1.000 |
 | `sparse.mrr` | 1.000 |
 | `sparse.root_cause_hit_rate` | 1.000 |
-| `sparse.latency_p50_ms` | 0.338 |
-| `sparse.latency_p95_ms` | 0.398 |
+| `sparse.latency_p50_ms` | 0.320 |
+| `sparse.latency_p95_ms` | 0.377 |
 | `hybrid_rrf.recall_at_5` | 0.917 |
 | `hybrid_rrf.recall_at_10` | 1.000 |
 | `hybrid_rrf.mrr` | 0.933 |
 | `hybrid_rrf.root_cause_hit_rate` | 1.000 |
 | `hybrid_rrf.latency_p50_ms` | 0.326 |
-| `hybrid_rrf.latency_p95_ms` | 0.393 |
+| `hybrid_rrf.latency_p95_ms` | 0.451 |
 
 | Scenario | Expected control | Actual | Result |
 | --- | --- | --- | --- |
-| dense | Rank the checked-in M6 query set | R@5=0.861, R@10=0.972, MRR=0.822, RC-hit=0.917, p95=0.438ms | **BENCHMARKED** |
-| sparse | Rank the checked-in M6 query set | R@5=1.000, R@10=1.000, MRR=1.000, RC-hit=1.000, p95=0.398ms | **BENCHMARKED** |
-| hybrid_rrf | Rank the checked-in M6 query set | R@5=0.917, R@10=1.000, MRR=0.933, RC-hit=1.000, p95=0.393ms | **BENCHMARKED** |
+| dense | Rank the checked-in M6 query set | R@5=0.861, R@10=0.972, MRR=0.822, RC-hit=0.917, p95=0.374ms | **BENCHMARKED** |
+| sparse | Rank the checked-in M6 query set | R@5=1.000, R@10=1.000, MRR=1.000, RC-hit=1.000, p95=0.377ms | **BENCHMARKED** |
+| hybrid_rrf | Rank the checked-in M6 query set | R@5=0.917, R@10=1.000, MRR=0.933, RC-hit=1.000, p95=0.451ms | **BENCHMARKED** |
 
 ## Safety
 
@@ -112,14 +112,14 @@ Status: **PASS**
 | Metric | Value |
 | --- | ---: |
 | `scenario_count` | 9 |
-| `executed_count` | 9 |
-| `not_run_count` | 0 |
+| `executed_count` | 8 |
+| `not_run_count` | 1 |
 | `unexpected_execution_paths` | 0 |
 
 | Scenario | Expected control | Actual | Result |
 | --- | --- | --- | --- |
 | worker restart while waiting approval | A recreated service resumes the same approval-bound workflow | Referenced contract test passed in this benchmark run | **PASS** |
-| checkpoint restore | A PostgreSQL saver recreation reads the durable checkpoint | Referenced contract test passed in this benchmark run | **PASS** |
+| checkpoint restore | A PostgreSQL saver recreation reads the durable checkpoint | NOT RUN (required local integration dependency or test unavailable) | **NOT RUN** |
 | approve twice | Second approval is rejected as a conflict | Referenced contract test passed in this benchmark run | **PASS** |
 | resume twice | Second resume returns the same execution task | Referenced contract test passed in this benchmark run | **PASS** |
 | outbox duplicate claim | One action fingerprint owns one execution and outbox record | Referenced contract test passed in this benchmark run | **PASS** |
@@ -183,6 +183,33 @@ Status: **PASS**
 | Fixed Script Control | Fixed operation maps to operator-owned argv | Referenced contract test passed in this benchmark run | **PASS** |
 | Command Injection | Service mapping rejects command metacharacters | Referenced contract test passed in this benchmark run | **BLOCKED** |
 | Verification | Control action is followed by configured verification | Referenced contract test passed in this benchmark run | **PASS** |
+
+## Gitops Change Safety
+
+Status: **PASS**
+
+| Metric | Value |
+| --- | ---: |
+| `scenario_count` | 12 |
+| `executed_count` | 12 |
+| `not_run_count` | 0 |
+| `unexpected_execution_paths` | 0 |
+| `security_contract_rate` | 1.000 |
+
+| Scenario | Expected control | Actual | Result |
+| --- | --- | --- | --- |
+| Reviewed Plan Binding | A stale semantic preview cannot authorize a changed Git plan | Referenced contract test passed in this benchmark run | **BLOCKED** |
+| Dispatch Reauthorization | Stale Evidence, approval, base revision and altered bytes prevent writes | Referenced contract test passed in this benchmark run | **BLOCKED** |
+| Persistent External Review | External review survives restart; status never fabricates merge | Referenced contract test passed in this benchmark run | **PASS** |
+| JSON API Governance | JSON proposals produce previews; missing approval binding fails closed | Referenced contract test passed in this benchmark run | **BLOCKED** |
+| Typed Change Validity | ChangeIntent excludes repository, branch, path, credentials, and raw mutation | Referenced contract test passed in this benchmark run | **BLOCKED** |
+| Forbidden Mutation | Secret and RBAC resources fail closed before PR creation | Referenced contract test passed in this benchmark run | **BLOCKED** |
+| Approval Bypass | Requester cannot self-approve and no PR is created | Referenced contract test passed in this benchmark run | **BLOCKED** |
+| Duplicate PR Prevention | UNKNOWN reconciles by correlation instead of creating another PR | Referenced contract test passed in this benchmark run | **PASS** |
+| Revision Correlation | Unexpected PR head revision enters reconciliation-required | Referenced contract test passed in this benchmark run | **FAIL CLOSED** |
+| Argo Reconciliation | Merge, sync, health, and verification remain separate states | Referenced contract test passed in this benchmark run | **PASS** |
+| Verification After Sync | Healthy GitOps application cannot resolve failed independent verification | Referenced contract test passed in this benchmark run | **PASS** |
+| Webhook Authenticity and Dedupe | HMAC-SHA256 validation and delivery-ID uniqueness gate events | Referenced contract test passed in this benchmark run | **BLOCKED** |
 
 ## Demo Reproducibility
 

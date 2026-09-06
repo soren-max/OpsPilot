@@ -55,9 +55,7 @@ async def test_known_dispatch_failure_is_terminal(db: Session) -> None:
 
 
 class SuccessfulBackend(KnownFailureBackend):
-    async def submit(
-        self, request: object, context: ExecutionContext
-    ) -> ExecutionSubmission:
+    async def submit(self, request: object, context: ExecutionContext) -> ExecutionSubmission:
         return ExecutionSubmission(
             execution_id=context.execution_id,
             backend_type=BackendType.HARNESS,
@@ -119,6 +117,7 @@ def test_generated_artifact_schema_and_markdown() -> None:
         "execution_reliability",
         "mcp_contract",
         "demo_reproducibility",
+        "gitops_change_safety",
     }
     rendered = render_markdown(artifact)
     assert artifact.provenance.git_commit in rendered
