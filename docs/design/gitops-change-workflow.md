@@ -34,8 +34,9 @@ path, Argo application, allowed resources/fields/registries, replica ceiling, ve
 and known-good immutable image digest.
 
 `PlainKubernetesChangePlanner` resolves exactly one resource. Ambiguity, missing state, multiple
-containers for a rollback, forbidden resource kinds, privileged workload fields, mutable images,
-and changes outside the profile fail closed. The resulting `ChangeSet` stores a semantic mutation,
+containers for a rollback, forbidden resource kinds, privileged workload fields, image mutations
+landing anywhere but the operator known-good immutable digest, and changes outside the profile
+fail closed. The resulting `ChangeSet` stores a semantic mutation,
 blast radius, evidence correlation, source revision, bounded changed file, and a raw technical diff.
 
 ## Durable lifecycle

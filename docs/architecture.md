@@ -141,7 +141,8 @@ orchestrates preview/execute/verify, and an injected Mock or Ansible adapter run
 application-owned mapping.
 
 Change includes deploy, rollback, configuration, and IaC. Harness is implemented as an operator-owned
-governed execution backend in M8. GitOps remains an M9 future workflow and is outside v1.0.
+governed execution backend in M8. GitOps is implemented in M9 as a separate desired-state change path
+with pull-based reconciliation; it is outside the v1.0 REMEDIATE chain.
 
 ## Portable boundary
 

@@ -68,3 +68,39 @@ def test_api_approver_queues_exact_reviewed_plan(
     assert result.json()["data"]["status"] == "QUEUED"
     assert db.query(ChangeOutboxRecord).count() == 1
     assert not git.pull_requests
+
+
+def test_change_api_surface_exposes_only_safe_verbs(
+    db: Session, client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Read endpoints exist; merge/raw-manifest/kubectl-style writes are unreachable."""
+    seed_incident(db)
+    git = FakeGitChangeProvider(base_files={profile().manifest_root: MANIFEST})
+    monkeypatch.setattr(changes, "build_git_provider", lambda *_: git)
+    monkeypatch.setattr(changes, "resolve_profile", lambda *_: profile())
+    proposed = client.post("/api/v1/changes", json=intent().model_dump(mode="json"))
+    assert proposed.status_code == 200, proposed.text
+    change_id = proposed.json()["data"]["id"]
+
+    # Read-only surface stays available.
+    assert client.get("/api/v1/changes").status_code == 200
+    assert client.get(f"/api/v1/changes/{change_id}").status_code == 200
+    assert client.get(f"/api/v1/changes/{change_id}/timeline").status_code == 200
+    assert client.get(f"/api/v1/changes/{change_id}/preview").status_code == 200
+
+    # Forbidden write verbs must never exist on the change router: merge, arbitrary
+    # manifest writes, kubectl-style execution, and raw git commits are not exposed.
+    forbidden = [
+        ("POST", f"/api/v1/changes/{change_id}/merge"),
+        ("POST", f"/api/v1/changes/{change_id}/manifest"),
+        ("POST", f"/api/v1/changes/{change_id}/kubectl"),
+        ("POST", f"/api/v1/changes/{change_id}/commit"),
+        ("POST", f"/api/v1/changes/{change_id}/execute"),
+        ("PATCH", f"/api/v1/changes/{change_id}"),
+        ("DELETE", f"/api/v1/changes/{change_id}"),
+    ]
+    for method, url in forbidden:
+        response = client.request(method, url, json={})
+        assert response.status_code in {404, 405}, f"{method} {url}: {response.status_code}"
+    assert not git.branches
+    assert not git.pull_requests

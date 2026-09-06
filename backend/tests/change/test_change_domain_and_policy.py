@@ -4,7 +4,7 @@ from pydantic import ValidationError
 from app.change import ChangePlanningError, PlainKubernetesChangePlanner
 from app.domain.change import ChangeIntent, ChangePolicyEngine, ChangeRisk, ChangeType
 
-from .conftest import MANIFEST, intent, profile
+from .conftest import BAD_IMAGE, MANIFEST, intent, profile
 
 
 @pytest.mark.parametrize(
@@ -121,4 +121,78 @@ def test_planner_rejects_command_args_and_secret_environment(fragment: str) -> N
             profile=profile(),
             source_revision="a" * 40,
             manifests={profile().manifest_root: dangerous},
+        )
+
+
+@pytest.mark.parametrize(
+    "fragment",
+    [
+        "      hostNetwork: true",
+        "      hostPID: true",
+        "        securityContext:\n            privileged: true",
+        "        securityContext:\n            allowPrivilegeEscalation: true",
+        (
+            "      volumes:\n        - name: host\n"
+            "          hostPath:\n            path: /etc\n            type: Directory"
+        ),
+        (
+            "      volumes:\n        - name: secret-vol\n"
+            "          secret:\n            secretName: prod-credentials"
+        ),
+    ],
+)
+def test_planner_rejects_privileged_host_and_secret_volume_fragments(fragment: str) -> None:
+    dangerous = MANIFEST.replace(
+        "    spec:\n      containers:", f"    spec:\n{fragment}\n      containers:"
+    )
+    with pytest.raises(ChangePlanningError):
+        PlainKubernetesChangePlanner().plan(
+            change_id="change-1",
+            intent=intent(),
+            profile=profile(),
+            source_revision="a" * 40,
+            manifests={profile().manifest_root: dangerous},
+        )
+
+
+def test_planner_rejects_mutable_tagged_current_image() -> None:
+    tagged = MANIFEST.replace(BAD_IMAGE, "registry.example/demo-api:latest")
+    with pytest.raises(ChangePlanningError):
+        PlainKubernetesChangePlanner().plan(
+            change_id="change-1",
+            intent=intent(),
+            profile=profile(),
+            source_revision="a" * 40,
+            manifests={profile().manifest_root: tagged},
+        )
+
+
+def test_planner_rejects_known_good_image_outside_registry_allowlist() -> None:
+    rogue_profile = profile().model_copy(
+        update={
+            "artifact_registry_allowlist": frozenset({"registry.example"}),
+            "known_good_images": {
+                "Deployment/demo-api": "evil.example/demo-api@sha256:" + "e" * 64
+            },
+        }
+    )
+    with pytest.raises(ChangePlanningError):
+        PlainKubernetesChangePlanner().plan(
+            change_id="change-1",
+            intent=intent(),
+            profile=rogue_profile,
+            source_revision="a" * 40,
+            manifests={profile().manifest_root: MANIFEST},
+        )
+
+
+def test_planner_rejects_manifest_replicas_above_operator_bound() -> None:
+    oversized = MANIFEST.replace("replicas: 2", "replicas: 20")
+    with pytest.raises(ChangePlanningError):
+        PlainKubernetesChangePlanner().plan(
+            change_id="change-1",
+            intent=intent(),
+            profile=profile(),
+            source_revision="a" * 40,
+            manifests={profile().manifest_root: oversized},
         )

@@ -1,6 +1,7 @@
 # 路线图（Roadmap）
 
-M1–M8.5 仍冻结为 Stable Portfolio v1.0；M9 已作为独立的当前开发里程碑实现。
+M1–M8.5 仍冻结为 Stable Portfolio v1.0；M9 已作为独立的当前开发里程碑实现
+（确定性演示与 CI E2E 已验证；真实 Kind/Argo 与真实 GitHub 仍为操作者手动 opt-in）。
 
 [English](../roadmap.md) | [简体中文](roadmap.md)
 
@@ -20,7 +21,7 @@ M1–M8.5 仍冻结为 Stable Portfolio v1.0；M9 已作为独立的当前开发
 | M8 Multi-backend Execution | Done | Mock, Ansible, Harness, outbox, reconciliation |
 | M8.5 Deployment Compatibility | Done | 类型化 Profile 与合成遗留环境迁移桥 |
 | Stable Portfolio v1.0: M1–M8.5 | 当前稳定版本 | Architecture freeze 与可追溯评测 |
-| M9 GitOps Change Workflow | Done | 类型化变更、双人工门禁、Git PR、GitOps reconciliation 与独立验证 |
+| M9 GitOps Change Workflow | Done | 类型化变更、双人工门禁、Git PR、GitOps reconciliation 与独立验证（确定性 E2E 已验证；真实 Lab/真实 GitHub 为操作者 opt-in） |
 | M10 Risk Reviewer / Advanced Eval | Future Work | Advisory risk review and expanded evaluation |
 | M11 Agent Observability / Production Hardening | Future Work | Workflow telemetry and resilience |
 

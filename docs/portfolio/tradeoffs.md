@@ -12,6 +12,7 @@
 | Harness vs Ansible | Harness models governed async delivery; Ansible handles bounded host remediation | Two backends add routing/status complexity; operator profiles decide, never the caller |
 | Synthetic Lab vs production environment | Public, safe, deterministic, credential-free evidence | Cannot prove production scale, IAM, data distribution, failure rates, or operator outcomes |
 
-The v1 architecture freezes these boundaries. GitOps, a risk reviewer, and production hardening are
+The v1 architecture freezes these boundaries. GitOps (M9) is implemented on a separate desired-state
+change path with deterministic offline evidence; a risk reviewer and production hardening remain
 future work rather than implicit promises.
 

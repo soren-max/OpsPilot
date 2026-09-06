@@ -1,7 +1,8 @@
 # Portfolio v1.0 Benchmark
 
 This is the evidence index for the stable OpsPilot Portfolio v1.0 release. It adds evaluation and
-release evidence; it does not introduce an M9 feature or change the authorization architecture.
+release evidence; the M9 GitOps milestone adds the offline `gitops_change_safety` category below
+without changing the v1.0 authorization architecture.
 
 Run the offline benchmark from the repository root:
 
@@ -33,6 +34,7 @@ Latency is measured, not copied into permanent prose; compare latency only on li
 | Execution reliability | Dispatch, UNKNOWN, reconciliation, and verification matrix |
 | MCP contract | Seven rates recomputed from the M7 dataset |
 | Demo reproducibility | Three recorded `make demo-local` lifecycles |
+| GitOps change safety | Twelve M9 security contracts: typed-change validity, forbidden mutation, approval bypass, duplicate PR, Git side-effect reconciliation, revision correlation, Argo reconciliation, verification after sync |
 | Performance | Retrieval p50/p95 and demo lifecycle p50/max with sample size |
 
 Run `make portfolio-demo-repeatability` to populate three live synthetic demo runs, rerun the

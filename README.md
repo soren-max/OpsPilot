@@ -8,7 +8,8 @@ governed Ansible/Harness execution, independent verification, and an auditable r
 propose; it cannot authorize or select the execution path.
 
 **Stable Portfolio Release: v1.0 architecture (M1–M8.5).** The current development milestone adds
-the M9 GitOps Change Workflow, currently under development and acceptance review.
+the M9 GitOps Change Workflow, implemented with deterministic offline verification and CI E2E;
+live Kind/Argo and real-GitHub integration remain operator opt-in paths under acceptance review.
 
 ## Quick Demo
 
@@ -335,7 +336,7 @@ Copy `.env.example` to `.env` and replace every placeholder before starting the 
 | M7 MCP Capability Boundary | **Implemented** |
 | M8 Multi-backend Governed Execution | **Implemented** |
 | M8.5 Deployment Compatibility & Legacy Migration Bridge | **Implemented** |
-| M9 GitOps Change Workflow | **In progress — live Lab and remote CI acceptance pending** |
+| M9 GitOps Change Workflow | **Implemented** — deterministic demo and CI E2E verified; live Lab & real GitHub are operator opt-in |
 
 The worker builds one operator-configured `ActionService` per iteration from the selected Mock or
 Ansible backend and the enabled Target allowlist. It injects that same policy/executor boundary
@@ -357,7 +358,7 @@ according to operator-owned inventory, but that is not part of the Agent/API con
 | M8 Harness Multi-backend Execution | **Implemented** |
 | M8.5 Deployment Compatibility | **Implemented** |
 | Portfolio v1.0 evidence and release closeout | **Current stable release** |
-| M9 GitOps Change Workflow | **In progress — live Lab and remote CI acceptance pending** |
+| M9 GitOps Change Workflow | **Implemented** — deterministic demo and CI E2E verified; live Lab & real GitHub are operator opt-in |
 | M10 Risk Reviewer / Advanced Eval | Future work |
 | M11 Agent Observability / Production Hardening | Future work |
 

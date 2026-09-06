@@ -16,7 +16,7 @@ New readers can follow this path for a concise architecture and interview walkth
 3. [Incident Workflow](design/langgraph-incident-workflow.md) — explicit LangGraph state flow.
 4. [Observability Capabilities](design/observability-capabilities.md) — typed evidence sources.
 5. [LLM Investigator](design/llm-investigator.md) — grounded reasoning without authority.
-6. [Roadmap](roadmap.md) — implemented scope through M8.5 and next options.
+6. [Roadmap](roadmap.md) — implemented scope through M9 and next options.
 7. [Deployment Compatibility](design/deployment-compatibility.md) — safe legacy SSH migration.
 8. [GitOps Change Workflow](design/gitops-change-workflow.md) — governed desired-state changes.
 
@@ -34,7 +34,7 @@ For a runnable tour, use the [Offline Demo and Recording Guide](demo.md) and the
 
 ## Roadmap
 
-- [Roadmap](roadmap.md) — milestone plan through M8.5 and beyond (简体中文: [zh-CN/roadmap.md](zh-CN/roadmap.md))
+- [Roadmap](roadmap.md) — milestone plan through M9 and beyond (简体中文: [zh-CN/roadmap.md](zh-CN/roadmap.md))
 
 ## Development
 
@@ -99,5 +99,6 @@ All ADRs are English only.
 ## English-only docs
 
 The following are intentionally English only and do not require Chinese translation:
-ADR records, interview notes, the learning map, the Governed Execution design doc, and the
-Incident Memory and RAG design doc.
+ADR records, interview notes, the learning map, the Governed Execution design doc, the
+Incident Memory and RAG design doc, and the M9 GitOps Change / Change Policy / Git side-effect
+reconciliation design docs (the zh-CN core docs track milestone status).

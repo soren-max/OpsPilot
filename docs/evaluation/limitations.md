@@ -22,10 +22,11 @@ OpenAI, real Harness SaaS, and remote MCP are optional. The canonical demo needs
 ## Closeout documentation audit
 
 - **BLOCKER:** none found after the final Portfolio Check.
-- **FUTURE WORK:** M9 GitOps; M10 advisory Risk Reviewer/advanced evaluation; M11 production
-  hardening and operational observability.
+- **FUTURE WORK:** M10 advisory Risk Reviewer/advanced evaluation; M11 production
+  hardening and operational observability. M9 GitOps is implemented with deterministic
+  offline E2E evidence; live Kind/Argo and real GitHub remain operator opt-in paths.
 - **INTENTIONAL LIMITATION:** no RAGFlow adapter, no real Harness/OpenAI run in the default artifact,
-  synthetic Lab/legacy targets only, and no production claim.
+  synthetic Lab/legacy targets only, no live GitOps cluster in CI, and no production claim.
 
 Older ADR/learning documents may use “planned” while explaining the historical design decision or a
 named future milestone; those statements are not incomplete v1 functionality.

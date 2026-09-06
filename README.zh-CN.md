@@ -35,7 +35,8 @@ flowchart LR
 ```
 
 **当前状态：** 稳定 Portfolio v1.0 仍冻结于 M1–M8.5；M9 GitOps Change Workflow
-已作为独立的当前开发里程碑实现。下一工程里程碑是 M10。
+已作为独立的当前开发里程碑实现，确定性演示与 CI E2E 已验证；真实 Kind/Argo 与真实
+GitHub 集成仍为操作者手动 opt-in 路径，处于验收审查中。下一工程里程碑是 M10。
 
 ```text
 REMEDIATE：Action → Policy → HITL → Governed Execution → Verification
@@ -248,7 +249,7 @@ LLM 模式需要有效的 `OPENAI_API_KEY` 与经运维确认的模型配置。P
 | M7 MCP Capability Boundary | **已实现** |
 | M8 Multi-backend Governed Execution | **已实现** |
 | M8.5 Deployment Compatibility & Legacy Migration Bridge | **已实现** |
-| M9 GitOps Change Workflow | **开发验收中：真实 Lab 和远端 CI 尚待验证** |
+| M9 GitOps Change Workflow | **已实现** — 确定性演示与 CI E2E 已验证；真实 Lab 与真实 GitHub 为操作者 opt-in |
 
 Worker 每次迭代从选中的 Mock 或 Ansible 后端与启用的 Target 白名单构建一个由运维配置的
 `ActionService`，并把同一个策略/执行器边界注入普通 Operations 与 LangGraph 工作流；工作流
@@ -269,7 +270,7 @@ M1B 已移除遗留的 SSH 与服务脚本运行时。Ansible 可以按运维自
 | M8 Harness Multi-backend Execution | **已实现** |
 | M8.5 Deployment Compatibility | **已实现** |
 | Portfolio v1.0 Evidence & Release Closeout | **当前稳定版本** |
-| M9 GitOps Change Workflow | **开发验收中：真实 Lab 和远端 CI 尚待验证** |
+| M9 GitOps Change Workflow | **已实现** — 确定性演示与 CI E2E 已验证；真实 Lab 与真实 GitHub 为操作者 opt-in |
 | M10 Risk Reviewer / Advanced Eval | Future Work |
 | M11 Agent Observability / Production Hardening | Future Work |
 
@@ -297,7 +298,7 @@ desired-state 变更证据路径；下一工程里程碑是 M10。
 - [路线图](docs/zh-CN/roadmap.md)
 - [开发指南](docs/zh-CN/development.md)
 - [测试策略](docs/zh-CN/testing.md)
-- [设计文档](docs/zh-CN/design/)
+- [设计文档](docs/zh-CN/design/) — M9 GitOps 设计文档（[GitOps Change Workflow](docs/design/gitops-change-workflow.md)、[Change Policy](docs/design/change-policy.md)、[Git Side-effect Reconciliation](docs/design/git-side-effect-reconciliation.md)、[GitOps Demo](docs/demo/gitops-demo.md)）保持英文原版，符合[翻译政策](docs/translation-policy.md)
 - [ADR（架构决策记录）](docs/adr/) — English only
 - [面试笔记索引](docs/zh-CN/interview/README.md)
 - [翻译政策](docs/translation-policy.md)

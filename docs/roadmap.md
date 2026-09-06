@@ -16,7 +16,7 @@
 | M8 Multi-Backend Governed Execution | Done | Mock, Ansible, Harness, outbox, reconciliation |
 | M8.5 Deployment Compatibility | Done | Typed profiles and a synthetic legacy-environment migration bridge |
 | **Stable Portfolio v1.0: M1–M8.5** | **Current stable release** | Architecture frozen; benchmark and release evidence |
-| M9 GitOps Change Workflow | Done | Typed change intent, two human gates, Git PR, GitOps reconciliation, verification |
+| M9 GitOps Change Workflow | Done | Typed change intent, two human gates, Git PR, GitOps reconciliation, verification (deterministic E2E verified; live Lab/real GitHub operator opt-in) |
 | M10 Risk Reviewer / Advanced Eval | Future work | Advisory risk review and expanded evaluation |
 | M11 Agent Observability / Production Hardening | Future work | Operational telemetry, deployment and resilience |
 
