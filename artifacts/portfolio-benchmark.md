@@ -6,9 +6,9 @@ Overall: **PASS**
 
 | Field | Value |
 | --- | --- |
-| Git commit | `0433c9da6d30a1b3d5cf37fdc17e8c9d6a2f103e` |
+| Git commit | `0763c92aff868d0cb4b5146dd1a248dbf8fab4f8` |
 | Git dirty | `false` |
-| Timestamp | `2026-09-04T08:20:00.000901+00:00` |
+| Timestamp | `2026-09-06T13:00:19.649964+00:00` |
 | Python | `3.13.15` |
 | Dataset | `incident-memory-v1` |
 | Scenarios | `portfolio-v1+m9-gitops` |
@@ -20,8 +20,8 @@ Status: **PASS**
 
 | Metric | Value |
 | --- | ---: |
-| `backend_tests_collected` | 359 |
-| `frontend_tests_declared` | 41 |
+| `backend_tests_collected` | 379 |
+| `frontend_tests_declared` | 42 |
 | `lab_scenarios` | 4 |
 
 Backend count comes from pytest collection; frontend count is checked by the Node quality gate.
@@ -54,26 +54,26 @@ Status: **PASS**
 | `dense.recall_at_10` | 0.972 |
 | `dense.mrr` | 0.822 |
 | `dense.root_cause_hit_rate` | 0.917 |
-| `dense.latency_p50_ms` | 0.331 |
-| `dense.latency_p95_ms` | 0.498 |
+| `dense.latency_p50_ms` | 0.297 |
+| `dense.latency_p95_ms` | 0.369 |
 | `sparse.recall_at_5` | 1.000 |
 | `sparse.recall_at_10` | 1.000 |
 | `sparse.mrr` | 1.000 |
 | `sparse.root_cause_hit_rate` | 1.000 |
-| `sparse.latency_p50_ms` | 0.337 |
-| `sparse.latency_p95_ms` | 0.400 |
+| `sparse.latency_p50_ms` | 0.322 |
+| `sparse.latency_p95_ms` | 0.444 |
 | `hybrid_rrf.recall_at_5` | 0.917 |
 | `hybrid_rrf.recall_at_10` | 1.000 |
 | `hybrid_rrf.mrr` | 0.933 |
 | `hybrid_rrf.root_cause_hit_rate` | 1.000 |
-| `hybrid_rrf.latency_p50_ms` | 0.334 |
-| `hybrid_rrf.latency_p95_ms` | 0.391 |
+| `hybrid_rrf.latency_p50_ms` | 0.322 |
+| `hybrid_rrf.latency_p95_ms` | 0.413 |
 
 | Scenario | Expected control | Actual | Result |
 | --- | --- | --- | --- |
-| dense | Rank the checked-in M6 query set | R@5=0.861, R@10=0.972, MRR=0.822, RC-hit=0.917, p95=0.498ms | **BENCHMARKED** |
-| sparse | Rank the checked-in M6 query set | R@5=1.000, R@10=1.000, MRR=1.000, RC-hit=1.000, p95=0.400ms | **BENCHMARKED** |
-| hybrid_rrf | Rank the checked-in M6 query set | R@5=0.917, R@10=1.000, MRR=0.933, RC-hit=1.000, p95=0.391ms | **BENCHMARKED** |
+| dense | Rank the checked-in M6 query set | R@5=0.861, R@10=0.972, MRR=0.822, RC-hit=0.917, p95=0.369ms | **BENCHMARKED** |
+| sparse | Rank the checked-in M6 query set | R@5=1.000, R@10=1.000, MRR=1.000, RC-hit=1.000, p95=0.444ms | **BENCHMARKED** |
+| hybrid_rrf | Rank the checked-in M6 query set | R@5=0.917, R@10=1.000, MRR=0.933, RC-hit=1.000, p95=0.413ms | **BENCHMARKED** |
 
 ## Safety
 
@@ -190,14 +190,18 @@ Status: **PASS**
 
 | Metric | Value |
 | --- | ---: |
-| `scenario_count` | 8 |
-| `executed_count` | 8 |
+| `scenario_count` | 12 |
+| `executed_count` | 12 |
 | `not_run_count` | 0 |
 | `unexpected_execution_paths` | 0 |
 | `security_contract_rate` | 1.000 |
 
 | Scenario | Expected control | Actual | Result |
 | --- | --- | --- | --- |
+| Reviewed Plan Binding | A stale semantic preview cannot authorize a changed Git plan | Referenced contract test passed in this benchmark run | **BLOCKED** |
+| Dispatch Reauthorization | Stale Evidence, approval, base revision and altered bytes prevent writes | Referenced contract test passed in this benchmark run | **BLOCKED** |
+| Persistent External Review | External review survives restart; status never fabricates merge | Referenced contract test passed in this benchmark run | **PASS** |
+| JSON API Governance | JSON proposals produce previews; missing approval binding fails closed | Referenced contract test passed in this benchmark run | **BLOCKED** |
 | Typed Change Validity | ChangeIntent excludes repository, branch, path, credentials, and raw mutation | Referenced contract test passed in this benchmark run | **BLOCKED** |
 | Forbidden Mutation | Secret and RBAC resources fail closed before PR creation | Referenced contract test passed in this benchmark run | **BLOCKED** |
 | Approval Bypass | Requester cannot self-approve and no PR is created | Referenced contract test passed in this benchmark run | **BLOCKED** |

@@ -1,22 +1,22 @@
 {
   "schema_version": "1.0.0",
   "provenance": {
-    "git_commit": "0433c9da6d30a1b3d5cf37fdc17e8c9d6a2f103e",
+    "git_commit": "0763c92aff868d0cb4b5146dd1a248dbf8fab4f8",
     "git_dirty": false,
-    "timestamp": "2026-09-04T08:20:00.000901+00:00",
+    "timestamp": "2026-09-06T13:00:19.649964+00:00",
     "python_version": "3.13.15",
     "dataset_version": "incident-memory-v1",
     "scenario_version": "portfolio-v1+m9-gitops",
     "configuration_mode": "offline-deterministic"
   },
-  "duration_ms": 12736.592083999767,
+  "duration_ms": 12238.39232499995,
   "overall_status": "PASS",
   "categories": {
     "quality_inventory": {
       "status": "PASS",
       "metrics": {
-        "backend_tests_collected": 359,
-        "frontend_tests_declared": 41,
+        "backend_tests_collected": 379,
+        "frontend_tests_declared": 42,
         "lab_scenarios": 4
       },
       "scenarios": [],
@@ -45,40 +45,40 @@
         "dense.recall_at_10": 0.9722222222222222,
         "dense.mrr": 0.8217592592592593,
         "dense.root_cause_hit_rate": 0.9166666666666666,
-        "dense.latency_p50_ms": 0.331346999928428,
-        "dense.latency_p95_ms": 0.4980819999218511,
+        "dense.latency_p50_ms": 0.2971019998767588,
+        "dense.latency_p95_ms": 0.36880800007565995,
         "sparse.recall_at_5": 1.0,
         "sparse.recall_at_10": 1.0,
         "sparse.mrr": 1.0,
         "sparse.root_cause_hit_rate": 1.0,
-        "sparse.latency_p50_ms": 0.33722350008247304,
-        "sparse.latency_p95_ms": 0.39988700018511736,
+        "sparse.latency_p50_ms": 0.3223599999273574,
+        "sparse.latency_p95_ms": 0.44398999989425647,
         "hybrid_rrf.recall_at_5": 0.9166666666666666,
         "hybrid_rrf.recall_at_10": 1.0,
         "hybrid_rrf.mrr": 0.9333333333333333,
         "hybrid_rrf.root_cause_hit_rate": 1.0,
-        "hybrid_rrf.latency_p50_ms": 0.3344225001455925,
-        "hybrid_rrf.latency_p95_ms": 0.39127999980337336
+        "hybrid_rrf.latency_p50_ms": 0.32189900002776994,
+        "hybrid_rrf.latency_p95_ms": 0.4125410000597185
       },
       "scenarios": [
         {
           "scenario": "dense",
           "expected_control": "Rank the checked-in M6 query set",
-          "actual": "R@5=0.861, R@10=0.972, MRR=0.822, RC-hit=0.917, p95=0.498ms",
+          "actual": "R@5=0.861, R@10=0.972, MRR=0.822, RC-hit=0.917, p95=0.369ms",
           "result": "BENCHMARKED",
           "test_reference": "evals/incident-memory/dataset.json"
         },
         {
           "scenario": "sparse",
           "expected_control": "Rank the checked-in M6 query set",
-          "actual": "R@5=1.000, R@10=1.000, MRR=1.000, RC-hit=1.000, p95=0.400ms",
+          "actual": "R@5=1.000, R@10=1.000, MRR=1.000, RC-hit=1.000, p95=0.444ms",
           "result": "BENCHMARKED",
           "test_reference": "evals/incident-memory/dataset.json"
         },
         {
           "scenario": "hybrid_rrf",
           "expected_control": "Rank the checked-in M6 query set",
-          "actual": "R@5=0.917, R@10=1.000, MRR=0.933, RC-hit=1.000, p95=0.391ms",
+          "actual": "R@5=0.917, R@10=1.000, MRR=0.933, RC-hit=1.000, p95=0.413ms",
           "result": "BENCHMARKED",
           "test_reference": "evals/incident-memory/dataset.json"
         }
@@ -403,13 +403,41 @@
     "gitops_change_safety": {
       "status": "PASS",
       "metrics": {
-        "scenario_count": 8,
-        "executed_count": 8,
+        "scenario_count": 12,
+        "executed_count": 12,
         "not_run_count": 0,
         "unexpected_execution_paths": 0,
         "security_contract_rate": 1.0
       },
       "scenarios": [
+        {
+          "scenario": "Reviewed Plan Binding",
+          "expected_control": "A stale semantic preview cannot authorize a changed Git plan",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/change/test_approval_binding.py::test_preview_binding_rejects_stale_review_then_accepts_refreshed_plan"
+        },
+        {
+          "scenario": "Dispatch Reauthorization",
+          "expected_control": "Stale Evidence, approval, base revision and altered bytes prevent writes",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/change/test_approval_binding.py::test_dispatch_rechecks_authorization_before_any_git_write"
+        },
+        {
+          "scenario": "Persistent External Review",
+          "expected_control": "External review survives restart; status never fabricates merge",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "PASS",
+          "test_reference": "backend/tests/change/test_persistent_lab.py::test_external_review_survives_restart_and_status_is_read_only"
+        },
+        {
+          "scenario": "JSON API Governance",
+          "expected_control": "JSON proposals produce previews; missing approval binding fails closed",
+          "actual": "Referenced contract test passed in this benchmark run",
+          "result": "BLOCKED",
+          "test_reference": "backend/tests/change/test_change_api.py::test_authenticated_api_previews_before_bound_approval"
+        },
         {
           "scenario": "Typed Change Validity",
           "expected_control": "ChangeIntent excludes repository, branch, path, credentials, and raw mutation",

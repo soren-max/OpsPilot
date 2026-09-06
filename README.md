@@ -57,8 +57,8 @@ CHANGE:    Structured Change → Policy → HITL → PR → Git Review → GitOp
 
 ## Verifiable Portfolio Evidence
 
-<!-- portfolio-metric backend_tests=359 -->
-<!-- portfolio-metric frontend_tests=41 -->
+<!-- portfolio-metric backend_tests=379 -->
+<!-- portfolio-metric frontend_tests=42 -->
 <!-- portfolio-metric lab_scenarios=4 -->
 <!-- portfolio-metric investigation_cases=6 -->
 <!-- portfolio-metric retrieval_queries=12 -->
@@ -70,7 +70,7 @@ CHANGE:    Structured Change → Policy → HITL → PR → Git Review → GitOp
 
 | Evidence | Result | Trace |
 | --- | --- | --- |
-| Backend / frontend tests | 359 collected / 41 declared | Generated benchmark + quality gate |
+| Backend / frontend tests | 379 collected / 42 declared | Generated benchmark + quality gate |
 | Incident investigation | 6 real deterministic fixtures; LLM `NOT RUN` | [Benchmark entry](docs/evaluation/portfolio-benchmark.md) |
 | Hybrid retrieval | 40 documents / 12 queries; Dense, Sparse, Hybrid RRF | [Retrieval evaluation](docs/evaluation/retrieval-benchmark.md) |
 | Safety containment | 15/15 controls, 0 unexpected execution paths | [Safety matrix](docs/evaluation/safety-matrix.md) |
