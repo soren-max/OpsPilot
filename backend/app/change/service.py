@@ -40,6 +40,7 @@ from app.repositories.incident_models import (
     IncidentRecord,
 )
 from app.repositories.incidents import AuditEventRepository
+from app.services.redaction import redact_text
 
 tracer = trace.get_tracer("opspilot.change")
 meter = metrics.get_meter("opspilot.change")
@@ -59,6 +60,12 @@ gitops_reconcile = meter.create_histogram("opspilot_gitops_reconcile_seconds", u
 def action_fingerprint(intent: ChangeIntent) -> str:
     payload = intent.model_dump(mode="json", exclude={"requested_by"})
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def plan_fingerprint(plan: ChangeSet) -> str:
+    return hashlib.sha256(
+        json.dumps(plan.model_dump(mode="json"), sort_keys=True).encode()
+    ).hexdigest()
 
 
 class ChangeService:
@@ -84,6 +91,7 @@ class ChangeService:
             raise ValueError("Incident does not exist")
         if (incident.service, incident.environment) != (intent.service, intent.environment):
             raise ValueError("Change crosses the Incident service/environment boundary")
+        self._current_evidence(intent, profile)
         evidence = {
             item.id
             for item in self.db.query(EvidenceRecord).filter(
@@ -147,7 +155,59 @@ class ChangeService:
         change_total.add(1, {"change.type": intent.change_type.value})
         return record
 
-    async def approve(self, change_id: str, *, actor: str, reason: str) -> ChangeRecord:
+    def _current_evidence(self, intent: ChangeIntent, profile: GitOpsApplicationProfile) -> None:
+        now = utc_now()
+        records = list(
+            self.db.query(EvidenceRecord).filter(
+                EvidenceRecord.incident_id == intent.incident_id,
+                EvidenceRecord.id.in_(intent.evidence_ids),
+            )
+        )
+        if {item.id for item in records} != set(intent.evidence_ids):
+            raise ValueError("Change references unknown or cross-Incident Evidence")
+        for item in records:
+            if (
+                not 0
+                <= (now - item.observed_at).total_seconds()
+                <= profile.evidence_max_age_seconds
+            ):
+                raise ValueError("Change requires fresh current Evidence")
+
+    async def prepare(self, change_id: str) -> ChangeRecord:
+        if self.git is None:
+            raise ValueError("Git provider is not configured")
+        record = self._require(change_id, lock=True)
+        if record.status is not ChangeStatus.WAITING_APPROVAL:
+            return record
+        intent = ChangeIntent.model_validate_json(json.dumps(record.intent_payload))
+        profile = GitOpsApplicationProfile.model_validate_json(json.dumps(record.profile_payload))
+        self._current_evidence(intent, profile)
+        source = await self.git.read_base_revision()
+        planned = self.planner.plan(
+            change_id=record.id,
+            intent=intent,
+            profile=profile,
+            source_revision=source,
+            manifests={
+                profile.manifest_root: await self.git.read_file(profile.manifest_root, source)
+            },
+        )
+        assessment = self.policy.assess_change_set(intent, profile, planned, approval_granted=False)
+        if assessment.risk.value == "FORBIDDEN":
+            raise ValueError(assessment.reason)
+        record.source_revision = source
+        record.change_set_payload = planned.model_dump(mode="json")
+        record.updated_at = utc_now()
+        record.version += 1
+        self._audit(
+            record, AuditEventType.CHANGE_PLANNED, "Semantic preview prepared before approval"
+        )
+        self.db.commit()
+        return record
+
+    async def approve(
+        self, change_id: str, *, actor: str, reason: str, expected_plan: str | None = None
+    ) -> ChangeRecord:
         if self.git is None:
             raise ValueError("Git provider is not configured")
         record = self._require(change_id, lock=True)
@@ -159,9 +219,12 @@ class ChangeService:
                 return record
             raise ValueError("Change is not waiting for approval")
         intent = ChangeIntent.model_validate_json(json.dumps(record.intent_payload))
+        if len(reason.strip()) < 3 or not actor.strip():
+            raise ValueError("Approval requires an actor and a meaningful reason")
         if actor == intent.requested_by:
             raise ValueError("Change requester cannot approve their own proposal")
         profile = GitOpsApplicationProfile.model_validate_json(json.dumps(record.profile_payload))
+        self._current_evidence(intent, profile)
         source_revision = await self.git.read_base_revision()
         manifest = await self.git.read_file(profile.manifest_root, source_revision)
         planned = self.planner.plan(
@@ -171,6 +234,13 @@ class ChangeService:
             source_revision=source_revision,
             manifests={profile.manifest_root: manifest},
         )
+        if (
+            record.change_set_payload is not None
+            and record.change_set_payload != planned.model_dump(mode="json")
+        ):
+            raise ValueError("Desired state changed since preview; prepare and review a new plan")
+        if expected_plan is not None and expected_plan != plan_fingerprint(planned):
+            raise ValueError("Approval does not match the reviewed semantic plan")
         assessment = self.policy.assess_change_set(intent, profile, planned, approval_granted=True)
         if not assessment.allowed:
             record.status = ChangeStatus.REJECTED
@@ -186,7 +256,7 @@ class ChangeService:
         record.status = ChangeStatus.QUEUED
         record.approval_id = str(uuid.uuid4())
         record.approval_actor = actor
-        record.approval_reason = reason[:500]
+        record.approval_reason = (redact_text(reason) or "")[:500]
         record.approval_decided_at = now
         record.source_revision = source_revision
         record.branch = f"opspilot/change/{record.id}"
@@ -224,9 +294,9 @@ class ChangeService:
             raise ValueError("Change is not waiting for approval")
         record.status = ChangeStatus.REJECTED
         record.approval_actor = actor
-        record.approval_reason = reason[:500]
+        record.approval_reason = (redact_text(reason) or "")[:500]
         record.approval_decided_at = utc_now()
-        record.safe_failure_message = reason[:500]
+        record.safe_failure_message = (redact_text(reason) or "")[:500]
         record.updated_at = utc_now()
         record.version += 1
         change_rejected_total.add(1, {"rule": "human.rejected"})
@@ -257,6 +327,7 @@ class ChangeService:
             environment=change_set.environment,
             verification_plan=VerificationPlan(profile_ref=profile.verification_profile_ref),
             raw_diff=change_set.raw_diff,
+            plan_fingerprint=plan_fingerprint(change_set),
         )
 
     def _require(self, change_id: str, *, lock: bool = False) -> ChangeRecord:
@@ -332,10 +403,10 @@ class ChangeDispatcher:
             self.db.commit()
         return recovered
 
-    async def dispatch_one(self) -> bool:
+    async def dispatch_one(self, *, change_id: str | None = None) -> bool:
         now = utc_now()
         message = self.outbox.claim_one(
-            now=now, claimed_until=now + timedelta(seconds=self.lease_seconds)
+            now=now, claimed_until=now + timedelta(seconds=self.lease_seconds), change_id=change_id
         )
         if message is None:
             return False
@@ -345,10 +416,48 @@ class ChangeDispatcher:
             message.completed_at = now
             self.db.commit()
             return True
+        # A durable claim precedes every possible external write. A process crash must
+        # leave CLAIMED, never PENDING. Subsequent dispatchers cannot replay this message.
+        self.db.commit()
+        record = self.service._require(message.change_id, lock=True)
         assert record.branch and record.source_revision and record.change_set_payload
         intent = ChangeIntent.model_validate_json(json.dumps(record.intent_payload))
         profile = GitOpsApplicationProfile.model_validate_json(json.dumps(record.profile_payload))
         change_set = ChangeSet.model_validate_json(json.dumps(record.change_set_payload))
+        try:
+            self.service._current_evidence(intent, profile)
+            assessment = self.service.policy.assess_change_set(
+                intent, profile, change_set, approval_granted=bool(record.approval_id)
+            )
+            if (
+                not assessment.allowed
+                or not record.approval_decided_at
+                or (utc_now() - record.approval_decided_at).total_seconds()
+                > profile.approval_max_age_seconds
+                or action_fingerprint(intent) != record.action_fingerprint
+                or await self.git.read_base_revision() != record.source_revision
+            ):
+                raise ValueError("Approved change is stale or no longer authorized")
+            # Re-plan to prove the durable bytes still match the approved semantic intent.
+            replanned = self.service.planner.plan(
+                change_id=record.id,
+                intent=intent,
+                profile=profile,
+                source_revision=record.source_revision,
+                manifests={
+                    profile.manifest_root: await self.git.read_file(
+                        profile.manifest_root, record.source_revision
+                    )
+                },
+            )
+            if replanned != change_set:
+                raise ValueError("Durable ChangeSet does not match the approved intent")
+        except ValueError:
+            record.status = ChangeStatus.REJECTED
+            record.safe_failure_message = "Change authorization or desired-state validation failed"
+            message.status = ChangeOutboxStatus.COMPLETED
+            self.db.commit()
+            return True
         try:
             with tracer.start_as_current_span("change.git.create_pr") as span:
                 span.set_attribute("change.id", record.id)
@@ -358,36 +467,41 @@ class ChangeDispatcher:
                 self.service._audit(
                     record, AuditEventType.GIT_BRANCH_CREATED, "Deterministic branch created"
                 )
+                self.db.commit()
+                record = self.service._require(record.id, lock=True)
+                assert record.branch
                 message_text = _commit_message(record, intent)
                 record.commit_sha = await self.git.commit_changes(
                     record.branch, change_set.changed_files, message_text
                 )
                 record.status = ChangeStatus.COMMITTED
                 self.service._audit(record, AuditEventType.GIT_COMMIT_CREATED, "Change committed")
+                self.db.commit()
+                record = self.service._require(record.id, lock=True)
+                assert record.branch
                 pull = await self.git.create_pull_request(
                     record.branch,
                     f"change: {intent.change_type.value.lower()} {intent.service}",
                     _pull_request_body(record, intent, profile, change_set),
                 )
-        except (TimeoutError, ConnectionError) as exc:
+        except Exception:
+            # HTTP 5xx, malformed success payloads and connection failures can all
+            # follow an accepted write. No automatic retry is safe without proof.
             record.status = ChangeStatus.UNKNOWN
             record.failure_category = "INDETERMINATE_GIT_SIDE_EFFECT"
-            record.safe_failure_message = str(exc)[:500]
+            record.safe_failure_message = (
+                "Git operation outcome indeterminate; automatic redispatch disabled"
+            )
             record.updated_at = utc_now()
             record.version += 1
             message.status = ChangeOutboxStatus.INDETERMINATE
             message.completed_at = utc_now()
             change_unknown_total.add(1)
-            self.db.commit()
-            return True
-        except Exception as exc:
-            record.status = ChangeStatus.FAILED
-            record.failure_category = "GIT_OPERATION_FAILED"
-            record.safe_failure_message = str(exc)[:500]
-            record.updated_at = utc_now()
-            record.version += 1
-            message.status = ChangeOutboxStatus.COMPLETED
-            message.completed_at = utc_now()
+            self.service._audit(
+                record,
+                AuditEventType.CHANGE_RECONCILIATION_REQUIRED,
+                "Git operation outcome indeterminate",
+            )
             self.db.commit()
             return True
         record.pull_request_id = pull.pull_request_id
@@ -405,7 +519,10 @@ class ChangeDispatcher:
 
     async def reconcile_unknown(self, change_id: str) -> ChangeRecord:
         record = self.service._require(change_id, lock=True)
-        if record.status is not ChangeStatus.UNKNOWN or record.branch is None:
+        if (
+            record.status not in {ChangeStatus.UNKNOWN, ChangeStatus.RECONCILIATION_REQUIRED}
+            or record.branch is None
+        ):
             raise ValueError("Change is not awaiting Git side-effect reconciliation")
         pull = await self.git.find_pull_request(record.branch, record.id)
         change_reconciliation_total.add(1)
@@ -417,9 +534,19 @@ class ChangeDispatcher:
                 "Git side effect could not be proven",
             )
         else:
+            if (
+                not record.commit_sha
+                or pull.head_revision != record.commit_sha
+                or pull.branch != record.branch
+            ):
+                record.status = ChangeStatus.RECONCILIATION_REQUIRED
+                record.safe_failure_message = (
+                    "Recovered PR does not match the durable approved commit"
+                )
+                self.db.commit()
+                return record
             record.pull_request_id = pull.pull_request_id
             record.pull_request_url = pull.url
-            record.commit_sha = pull.head_revision
             record.review_state = pull.review_state.value
             record.status = ChangeStatus.WAITING_REVIEW
             record.failure_category = None
@@ -451,10 +578,17 @@ class ChangeWatcher:
 
     async def poll(self, change_id: str) -> ChangeRecord:
         record = self.service._require(change_id, lock=True)
+        if record.status in {
+            ChangeStatus.RESOLVED,
+            ChangeStatus.FAILED,
+            ChangeStatus.REJECTED,
+            ChangeStatus.RECONCILIATION_REQUIRED,
+        }:
+            return record
         if record.pull_request_id is None:
             raise ValueError("Change has no pull request")
         pull = await self.git.get_pull_request(record.pull_request_id)
-        if pull.head_revision != record.commit_sha:
+        if pull.head_revision != record.commit_sha or pull.branch != record.branch:
             return self._reconciliation_required(record, "Pull request head revision changed")
         if pull.state is PullRequestState.CLOSED:
             record.status = ChangeStatus.REJECTED
@@ -482,18 +616,36 @@ class ChangeWatcher:
                         "External Git review approved; OpsPilot still cannot merge",
                     )
             elif pull.review_state is ReviewState.CHANGES_REQUESTED:
-                record.status = ChangeStatus.REJECTED
+                record.status = ChangeStatus.WAITING_REVIEW
                 self.service._audit(
                     record,
                     AuditEventType.PULL_REQUEST_REVIEWED,
                     "External Git review requested changes",
                 )
+            else:
+                record.status = ChangeStatus.WAITING_REVIEW
             record.updated_at = utc_now()
             record.version += 1
             self.db.commit()
             return record
         if pull.merged_revision is None:
             return self._reconciliation_required(record, "Merged PR lacks a revision")
+        if record.merged_revision is not None and record.merged_revision != pull.merged_revision:
+            return self._reconciliation_required(record, "Observed merge revision changed")
+        profile = GitOpsApplicationProfile.model_validate_json(json.dumps(record.profile_payload))
+        change_set = ChangeSet.model_validate_json(json.dumps(record.change_set_payload))
+        if pull.review_state is not ReviewState.APPROVED:
+            return self._reconciliation_required(
+                record, "Merged PR lacks current external review approval"
+            )
+        # Squash and merge commits can differ from the PR head. Verify exact desired
+        # bytes at the observed merged SHA instead of trusting a mutable branch.
+        for path, expected in change_set.changed_files.items():
+            if await self.git.read_file(path, pull.merged_revision) != expected:
+                return self._reconciliation_required(
+                    record, "Merged revision does not contain approved desired state"
+                )
+        record.review_state = pull.review_state.value
         if record.merged_revision is None:
             record.merged_revision = pull.merged_revision
             record.status = ChangeStatus.MERGED
@@ -506,6 +658,9 @@ class ChangeWatcher:
         started = utc_now()
         gitops_status = await self.gitops.get_application_status(record.gitops_application_ref)
         gitops_reconcile.record(max(0.0, (utc_now() - started).total_seconds()))
+        if gitops_status.application_ref != record.gitops_application_ref:
+            return self._reconciliation_required(record, "Argo CD application mismatch")
+        record.gitops_revision = gitops_status.revision
         record.sync_status = gitops_status.sync_status
         record.health_status = gitops_status.health_status
         if gitops_status.revision != record.merged_revision:
@@ -520,8 +675,9 @@ class ChangeWatcher:
             record.updated_at = utc_now()
             self.db.commit()
             return record
+        if record.status is not ChangeStatus.SYNCED:
+            self.service._audit(record, AuditEventType.GITOPS_SYNCED, "Argo CD reports Synced")
         record.status = ChangeStatus.SYNCED
-        self.service._audit(record, AuditEventType.GITOPS_SYNCED, "Argo CD reports Synced")
         if gitops_status.health_status.lower() != "healthy":
             record.updated_at = utc_now()
             self.db.commit()
@@ -529,7 +685,10 @@ class ChangeWatcher:
         record.status = ChangeStatus.HEALTHY
         self.service._audit(record, AuditEventType.GITOPS_HEALTHY, "Argo CD reports Healthy")
         profile = GitOpsApplicationProfile.model_validate_json(json.dumps(record.profile_payload))
-        verified = await self.verifier.verify(record.incident_id, profile.verification_profile_ref)
+        with tracer.start_as_current_span("change.verify"):
+            verified = await self.verifier.verify(
+                record.incident_id, profile.verification_profile_ref
+            )
         record.verification_id = record.verification_id or str(uuid.uuid4())
         record.verification_status = "SUCCEEDED" if verified else "FAILED"
         if not verified:
@@ -593,7 +752,7 @@ def _pull_request_body(
 Incident: {record.incident_id}
 Service: {intent.service}
 Environment: {intent.environment}
-Change Summary: {intent.reason_summary}
+Change Summary: {redact_text(intent.reason_summary)}
 Current Evidence: {evidence}
 
 ## Semantic Diff

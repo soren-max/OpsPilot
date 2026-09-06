@@ -9,7 +9,7 @@ OpsPilot has three execution semantics:
 - `CHANGE` mutates desired state through Git and never calls `kubectl`, Kubernetes mutation APIs,
   or an arbitrary Argo CD sync.
 
-The implemented CHANGE path is:
+The CHANGE path under acceptance review is:
 
 ```text
 Evidence -> ChangeIntent -> Change Policy -> OpsPilot approval -> ChangeSet
@@ -51,6 +51,17 @@ WAITING_APPROVAL -> QUEUED -> WAITING_REVIEW -> APPROVED_FOR_MERGE -> MERGED
 `HEALTHY != RESOLVED`. External waits end the active graph/controller turn after state is persisted;
 workers do not block while a human reviews a PR. Polling remains the baseline. Authenticated webhook
 events are a wake-up signal, not an authorization source.
+
+The API prepares a semantic preview before Gate A and requires its fingerprint on approval.
+Source revision drift invalidates the reviewed plan. Dispatch rechecks Evidence freshness,
+approval expiry, policy and exact planned bytes before any Git write. A durable claim precedes
+external writes, and the branch and commit checkpoints are saved independently. Exceptions after
+a possible write enter UNKNOWN; reconciliation must match the durable approved commit.
+
+The worker runs bounded controller ticks through LangGraph. Graph input contains a change ID;
+caller-provided approval, merge, sync or verification booleans cannot authorize progress. The
+controller reads durable SQL records and current operator configuration on each tick. Production
+verification uses the existing health, metrics and logs capability ports and saves current Evidence.
 
 ## Ports and adapters
 

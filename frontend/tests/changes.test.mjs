@@ -1,11 +1,32 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import vm from "node:vm";
+import ts from "typescript";
 
 const source = (path) => readFile(new URL(path, import.meta.url), "utf8");
 const page = await source("../src/pages/ChangesPage.tsx");
 const api = await source("../src/api/changes.ts");
 const ports = await source("../../backend/app/domain/change/ports.py");
+
+test("approval sends the reviewed fingerprint and rejection stays independent", async () => {
+  const calls = [];
+  const exports = {};
+  const compiled = ts.transpileModule(api, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS },
+  }).outputText;
+  vm.runInNewContext(compiled, {
+    exports,
+    require: () => ({ api: async (path, options) => calls.push({ path, ...options }) }),
+  });
+  await exports.changesApi.approve("change-1", "Reviewed rollback", "a".repeat(64));
+  assert.deepEqual(JSON.parse(calls[0].body), {
+    reason: "Reviewed rollback",
+    plan_fingerprint: "a".repeat(64),
+  });
+  await exports.changesApi.reject("change-1", "Insufficient evidence");
+  assert.deepEqual(JSON.parse(calls[1].body), { reason: "Insufficient evidence" });
+});
 
 test("change detail exposes the complete governed lifecycle", () => {
   for (const step of ["Propose", "Policy", "Approve", "PR", "Review", "Merge", "Sync", "Verify"])

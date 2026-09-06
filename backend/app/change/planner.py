@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from typing import Any
 
 import yaml  # type: ignore[import-untyped]
+from pydantic import ValidationError
 
+from app.change.manifest_schema import Deployment
 from app.domain.change import (
     ChangeIntent,
     ChangeSet,
@@ -37,9 +39,24 @@ FORBIDDEN_REPOSITORY_PATHS = frozenset(
 )
 
 
+class UniqueLoader(yaml.SafeLoader):  # type: ignore[misc]
+    def construct_mapping(self, node: Any, deep: bool = False) -> Any:
+        keys = [self.construct_object(key, deep=deep) for key, _ in node.value]
+        if any(not isinstance(key, str) for key in keys) or len(set(keys)) != len(keys):
+            raise ChangePlanningError("Duplicate or non-string YAML keys are forbidden")
+        return super().construct_mapping(node, deep=deep)
+
+
 def _documents(content: str) -> list[dict[str, Any]]:
+    if len(content.encode()) > 250_000:
+        raise ChangePlanningError("Manifest exceeds bounded size")
     try:
-        loaded = list(yaml.safe_load_all(content))
+        if any(
+            isinstance(token, (yaml.tokens.AliasToken, yaml.tokens.AnchorToken))
+            for token in yaml.scan(content)
+        ):
+            raise ChangePlanningError("YAML anchors and aliases are unsupported")
+        loaded = list(yaml.load_all(content, Loader=UniqueLoader))
     except yaml.YAMLError as exc:
         raise ChangePlanningError("Manifest YAML is invalid") from exc
     if not loaded or any(not isinstance(item, dict) for item in loaded):
@@ -59,6 +76,10 @@ def _resource_ref(document: dict[str, Any]) -> str:
 
 
 def _validate_safe_document(document: dict[str, Any]) -> None:
+    try:
+        Deployment.model_validate(document)
+    except ValidationError as exc:
+        raise ChangePlanningError("Manifest is outside the bounded Deployment schema") from exc
     kind = str(document.get("kind", ""))
     if kind in FORBIDDEN_KINDS:
         raise ChangePlanningError(f"Changes to {kind} are forbidden")
@@ -115,6 +136,15 @@ class PlainKubernetesChangePlanner:
         source_revision: str,
         manifests: dict[str, str],
     ) -> ChangeSet:
+        if (intent.service, intent.environment) != (profile.service, profile.environment):
+            raise ChangePlanningError("Intent does not match operator scope")
+        if (
+            intent.target_ref not in profile.allowed_resources
+            or intent.change_type not in profile.allowed_change_types
+        ):
+            raise ChangePlanningError("Intent is outside operator allowlists")
+        if set(manifests) != {profile.manifest_root}:
+            raise ChangePlanningError("Only the exact operator manifest path is allowed")
         if not manifests:
             raise ChangePlanningError("No desired-state manifests were loaded")
         matches: list[tuple[str, list[dict[str, Any]], int]] = []
@@ -124,6 +154,8 @@ class PlainKubernetesChangePlanner:
             ):
                 raise ChangePlanningError("Manifest path is outside the operator-owned scope")
             docs = _documents(content)
+            if len(docs) != 1:
+                raise ChangePlanningError("M9 requires one Deployment per manifest file")
             for index, document in enumerate(docs):
                 if _resource_ref(document) == intent.target_ref:
                     matches.append((path, docs, index))
@@ -135,6 +167,15 @@ class PlainKubernetesChangePlanner:
         before_content = manifests[path]
         mutation = self._mutate(intent, profile, target)
         _validate_safe_document(target)
+        if mutation.before == mutation.after:
+            raise ChangePlanningError("Requested change already matches desired state")
+        if mutation.field not in profile.allowed_fields:
+            raise ChangePlanningError("Mutation field is outside operator allowlist")
+        for container in target["spec"]["template"]["spec"]["containers"]:
+            if container["image"].split("/", 1)[0] not in profile.artifact_registry_allowlist:
+                raise ChangePlanningError("Image registry is outside operator allowlist")
+        if target["spec"].get("replicas", 1) > profile.max_replicas:
+            raise ChangePlanningError("Replicas exceed operator bound")
         after_content = yaml.safe_dump_all(docs, sort_keys=False)
         raw_diff = "".join(
             difflib.unified_diff(
@@ -154,7 +195,9 @@ class PlainKubernetesChangePlanner:
             environment=intent.environment,
             source_revision=source_revision,
             mutations=(mutation,),
-            blast_radius=int(replicas) if isinstance(replicas, int) else 1,
+            blast_radius=max(int(replicas), int(mutation.before))
+            if intent.change_type is ChangeType.SCALE_REPLICAS
+            else int(replicas),
             evidence_ids=intent.evidence_ids,
             changed_files={path: after_content},
             raw_diff=raw_diff,

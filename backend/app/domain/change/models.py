@@ -100,11 +100,19 @@ class GitOpsApplicationProfile(StrictChangeModel):
     verification_profile_ref: Annotated[
         str, Field(min_length=1, max_length=120, pattern=SAFE_NAME.pattern)
     ]
+    evidence_max_age_seconds: int = Field(default=900, ge=30, le=86400)
+    approval_max_age_seconds: int = Field(default=900, ge=30, le=86400)
     known_good_images: dict[str, str] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_operator_profile(self) -> GitOpsApplicationProfile:
-        if self.manifest_root.startswith(("/", "../")) or "/../" in self.manifest_root:
+        if (
+            any(part in {"", ".", ".."} for part in self.manifest_root.split("/"))
+            or "\\" in self.manifest_root
+            or "%" in self.manifest_root
+            or "?" in self.manifest_root
+            or "#" in self.manifest_root
+        ):
             raise ValueError("manifest_root must be a repository-relative bounded path")
         for image in self.known_good_images.values():
             if not SHA256_IMAGE.fullmatch(image):
@@ -141,6 +149,7 @@ class VerificationPlan(StrictChangeModel):
 
 
 class ChangePreview(StrictChangeModel):
+    plan_fingerprint: str
     resource: str
     field: str
     before: str | int

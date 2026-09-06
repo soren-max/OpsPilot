@@ -101,27 +101,32 @@ portfolio-check:
 	@python3 scripts/portfolio_check.py
 
 gitops-lab-up:
-	@echo "GitOps lab profile ready (offline deterministic provider). For Kind + Argo CD, follow docs/demo/gitops-demo.md."
+	@uv run --project backend --no-sync python -m app.change.lab up
 
 gitops-lab-status:
-	@uv run --project backend --no-sync python -m app.change.demo | tail -n 10
+	@uv run --project backend --no-sync python -m app.change.lab status
 
 gitops-demo:
 	@uv run --project backend --no-sync python -m app.change.demo
 
 gitops-review:
-	@test -n "$(CHANGE_ID)" || (echo "CHANGE_ID is required; this command represents an external synthetic reviewer."; exit 1)
-	@echo "External synthetic review recorded for $(CHANGE_ID). OpsPilot has no review or merge capability."
+	@uv run --project backend --no-sync python -m app.change.lab review --change-id "$(CHANGE_ID)"
 
 gitops-merge:
-	@test -n "$(CHANGE_ID)" || (echo "CHANGE_ID is required; this command represents an external synthetic Git boundary."; exit 1)
-	@echo "External synthetic merge requested for $(CHANGE_ID). Run the watcher to observe it."
+	@uv run --project backend --no-sync python -m app.change.lab merge --change-id "$(CHANGE_ID)"
+
+.PHONY: gitops-approve gitops-reconcile
+gitops-approve:
+	@uv run --project backend --no-sync python -m app.change.lab approve --change-id "$(CHANGE_ID)"
+
+gitops-reconcile:
+	@uv run --project backend --no-sync python -m app.change.lab reconcile --change-id "$(CHANGE_ID)"
 
 gitops-lab-reset:
-	@echo "Offline GitOps lab is in-memory and already reset."
+	@uv run --project backend --no-sync python -m app.change.lab reset
 
 gitops-lab-down:
-	@echo "Offline GitOps lab stopped."
+	@uv run --project backend --no-sync python -m app.change.lab down
 
 gitops-e2e:
 	@uv run --project backend --no-sync pytest -s backend/tests/change backend/tests/architecture/test_gitops_change_boundaries.py backend/tests/test_m9_migration.py -q

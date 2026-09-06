@@ -388,6 +388,7 @@ export type ChangeStatus =
   | "RECONCILIATION_REQUIRED";
 
 export interface ChangeRecord {
+  risk: "HIGH" | "FORBIDDEN";
   id: string;
   incident_id: string;
   workflow_id: string;
@@ -424,6 +425,7 @@ export interface ChangePage {
 }
 
 export interface ChangePreview {
+  plan_fingerprint: string;
   resource: string;
   field: string;
   before: string | number;

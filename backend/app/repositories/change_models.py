@@ -40,6 +40,7 @@ class ChangeRecord(Base):
     approval_decided_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     verification_id: Mapped[str | None] = mapped_column(String(36), unique=True)
     verification_status: Mapped[str | None] = mapped_column(String(40))
+    gitops_revision: Mapped[str | None] = mapped_column(String(64))
     sync_status: Mapped[str | None] = mapped_column(String(40))
     health_status: Mapped[str | None] = mapped_column(String(40))
     failure_category: Mapped[str | None] = mapped_column(String(80))
@@ -52,6 +53,18 @@ class ChangeRecord(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    @property
+    def service(self) -> str:
+        return str(self.intent_payload["service"])
+
+    @property
+    def environment(self) -> str:
+        return str(self.intent_payload["environment"])
+
+    @property
+    def risk(self) -> str:
+        return str(self.policy_payload["risk"])
+
     __table_args__ = (
         UniqueConstraint("workflow_id", "action_fingerprint", name="uq_change_workflow_action"),
     )

@@ -9,7 +9,7 @@ from app.adapters.git import FakeGitChangeProvider
 from app.adapters.gitops import FakeGitOpsReconciler
 from app.change.service import ChangeDispatcher, ChangeService, ChangeWatcher
 from app.db.base import utc_now
-from app.domain.change import ChangeStatus, GitOpsStatus
+from app.domain.change import ChangeStatus, GitOpsStatus, PullRequestState
 from app.repositories.change_models import ChangeOutboxRecord, ChangeOutboxStatus
 
 from .conftest import MANIFEST, intent, profile, seed_incident
@@ -156,3 +156,81 @@ async def test_requester_cannot_self_approve(db: Session) -> None:
             record.id, actor="investigator", reason="Self approval must fail"
         )
     assert not git.pull_requests
+
+
+@pytest.mark.asyncio
+async def test_human_rejection_never_creates_git_branch(db: Session) -> None:
+    seed_incident(db)
+    git = FakeGitChangeProvider(base_files={profile().manifest_root: MANIFEST})
+    service = ChangeService(db, git=git)
+    record = service.propose(intent(), profile())
+    service.reject(record.id, actor="reviewer", reason="Evidence is insufficient")
+    assert record.status is ChangeStatus.REJECTED
+    assert not await ChangeDispatcher(db, git=git).dispatch_one()
+    assert not git.branches
+
+
+@pytest.mark.asyncio
+async def test_closed_pr_rejects_change_without_resolving_incident(db: Session) -> None:
+    record, git = await prepared_change(db)
+    git.pull_requests[record.pull_request_id] = git.pull_requests[
+        record.pull_request_id
+    ].model_copy(update={"state": PullRequestState.CLOSED})
+    reconciler = FakeGitOpsReconciler(
+        GitOpsStatus(
+            application_ref="demo-api-production",
+            revision=None,
+            sync_status="Unknown",
+            health_status="Unknown",
+        )
+    )
+    await ChangeWatcher(db, git=git, gitops=reconciler, verifier=Verifier(True)).poll(record.id)
+    assert record.status is ChangeStatus.REJECTED
+    assert record.verification_id is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mismatch", ["merged_content", "argo_revision"])
+async def test_wrong_merged_content_or_synced_revision_fails_closed(
+    db: Session, mismatch: str
+) -> None:
+    record, git = await prepared_change(db)
+    git.external_review(record.pull_request_id, approved=True)
+    merged = git.external_merge(record.pull_request_id)
+    if mismatch == "merged_content":
+        git.base_files[profile().manifest_root] = MANIFEST
+    reconciler = FakeGitOpsReconciler(
+        GitOpsStatus(
+            application_ref="demo-api-production",
+            revision=merged if mismatch == "merged_content" else "f" * 40,
+            sync_status="Synced",
+            health_status="Healthy",
+        )
+    )
+    await ChangeWatcher(db, git=git, gitops=reconciler, verifier=Verifier(True)).poll(record.id)
+    assert record.status is ChangeStatus.RECONCILIATION_REQUIRED
+    assert record.verification_id is None
+
+
+@pytest.mark.asyncio
+async def test_manual_reconcile_can_retry_observation_without_creating_second_pr(
+    db: Session,
+) -> None:
+    seed_incident(db)
+    git = FakeGitChangeProvider(
+        base_files={profile().manifest_root: MANIFEST}, create_pr_timeout_after_accept=True
+    )
+    service = ChangeService(db, git=git)
+    record = service.propose(intent(), profile())
+    await service.approve(record.id, actor="operator", reason="Reviewed")
+    dispatcher = ChangeDispatcher(db, git=git)
+    await dispatcher.dispatch_one()
+    accepted = dict(git.pull_requests)
+    git.pull_requests.clear()  # The provider cannot yet prove the result.
+    await dispatcher.reconcile_unknown(record.id)
+    assert record.status is ChangeStatus.RECONCILIATION_REQUIRED
+    git.pull_requests.update(accepted)
+    await dispatcher.reconcile_unknown(record.id)
+    assert record.status is ChangeStatus.WAITING_REVIEW
+    assert len(git.pull_requests) == 1
+    assert not await dispatcher.dispatch_one()

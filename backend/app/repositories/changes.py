@@ -1,7 +1,7 @@
 import builtins
 from datetime import datetime
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, true
 from sqlalchemy.orm import Session
 
 from app.domain.change import ChangeStatus
@@ -73,12 +73,15 @@ class ChangeOutboxRepository:
     def add(self, record: ChangeOutboxRecord) -> None:
         self.db.add(record)
 
-    def claim_one(self, *, now: datetime, claimed_until: datetime) -> ChangeOutboxRecord | None:
+    def claim_one(
+        self, *, now: datetime, claimed_until: datetime, change_id: str | None = None
+    ) -> ChangeOutboxRecord | None:
         item = self.db.scalar(
             select(ChangeOutboxRecord)
             .where(
                 ChangeOutboxRecord.available_at <= now,
                 ChangeOutboxRecord.status == ChangeOutboxStatus.PENDING,
+                (ChangeOutboxRecord.change_id == change_id) if change_id else true(),
             )
             .order_by(ChangeOutboxRecord.created_at)
             .with_for_update(skip_locked=True)

@@ -355,6 +355,34 @@ COMPATIBILITY_SPECS = (
 
 GITOPS_CHANGE_SPECS = (
     ContractSpec(
+        scenario="Reviewed Plan Binding",
+        expected_control="A stale semantic preview cannot authorize a changed Git plan",
+        expected_result="BLOCKED",
+        test_function="test_preview_binding_rejects_stale_review_then_accepts_refreshed_plan",
+        test_reference="backend/tests/change/test_approval_binding.py",
+    ),
+    ContractSpec(
+        scenario="Dispatch Reauthorization",
+        expected_control="Stale Evidence, approval, base revision and altered bytes prevent writes",
+        expected_result="BLOCKED",
+        test_function="test_dispatch_rechecks_authorization_before_any_git_write",
+        test_reference="backend/tests/change/test_approval_binding.py",
+    ),
+    ContractSpec(
+        scenario="Persistent External Review",
+        expected_control="External review survives restart; status never fabricates merge",
+        expected_result="PASS",
+        test_function="test_external_review_survives_restart_and_status_is_read_only",
+        test_reference="backend/tests/change/test_persistent_lab.py",
+    ),
+    ContractSpec(
+        scenario="JSON API Governance",
+        expected_control="JSON proposals produce previews; missing approval binding fails closed",
+        expected_result="BLOCKED",
+        test_function="test_authenticated_api_previews_before_bound_approval",
+        test_reference="backend/tests/change/test_change_api.py",
+    ),
+    ContractSpec(
         scenario="Typed Change Validity",
         expected_control=(
             "ChangeIntent excludes repository, branch, path, credentials, and raw mutation"

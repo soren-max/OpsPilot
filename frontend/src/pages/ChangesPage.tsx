@@ -119,6 +119,7 @@ function ChangeDetail({ changeId }: { changeId: string }) {
   const [reason, setReason] = useState("");
   const [rawDiffOpen, setRawDiffOpen] = useState(false);
   const [confirming, setConfirming] = useState<"approve" | "reject" | null>(null);
+  const [reviewedPlan, setReviewedPlan] = useState<string | null>(null);
   const change = useQuery({
     queryKey: queryKeys.change(changeId),
     queryFn: () => changesApi.detail(changeId),
@@ -127,16 +128,30 @@ function ChangeDetail({ changeId }: { changeId: string }) {
     queryKey: queryKeys.changeTimeline(changeId),
     queryFn: () => changesApi.timeline(changeId),
   });
-  const previewEnabled = Boolean(
-    change.data && statusStep[change.data.status] >= 2 && change.data.status !== "WAITING_APPROVAL",
-  );
   const preview = useQuery({
     queryKey: queryKeys.changePreview(changeId),
     queryFn: () => changesApi.preview(changeId),
-    enabled: previewEnabled,
+    enabled: Boolean(change.data),
+  });
+  const prepare = useMutation({
+    mutationFn: () => changesApi.prepare(changeId),
+    onSuccess: async () => {
+      setConfirming(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.changePreview(changeId) });
+    },
   });
   const decide = useMutation({
-    mutationFn: (decision: "approve" | "reject") => changesApi[decision](changeId, reason),
+    mutationFn: (decision: "approve" | "reject") => {
+      if (decision === "reject") return changesApi.reject(changeId, reason);
+      if (
+        !preview.data ||
+        preview.isFetching ||
+        prepare.isPending ||
+        reviewedPlan !== preview.data.plan_fingerprint
+      )
+        throw new Error("Review the current semantic preview before approving PR creation.");
+      return changesApi.approve(changeId, reason, reviewedPlan);
+    },
     onSuccess: async () => {
       setReason("");
       await Promise.all([
@@ -196,7 +211,7 @@ function ChangeDetail({ changeId }: { changeId: string }) {
         <dl>
           <Fact label="Incident" value={item.incident_id} />
           <Fact label="Environment profile" value={item.profile_id} />
-          <Fact label="Risk" value="HIGH" />
+          <Fact label="Risk" value={item.risk} />
           <Fact label="Status" value={item.status} />
           <Fact label="Approver" value={item.approval_actor ?? "Waiting"} />
           <Fact label="Decision reason" value={item.approval_reason ?? "Waiting"} />
@@ -206,7 +221,11 @@ function ChangeDetail({ changeId }: { changeId: string }) {
         <PageSection title="OpsPilot Approval" description="Gate A authorizes PR creation only.">
           <div className="gate-state">
             <ShieldCheck size={20} />
-            <StatusBadge status={item.approval_id ? "APPROVED" : "WAITING"} />
+            <StatusBadge
+              status={
+                item.approval_id ? "APPROVED" : item.status === "REJECTED" ? "REJECTED" : "WAITING"
+              }
+            />
           </div>
           {item.status === "WAITING_APPROVAL" ? (
             <div className="change-decision">
@@ -216,8 +235,17 @@ function ChangeDetail({ changeId }: { changeId: string }) {
               </label>
               <div>
                 <button
-                  disabled={reason.trim().length < 3}
-                  onClick={() => setConfirming("approve")}
+                  disabled={
+                    reason.trim().length < 3 ||
+                    !preview.data ||
+                    preview.isFetching ||
+                    prepare.isPending ||
+                    decide.isPending
+                  }
+                  onClick={() => {
+                    setReviewedPlan(preview.data?.plan_fingerprint ?? null);
+                    setConfirming("approve");
+                  }}
                 >
                   Approve PR creation
                 </button>
@@ -250,6 +278,16 @@ function ChangeDetail({ changeId }: { changeId: string }) {
         title="Semantic Diff"
         description="Policy-readable desired-state change; raw Git diff remains technical detail."
       >
+        {preview.isLoading ? <LoadingState label="Loading semantic preview" /> : null}
+        {preview.error ? (
+          <ErrorState error={preview.error} onRetry={() => void preview.refetch()} />
+        ) : null}
+        {item.status === "WAITING_APPROVAL" ? (
+          <button disabled={prepare.isPending || decide.isPending} onClick={() => prepare.mutate()}>
+            {prepare.isPending ? "Preparing preview…" : "Refresh semantic plan"}
+          </button>
+        ) : null}
+        {prepare.error ? <p role="alert">{prepare.error.message}</p> : null}
         {preview.data ? (
           <div className="semantic-diff">
             <header>
@@ -276,9 +314,7 @@ function ChangeDetail({ changeId }: { changeId: string }) {
             </button>
           </div>
         ) : (
-          <p>
-            Semantic preview becomes available after OpsPilot approval and deterministic planning.
-          </p>
+          <p>Prepare and review the semantic plan before approving PR creation.</p>
         )}
       </PageSection>
       <div className="change-gitops-grid">

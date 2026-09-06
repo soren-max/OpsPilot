@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy.orm import Session
 
 from app.api.deps import response
-from app.change.webhook import GitWebhookError, ingest_github_event
+from app.change.webhook import MAX_WEBHOOK_BYTES, GitWebhookError, ingest_github_event
 from app.core.config import get_settings
 from app.core.errors import ForbiddenError, ValidationError
 from app.db.session import get_db
@@ -21,7 +21,11 @@ async def github_webhook(
     settings = get_settings()
     if settings.github_webhook_secret is None or settings.github_repository is None:
         raise ForbiddenError("GIT_WEBHOOK_DISABLED", "GitHub webhook is not configured")
-    body = await request.body()
+    body = b""
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > MAX_WEBHOOK_BYTES:
+            raise ValidationError("Webhook payload exceeds the bounded size")
+        body += chunk
     try:
         accepted = ingest_github_event(
             db,

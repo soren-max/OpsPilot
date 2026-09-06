@@ -1,8 +1,18 @@
 from datetime import datetime
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.domain.change import ChangePreview, ChangeStatus, ChangeType
+from app.domain.change import ChangeIntent, ChangePreview, ChangeStatus, ChangeType
+
+
+class ChangeProposal(ChangeIntent):
+    """JSON transport permits enum strings and arrays, retaining strict leaf values."""
+
+    change_type: Annotated[ChangeType, Field(strict=False)]
+    evidence_ids: Annotated[
+        tuple[Annotated[str, Field(min_length=1, max_length=64)], ...], Field(strict=False)
+    ]
 
 
 class ChangeDecision(BaseModel):
@@ -10,9 +20,16 @@ class ChangeDecision(BaseModel):
     reason: str = Field(min_length=3, max_length=500)
 
 
+class ChangeApproval(ChangeDecision):
+    plan_fingerprint: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
 class ChangeRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str
+    service: str
+    environment: str
+    risk: str
     incident_id: str
     workflow_id: str
     profile_id: str
@@ -32,6 +49,7 @@ class ChangeRead(BaseModel):
     approval_decided_at: datetime | None
     verification_id: str | None
     verification_status: str | None
+    gitops_revision: str | None
     sync_status: str | None
     health_status: str | None
     review_state: str | None

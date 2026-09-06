@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     deployment_playbook_directory: str | None = None
     execution_timeout_seconds: int = Field(default=30, ge=1, le=300)
     execution_dispatch_lease_seconds: int = Field(default=60, ge=10, le=3600)
+    gitops_profiles_path: str | None = None
     gitops_provider: str = "disabled"
     github_repository: str | None = Field(
         default=None, pattern=r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"

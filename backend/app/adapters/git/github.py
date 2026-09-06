@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import base64
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -17,8 +19,29 @@ class GitHubGitChangeProvider:
 
     repository: str
     base_branch: str
-    token: str
+    token: str = field(repr=False)
+    allowed_paths: frozenset[str] = frozenset()
     api_base: str = "https://api.github.com"
+
+    def __post_init__(self) -> None:
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", self.repository):
+            raise ValueError("Invalid operator repository")
+        if (
+            not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_./-]*", self.base_branch)
+            or ".." in self.base_branch
+        ):
+            raise ValueError("Invalid operator base branch")
+
+    def _path(self, path: str) -> str:
+        if path not in self.allowed_paths or any(p in {"", ".", ".."} for p in path.split("/")):
+            raise ValueError("Git path is outside the operator allowlist")
+        return quote(path, safe="/")
+
+    @staticmethod
+    def _branch(branch: str) -> str:
+        if not re.fullmatch(r"opspilot/change/[a-f0-9-]{36}", branch):
+            raise ValueError("Invalid deterministic change branch")
+        return branch
 
     def _headers(self) -> dict[str, str]:
         return {
@@ -43,11 +66,18 @@ class GitHubGitChangeProvider:
 
     async def read_file(self, path: str, revision: str) -> str:
         data = await self._request(
-            "GET", f"/repos/{self.repository}/contents/{path}", params={"ref": revision}
+            "GET", f"/repos/{self.repository}/contents/{self._path(path)}", params={"ref": revision}
         )
+        if (
+            data.get("type") != "file"
+            or data.get("encoding") != "base64"
+            or data.get("size", 0) > 250_000
+        ):
+            raise ValueError("Git manifest must be a bounded regular file")
         return base64.b64decode(str(data["content"])).decode()
 
     async def create_branch(self, branch: str, source_revision: str) -> None:
+        self._branch(branch)
         await self._request(
             "POST",
             f"/repos/{self.repository}/git/refs",
@@ -55,14 +85,17 @@ class GitHubGitChangeProvider:
         )
 
     async def commit_changes(self, branch: str, files: dict[str, str], message: str) -> str:
+        self._branch(branch)
         revision = self.branches_not_supported_message(files)
         for path, content in files.items():
             current = await self._request(
-                "GET", f"/repos/{self.repository}/contents/{path}", params={"ref": branch}
+                "GET",
+                f"/repos/{self.repository}/contents/{self._path(path)}",
+                params={"ref": branch},
             )
             committed = await self._request(
                 "PUT",
-                f"/repos/{self.repository}/contents/{path}",
+                f"/repos/{self.repository}/contents/{self._path(path)}",
                 json={
                     "message": message,
                     "content": base64.b64encode(content.encode()).decode(),
@@ -80,6 +113,7 @@ class GitHubGitChangeProvider:
         return ""
 
     async def create_pull_request(self, branch: str, title: str, body: str) -> PullRequest:
+        self._branch(branch)
         data = await self._request(
             "POST",
             f"/repos/{self.repository}/pulls",
@@ -92,26 +126,61 @@ class GitHubGitChangeProvider:
         items = await self._request(
             "GET",
             f"/repos/{self.repository}/pulls",
-            params={"state": "all", "head": f"{owner}:{branch}"},
+            params={
+                "state": "all",
+                "head": f"{owner}:{branch}",
+                "base": self.base_branch,
+                "per_page": 100,
+            },
         )
-        for item in items:
-            if f"OpsPilot Change ID: {change_id}" in str(item.get("body", "")):
-                return self._pull_request(item, await self.get_review_state(str(item["number"])))
-        return None
+        matches = [
+            item
+            for item in items
+            if f"OpsPilot Change ID: {change_id}" in str(item.get("body", "")).splitlines()
+            and item.get("base", {}).get("ref") == self.base_branch
+            and item.get("head", {}).get("repo", {}).get("full_name") == self.repository
+        ]
+        if len(matches) > 1:
+            raise ValueError("Ambiguous PR correlation")
+        return await self.get_pull_request(str(matches[0]["number"])) if matches else None
 
     async def get_pull_request(self, pull_request_id: str) -> PullRequest:
         data = await self._request("GET", f"/repos/{self.repository}/pulls/{pull_request_id}")
+        if (
+            data.get("base", {}).get("ref") != self.base_branch
+            or data.get("base", {}).get("repo", {}).get("full_name") != self.repository
+            or data.get("head", {}).get("repo", {}).get("full_name") != self.repository
+        ):
+            raise ValueError("PR repository/base correlation mismatch")
         return self._pull_request(data, await self.get_review_state(pull_request_id))
 
     async def get_review_state(self, pull_request_id: str) -> ReviewState:
-        reviews = await self._request(
-            "GET", f"/repos/{self.repository}/pulls/{pull_request_id}/reviews"
-        )
+        pull = await self._request("GET", f"/repos/{self.repository}/pulls/{pull_request_id}")
+        reviews: list[dict[str, Any]] = []
+        for page in range(1, 11):
+            batch = await self._request(
+                "GET",
+                f"/repos/{self.repository}/pulls/{pull_request_id}/reviews",
+                params={"per_page": 100, "page": page},
+            )
+            reviews.extend(batch)
+            if len(batch) < 100:
+                break
+        else:
+            return ReviewState.WAITING  # bounded observation cannot prove complete review state
         latest_by_reviewer: dict[str, str] = {}
         for item in reviews:
             reviewer = item.get("user", {}).get("login")
             state = str(item.get("state", "")).upper()
-            if isinstance(reviewer, str) and state in {"APPROVED", "CHANGES_REQUESTED"}:
+            if reviewer == pull.get("user", {}).get("login"):
+                continue
+            if state == "APPROVED" and item.get("commit_id") != pull["head"]["sha"]:
+                state = "DISMISSED"
+            if isinstance(reviewer, str) and state in {
+                "APPROVED",
+                "CHANGES_REQUESTED",
+                "DISMISSED",
+            }:
                 latest_by_reviewer[reviewer] = state
         states = latest_by_reviewer.values()
         if "CHANGES_REQUESTED" in states:

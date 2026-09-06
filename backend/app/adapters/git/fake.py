@@ -15,6 +15,7 @@ class FakeGitChangeProvider:
     branches: dict[str, str] = field(default_factory=dict)
     branch_files: dict[str, dict[str, str]] = field(default_factory=dict)
     pull_requests: dict[str, PullRequest] = field(default_factory=dict)
+    correlations: dict[str, str] = field(default_factory=dict)
     create_pr_timeout_after_accept: bool = False
 
     async def read_base_revision(self) -> str:
@@ -25,6 +26,8 @@ class FakeGitChangeProvider:
             for branch, branch_revision in self.branches.items():
                 if branch_revision == revision:
                     return self.branch_files[branch][path]
+        if revision != self.base_revision:
+            raise ValueError("Unknown immutable revision")
         return self.base_files[path]
 
     async def create_branch(self, branch: str, source_revision: str) -> None:
@@ -59,13 +62,20 @@ class FakeGitChangeProvider:
             review_state=ReviewState.WAITING,
         )
         self.pull_requests[number] = item
+        self.correlations[number] = change_id
         if self.create_pr_timeout_after_accept:
             raise TimeoutError("PR creation outcome indeterminate")
         return item
 
     async def find_pull_request(self, branch: str, change_id: str) -> PullRequest | None:
-        del change_id
-        return next((item for item in self.pull_requests.values() if item.branch == branch), None)
+        return next(
+            (
+                item
+                for key, item in self.pull_requests.items()
+                if item.branch == branch and self.correlations.get(key) == change_id
+            ),
+            None,
+        )
 
     async def get_pull_request(self, pull_request_id: str) -> PullRequest:
         return self.pull_requests[pull_request_id]

@@ -47,12 +47,20 @@ def ingest_github_event(
         payload: dict[str, Any] = json.loads(body)
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise GitWebhookError("Webhook payload is not valid JSON") from exc
+    if not isinstance(payload, dict):
+        raise GitWebhookError("Webhook payload must be an object")
     repository = payload.get("repository")
     repository_ref = repository.get("full_name") if isinstance(repository, dict) else None
     if repository_ref != allowed_repository:
         raise GitWebhookError("Webhook repository is outside the operator allowlist")
     pull = payload.get("pull_request")
-    branch = pull.get("head", {}).get("ref") if isinstance(pull, dict) else None
+    head = pull.get("head") if isinstance(pull, dict) else None
+    base = pull.get("base") if isinstance(pull, dict) else None
+    branch = head.get("ref") if isinstance(head, dict) else None
+    if isinstance(pull, dict) and (
+        not isinstance(base, dict) or base.get("ref") != allowed_base_branch
+    ):
+        raise GitWebhookError("Webhook base branch is outside operator scope")
     record = None
     if event_type in {"pull_request", "pull_request_review"} and not (
         isinstance(branch, str) and branch.startswith("opspilot/change/")

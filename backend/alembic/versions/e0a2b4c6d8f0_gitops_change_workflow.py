@@ -95,6 +95,7 @@ def upgrade() -> None:
         sa.Column("approval_decided_at", sa.DateTime(timezone=True)),
         sa.Column("verification_id", sa.String(36), unique=True),
         sa.Column("verification_status", sa.String(40)),
+        sa.Column("gitops_revision", sa.String(length=64), nullable=True),
         sa.Column("sync_status", sa.String(40)),
         sa.Column("health_status", sa.String(40)),
         sa.Column("failure_category", sa.String(80)),

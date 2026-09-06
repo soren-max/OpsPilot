@@ -9,10 +9,12 @@ export const changesApi = {
   detail: (changeId: string) => api<ChangeRecord>(`/changes/${changeId}`),
   timeline: (changeId: string) => api<ChangeTimelineItem[]>(`/changes/${changeId}/timeline`),
   preview: (changeId: string) => api<ChangePreview>(`/changes/${changeId}/preview`),
-  approve: (changeId: string, reason: string) =>
+  prepare: (changeId: string) =>
+    api<ChangeRecord>(`/changes/${changeId}/prepare`, { method: "POST" }),
+  approve: (changeId: string, reason: string, planFingerprint: string) =>
     api<ChangeRecord>(`/changes/${changeId}/approve`, {
       method: "POST",
-      body: JSON.stringify({ reason }),
+      body: JSON.stringify({ reason, plan_fingerprint: planFingerprint }),
     }),
   reject: (changeId: string, reason: string) =>
     api<ChangeRecord>(`/changes/${changeId}/reject`, {

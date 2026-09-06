@@ -248,7 +248,7 @@ LLM 模式需要有效的 `OPENAI_API_KEY` 与经运维确认的模型配置。P
 | M7 MCP Capability Boundary | **已实现** |
 | M8 Multi-backend Governed Execution | **已实现** |
 | M8.5 Deployment Compatibility & Legacy Migration Bridge | **已实现** |
-| M9 GitOps Change Workflow | **已实现（当前开发里程碑）** |
+| M9 GitOps Change Workflow | **开发验收中：真实 Lab 和远端 CI 尚待验证** |
 
 Worker 每次迭代从选中的 Mock 或 Ansible 后端与启用的 Target 白名单构建一个由运维配置的
 `ActionService`，并把同一个策略/执行器边界注入普通 Operations 与 LangGraph 工作流；工作流
@@ -264,12 +264,12 @@ M1B 已移除遗留的 SSH 与服务脚本运行时。Ansible 可以按运维自
 
 | 里程碑 | 状态 |
 | --- | --- |
-| M1A – M9 | **已实现**（见当前状态） |
+| M1A – M8.5 | **已实现**（见当前状态） |
 | Local Demo Closeout | **已实现** |
 | M8 Harness Multi-backend Execution | **已实现** |
 | M8.5 Deployment Compatibility | **已实现** |
 | Portfolio v1.0 Evidence & Release Closeout | **当前稳定版本** |
-| M9 GitOps Change Workflow | **已实现（当前开发里程碑）** |
+| M9 GitOps Change Workflow | **开发验收中：真实 Lab 和远端 CI 尚待验证** |
 | M10 Risk Reviewer / Advanced Eval | Future Work |
 | M11 Agent Observability / Production Hardening | Future Work |
 

@@ -61,7 +61,41 @@ class ChangePolicyEngine:
         initial = self.assess_intent(intent, profile)
         if initial.risk is ChangeRisk.FORBIDDEN:
             return initial
+        if change_set.blast_radius > profile.max_replicas:
+            return _forbidden("change.blast_radius", "Affected replicas exceed operator limit")
+        if (
+            change_set.profile_id != profile.profile_id
+            or change_set.service != intent.service
+            or change_set.environment != intent.environment
+            or change_set.evidence_ids != intent.evidence_ids
+            or set(change_set.changed_files) != {profile.manifest_root}
+            or len(change_set.mutations) != 1
+        ):
+            return _forbidden("change.correlation", "ChangeSet does not match intent and profile")
         for mutation in change_set.mutations:
+            expected_field = (
+                "spec.replicas"
+                if intent.change_type is ChangeType.SCALE_REPLICAS
+                else "spec.template.spec.containers[0].image"
+            )
+            if (
+                mutation.resource_ref != intent.target_ref
+                or mutation.mutation_type is not intent.change_type
+                or mutation.field != expected_field
+            ):
+                return _forbidden("change.semantic_mismatch", "Mutation does not match intent")
+            if (
+                intent.change_type is ChangeType.SCALE_REPLICAS
+                and mutation.after != intent.requested_replicas
+            ):
+                return _forbidden("change.semantic_mismatch", "Replicas do not match intent")
+            if (
+                intent.change_type is ChangeType.ROLLBACK_IMAGE
+                and mutation.after != profile.known_good_images.get(intent.target_ref)
+            ):
+                return _forbidden(
+                    "change.semantic_mismatch", "Artifact is not the operator known-good digest"
+                )
             if mutation.resource_ref not in profile.allowed_resources:
                 return _forbidden("change.resource_allowlist", "Planned resource is forbidden")
             if mutation.field not in profile.allowed_fields:
@@ -70,7 +104,7 @@ class ChangePolicyEngine:
                 image = str(mutation.after)
                 if not SHA256_IMAGE.fullmatch(image):
                     return _forbidden("change.immutable_artifact", "Image must use sha256 digest")
-                registry = image.split("/", 1)[0].split(":", 1)[0]
+                registry = image.split("/", 1)[0]
                 if registry not in profile.artifact_registry_allowlist:
                     return _forbidden("change.registry_allowlist", "Image registry is forbidden")
             if mutation.mutation_type is ChangeType.SCALE_REPLICAS:

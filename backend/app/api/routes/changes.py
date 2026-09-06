@@ -6,17 +6,23 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import response
 from app.api.routes.auth import get_current_user
-from app.change.runtime import build_git_provider
+from app.change.runtime import build_git_provider, resolve_profile
 from app.change.service import ChangeDispatcher, ChangeService
 from app.core.config import get_settings
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError, ValidationError
 from app.db.session import get_db
-from app.domain.change import GitOpsApplicationProfile
+from app.domain.change import ChangeIntent, GitOpsApplicationProfile
 from app.models import User
 from app.repositories.change_models import ChangeRecord
 from app.repositories.changes import ChangeRepository
 from app.repositories.incident_models import IncidentAuditEventRecord
-from app.schemas_changes import ChangeDecision, ChangePage, ChangeRead
+from app.schemas_changes import (
+    ChangeApproval,
+    ChangeDecision,
+    ChangePage,
+    ChangeProposal,
+    ChangeRead,
+)
 from app.services.rbac import require_permission
 
 router = APIRouter(prefix="/changes", tags=["changes"])
@@ -31,6 +37,29 @@ def _record(db: Session, change_id: str) -> ChangeRecord:
 
 def _profile(item: ChangeRecord) -> GitOpsApplicationProfile:
     return GitOpsApplicationProfile.model_validate_json(json.dumps(item.profile_payload))
+
+
+@router.post("")
+async def propose_change(
+    body: ChangeProposal,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, object]:
+    require_permission(db, user, "incident.write")
+    # Requester identity is authenticated; request bodies cannot impersonate approvers.
+    intent = ChangeIntent.model_validate_json(body.model_dump_json()).model_copy(
+        update={"requested_by": user.username}
+    )
+    try:
+        settings = get_settings()
+        profile = resolve_profile(settings, intent.service, intent.environment)
+        service = ChangeService(db, git=build_git_provider(settings, profile))
+        record = service.propose(intent, profile)
+        await service.prepare(record.id)
+    except ValueError as exc:
+        raise ValidationError(str(exc)) from exc
+    return response(request, ChangeRead.model_validate(record))
 
 
 @router.get("")
@@ -103,14 +132,13 @@ def get_change_preview(
     record = _record(db, change_id)
     preview = ChangeService(db, git=None).preview(record)
     if preview is None:
-        raise ConflictError("CHANGE_NOT_PLANNED", "Change preview is not available before approval")
+        raise ConflictError("CHANGE_NOT_PLANNED", "Prepare a semantic plan before approval")
     return response(request, preview)
 
 
-@router.post("/{change_id}/approve")
-async def approve_change(
+@router.post("/{change_id}/prepare")
+async def prepare_change(
     change_id: str,
-    body: ChangeDecision,
     request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
@@ -119,8 +147,26 @@ async def approve_change(
     record = _record(db, change_id)
     try:
         git = build_git_provider(get_settings(), _profile(record))
+        await ChangeService(db, git=git).prepare(change_id)
+    except ValueError as exc:
+        raise ValidationError(str(exc)) from exc
+    return response(request, ChangeRead.model_validate(record))
+
+
+@router.post("/{change_id}/approve")
+async def approve_change(
+    change_id: str,
+    body: ChangeApproval,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, object]:
+    require_permission(db, user, "approval.decide")
+    record = _record(db, change_id)
+    try:
+        git = build_git_provider(get_settings(), _profile(record))
         item = await ChangeService(db, git=git).approve(
-            change_id, actor=user.username, reason=body.reason
+            change_id, actor=user.username, reason=body.reason, expected_plan=body.plan_fingerprint
         )
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc
@@ -135,7 +181,7 @@ def reject_change(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict[str, object]:
-    require_permission(db, user, "incident.write")
+    require_permission(db, user, "approval.decide")
     try:
         item = ChangeService(db, git=None).reject(
             change_id, actor=user.username, reason=body.reason
