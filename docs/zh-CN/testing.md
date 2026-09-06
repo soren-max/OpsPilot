@@ -1,5 +1,16 @@
 # 测试策略（Testing Strategy）
 
+M9 GitOps 测试覆盖：类型化 `ChangeIntent`（基础设施字段被拒绝）、operator Profile 白名单、
+确定性变更策略（CHANGE 为 HIGH 且必须显式审批；Secret/RBAC/webhook/CRD、privileged/host 字段、
+registry 白名单、replica 上限与跨环境一律 fail closed）、planner 安全路径、语义 `ChangeSet`
+关联、审批 plan fingerprint 绑定（过期预览不能授权已变化的 Git 计划）、请求者不能自批、
+事务性 change outbox（`SKIP LOCKED`）、不确定 Git 副作用仅通过 reconciliation 恢复且不重复建 PR、
+双人工门禁生命周期（merged→synced→healthy 缺独立验证不会 RESOLVED）、webhook HMAC 与 delivery
+去重，以及 change API 只暴露读 + approve/reject/reconcile。架构测试保证 GitHub/Argo 导入、
+merge/approve 方法、kubectl/execution-backend 引用与 Git 授权都不存在于推理、传输与 MCP 表面。
+专属 `gitops-e2e` CI Job 运行确定性生命周期与 12 步回滚 demo（`make gitops-e2e`）；真实
+Kind/Argo 与真实 GitHub 为操作者手动 opt-in 路径。
+
 M8.5 测试覆盖严格部署配置、双控制模式、command injection、未知/跨环境 Profile、缺失凭据、
 secret-safe preview、迁移就绪度、Ticket/API 兼容边界与架构约束。独立 `legacy-ssh-e2e` CI Job
 使用 synthetic SSH host 和运行时生成的临时密钥，验证真实 Ansible-over-SSH 与恢复后验证。

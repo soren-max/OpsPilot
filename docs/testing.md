@@ -1,5 +1,26 @@
 # Testing Strategy
 
+## M9 GitOps Change Workflow
+
+`backend/tests/change` covers the typed `ChangeIntent` (infrastructure fields rejected), operator
+`GitOpsApplicationProfile` allowlists, deterministic change policy (CHANGE is HIGH and requires
+explicit approval; forbidden Secret/RBAC/webhook/CRD kinds, privileged/host fields, registry
+allowlist, replica bounds and cross-environment moves fail closed), the bounded
+`PlainKubernetesChangePlanner` security paths (privileged containers, hostNetwork/hostPID,
+secret volumes/env, mutable tags, out-of-allowlist registries), semantic `ChangeSet` correlation,
+the approval-plan fingerprint binding (stale previews cannot authorize a changed Git plan),
+requester self-approval rejection, transactional change outbox dispatch with `SKIP LOCKED`
+claims, indeterminate Git side-effect reconciliation without duplicate PR creation, the durable
+lifecycle (two human gates; merged→synced→healthy never resolves without independent
+verification), webhook HMAC and delivery-ID dedupe, and the change API read/write surface
+(approve/reject/reconcile only). Architecture tests keep GitHub/Argo imports, merge/approve
+methods, kubectl/execution-backend references, and Git authority out of the reasoning, transport
+and MCP surfaces. `backend/tests/test_m9_migration.py` round-trips the new tables.
+
+The dedicated `gitops-e2e` CI job runs the deterministic lifecycle with the offline fake providers
+plus the canonical 12-step rollback demo (`make gitops-e2e`); live Kind/Argo and real GitHub remain
+manual operator opt-in paths.
+
 ## M8.5 Deployment Compatibility
 
 `backend/tests/deployment` covers strict configuration, duplicate/unknown/cross-environment target
