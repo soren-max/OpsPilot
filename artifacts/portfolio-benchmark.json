@@ -1,21 +1,21 @@
 {
   "schema_version": "1.0.0",
   "provenance": {
-    "git_commit": "0763c92aff868d0cb4b5146dd1a248dbf8fab4f8",
+    "git_commit": "46589557d01c5687ece14924ec5031a7721a1367",
     "git_dirty": false,
-    "timestamp": "2026-09-06T13:00:19.649964+00:00",
+    "timestamp": "2026-09-06T13:58:03.389709+00:00",
     "python_version": "3.13.15",
     "dataset_version": "incident-memory-v1",
     "scenario_version": "portfolio-v1+m9-gitops",
     "configuration_mode": "offline-deterministic"
   },
-  "duration_ms": 12238.39232499995,
+  "duration_ms": 13274.265310999908,
   "overall_status": "PASS",
   "categories": {
     "quality_inventory": {
       "status": "PASS",
       "metrics": {
-        "backend_tests_collected": 379,
+        "backend_tests_collected": 394,
         "frontend_tests_declared": 42,
         "lab_scenarios": 4
       },
@@ -45,40 +45,40 @@
         "dense.recall_at_10": 0.9722222222222222,
         "dense.mrr": 0.8217592592592593,
         "dense.root_cause_hit_rate": 0.9166666666666666,
-        "dense.latency_p50_ms": 0.2971019998767588,
-        "dense.latency_p95_ms": 0.36880800007565995,
+        "dense.latency_p50_ms": 0.30590899996241205,
+        "dense.latency_p95_ms": 0.3735370000867988,
         "sparse.recall_at_5": 1.0,
         "sparse.recall_at_10": 1.0,
         "sparse.mrr": 1.0,
         "sparse.root_cause_hit_rate": 1.0,
-        "sparse.latency_p50_ms": 0.3223599999273574,
-        "sparse.latency_p95_ms": 0.44398999989425647,
+        "sparse.latency_p50_ms": 0.31954999940353446,
+        "sparse.latency_p95_ms": 0.377303999812284,
         "hybrid_rrf.recall_at_5": 0.9166666666666666,
         "hybrid_rrf.recall_at_10": 1.0,
         "hybrid_rrf.mrr": 0.9333333333333333,
         "hybrid_rrf.root_cause_hit_rate": 1.0,
-        "hybrid_rrf.latency_p50_ms": 0.32189900002776994,
-        "hybrid_rrf.latency_p95_ms": 0.4125410000597185
+        "hybrid_rrf.latency_p50_ms": 0.3255454994359752,
+        "hybrid_rrf.latency_p95_ms": 0.4509330001383205
       },
       "scenarios": [
         {
           "scenario": "dense",
           "expected_control": "Rank the checked-in M6 query set",
-          "actual": "R@5=0.861, R@10=0.972, MRR=0.822, RC-hit=0.917, p95=0.369ms",
+          "actual": "R@5=0.861, R@10=0.972, MRR=0.822, RC-hit=0.917, p95=0.374ms",
           "result": "BENCHMARKED",
           "test_reference": "evals/incident-memory/dataset.json"
         },
         {
           "scenario": "sparse",
           "expected_control": "Rank the checked-in M6 query set",
-          "actual": "R@5=1.000, R@10=1.000, MRR=1.000, RC-hit=1.000, p95=0.444ms",
+          "actual": "R@5=1.000, R@10=1.000, MRR=1.000, RC-hit=1.000, p95=0.377ms",
           "result": "BENCHMARKED",
           "test_reference": "evals/incident-memory/dataset.json"
         },
         {
           "scenario": "hybrid_rrf",
           "expected_control": "Rank the checked-in M6 query set",
-          "actual": "R@5=0.917, R@10=1.000, MRR=0.933, RC-hit=1.000, p95=0.413ms",
+          "actual": "R@5=0.917, R@10=1.000, MRR=0.933, RC-hit=1.000, p95=0.451ms",
           "result": "BENCHMARKED",
           "test_reference": "evals/incident-memory/dataset.json"
         }
