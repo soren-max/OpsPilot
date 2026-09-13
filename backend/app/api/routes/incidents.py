@@ -1,11 +1,16 @@
+import asyncio
+from collections.abc import AsyncIterator
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query, Request, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, Header, Query, Request, status
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.deps import response
 from app.api.routes.auth import get_current_user
+from app.application.agent_events import AgentEventProjection
 from app.application.incident_service import IncidentService
+from app.application.replay_service import IncidentReplayService
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.domain.incidents.models import IncidentStatus, Severity
@@ -20,6 +25,7 @@ from app.repositories.incident_models import (
 )
 from app.repositories.incidents import IncidentRepository
 from app.schemas_incidents import (
+    AgentEvent,
     DiagnosisCreate,
     DiagnosisRead,
     EvidenceCreate,
@@ -33,7 +39,10 @@ from app.schemas_incidents import (
     RetrievedKnowledgeRead,
     VersionedMutation,
 )
+from app.schemas_replay import IncidentReplayRead, ReplayInvestigatorMode, ReplayRequest
 from app.services.rbac import require_permission
+from app.worker import build_investigator
+from app.workflows.incident.investigator import DeterministicInvestigator
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
@@ -257,6 +266,94 @@ def incident_timeline(
 ) -> dict[str, object]:
     require_permission(db, user, "incident.read")
     return response(request, IncidentService(db).timeline(incident_id))
+
+
+@router.get("/{incident_id}/events")
+def incident_agent_events(
+    incident_id: str,
+    request: Request,
+    after_event_id: str | None = Query(default=None),
+    limit: int = Query(default=200, ge=1, le=500),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, object]:
+    require_permission(db, user, "incident.read")
+    return response(
+        request,
+        AgentEventProjection(db).list(incident_id, after_event_id=after_event_id, limit=limit),
+    )
+
+
+@router.post("/{incident_id}/replay")
+def replay_incident(
+    incident_id: str,
+    body: ReplayRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, object]:
+    require_permission(db, user, "workflow.read")
+    settings = get_settings()
+    investigator = (
+        DeterministicInvestigator()
+        if body.investigator_mode is ReplayInvestigatorMode.DETERMINISTIC
+        else build_investigator(settings)
+    )
+    result: IncidentReplayRead = IncidentReplayService(db, investigator).replay(incident_id, body)
+    return response(request, result)
+
+
+def _sse_message(event: AgentEvent) -> str:
+    return f"id: {event.event_id}\nevent: {event.event_type}\ndata: {event.model_dump_json()}\n\n"
+
+
+@router.get("/{incident_id}/events/stream")
+async def incident_agent_event_stream(
+    incident_id: str,
+    request: Request,
+    last_event_id: str | None = Header(default=None, alias="Last-Event-ID"),
+    follow: bool = Query(default=True),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """Stream the durable audit projection; polling never becomes a new event source."""
+
+    require_permission(db, user, "incident.read")
+    first_batch = AgentEventProjection(db).list(
+        incident_id, after_event_id=last_event_id, limit=200
+    )
+    stream_sessions = sessionmaker(bind=db.get_bind(), expire_on_commit=False)
+
+    async def generate() -> AsyncIterator[str]:
+        cursor = last_event_id
+        pending = first_batch
+        heartbeat_elapsed = 0.0
+        yield "retry: 2000\n\n"
+        while True:
+            for event in pending:
+                cursor = event.event_id
+                yield _sse_message(event)
+            if not follow or await request.is_disconnected():
+                return
+            await asyncio.sleep(1)
+            heartbeat_elapsed += 1
+            with stream_sessions() as stream_db:
+                pending = AgentEventProjection(stream_db).list(
+                    incident_id, after_event_id=cursor, limit=200
+                )
+            if not pending and heartbeat_elapsed >= 15:
+                yield ": keep-alive\n\n"
+                heartbeat_elapsed = 0
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.get("/{incident_id}/knowledge-record")

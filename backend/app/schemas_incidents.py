@@ -133,6 +133,34 @@ class TimelineItem(BaseModel):
     metadata: dict[str, JsonValue] = Field(default_factory=dict)
 
 
+class AgentStage(StrEnum):
+    ALERT = "ALERT"
+    EVIDENCE = "EVIDENCE"
+    MEMORY = "MEMORY"
+    DIAGNOSIS = "DIAGNOSIS"
+    GROUNDING = "GROUNDING"
+    PROPOSAL = "PROPOSAL"
+    POLICY = "POLICY"
+    APPROVAL = "APPROVAL"
+    EXECUTION = "EXECUTION"
+    RECONCILIATION = "RECONCILIATION"
+    VERIFICATION = "VERIFICATION"
+    INCIDENT = "INCIDENT"
+    WORKFLOW = "WORKFLOW"
+
+
+class AgentEvent(BaseModel):
+    """Stable presentation projection; Incident AuditEvent remains the source of truth."""
+
+    event_id: str
+    incident_id: str
+    event_type: str
+    stage: AgentStage
+    timestamp: datetime
+    status: str
+    data: dict[str, JsonValue] = Field(default_factory=dict)
+
+
 class AuditEventRead(BaseModel):
     event_id: str
     incident_id: str

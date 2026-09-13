@@ -4,7 +4,9 @@ import {
   ArrowLeft,
   BrainCircuit,
   CheckCircle2,
+  FlaskConical,
   History,
+  Radio,
   RotateCcw,
   ShieldCheck,
 } from "lucide-react";
@@ -33,7 +35,7 @@ import {
 } from "../components/OpsUI";
 import { EmptyState, ErrorState, LoadingState } from "../components/PageState";
 import { queryKeys } from "../query/queryKeys";
-import type { ExecutionRecord, IncidentEvidence, TimelineItem } from "../types";
+import type { AgentEvent, ExecutionRecord, IncidentEvidence } from "../types";
 
 interface TechnicalDetail {
   title: string;
@@ -250,6 +252,9 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
   const queryClient = useQueryClient();
   const [approvalReason, setApprovalReason] = useState("");
   const [technicalDetail, setTechnicalDetail] = useState<TechnicalDetail | null>(null);
+  const [streamStatus, setStreamStatus] = useState<"CONNECTING" | "LIVE" | "RECONNECTING">(
+    "CONNECTING",
+  );
   const incident = useQuery({
     queryKey: queryKeys.incident(incidentId),
     queryFn: () => incidentsApi.detail(incidentId),
@@ -274,6 +279,9 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
     queryKey: queryKeys.incidentApprovals(incidentId),
     queryFn: () => approvalsApi.list(incidentId),
   });
+  const replay = useMutation({
+    mutationFn: () => incidentsApi.replay(incidentId),
+  });
   const decide = useMutation({
     mutationFn: ({ id, decision }: { id: string; decision: "approve" | "reject" }) =>
       approvalsApi[decision](id, approvalReason),
@@ -294,6 +302,57 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
       document.querySelector<HTMLElement>(window.location.hash)?.scrollIntoView({ block: "start" }),
     );
   }, [incident.data]);
+  useEffect(() => {
+    const controller = new AbortController();
+    let lastEventId: string | undefined;
+    let retryTimer: number | undefined;
+    let refreshTimer: number | undefined;
+    const timelineKey = queryKeys.incidentTimeline(incidentId);
+    const refreshWorkspace = () => {
+      window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => {
+        void Promise.all([
+          queryClient.invalidateQueries({ queryKey: queryKeys.incident(incidentId) }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.incidentWorkflows(incidentId) }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.incidentApprovals(incidentId) }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.incidentExecutions(incidentId) }),
+        ]);
+      }, 400);
+    };
+    const connect = async () => {
+      setStreamStatus(lastEventId ? "RECONNECTING" : "CONNECTING");
+      try {
+        await incidentsApi.streamEvents(
+          incidentId,
+          (event, wireEventId) => {
+            lastEventId = wireEventId ?? event.event_id;
+            setStreamStatus("LIVE");
+            queryClient.setQueryData<AgentEvent[]>(timelineKey, (current = []) => {
+              const byId = new Map(current.map((item) => [item.event_id, item]));
+              byId.set(event.event_id, event);
+              return [...byId.values()].sort(
+                (left, right) =>
+                  Date.parse(left.timestamp) - Date.parse(right.timestamp) ||
+                  left.event_id.localeCompare(right.event_id),
+              );
+            });
+            refreshWorkspace();
+          },
+          { signal: controller.signal, lastEventId },
+        );
+      } catch {
+        if (controller.signal.aborted) return;
+        setStreamStatus("RECONNECTING");
+      }
+      if (!controller.signal.aborted) retryTimer = window.setTimeout(() => void connect(), 2000);
+    };
+    void connect();
+    return () => {
+      controller.abort();
+      window.clearTimeout(retryTimer);
+      window.clearTimeout(refreshTimer);
+    };
+  }, [incidentId, queryClient]);
 
   if (incident.isLoading) return <LoadingState label="Loading incident" />;
   if (incident.error)
@@ -334,15 +393,15 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
       ],
       detail: execution,
     });
-  const inspectTimeline = (entry: TimelineItem) =>
+  const inspectTimeline = (entry: AgentEvent) =>
     setTechnicalDetail({
       title: "Timeline metadata",
-      subtitle: `${entry.kind} · ${formatIncidentDate(entry.occurred_at)}`,
+      subtitle: `${entry.stage} · ${formatIncidentDate(entry.timestamp)}`,
       identifiers: [
-        { label: "Event ID", value: entry.id },
-        { label: "Reference ID", value: entry.reference_id },
+        { label: "Event ID", value: entry.event_id },
+        { label: "Incident ID", value: entry.incident_id },
       ],
-      detail: entry.metadata,
+      detail: entry.data,
     });
 
   return (
@@ -351,9 +410,20 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
         title={item.title}
         description={item.summary}
         actions={
-          <Link className="button button--secondary" to="/incidents">
-            <ArrowLeft size={15} aria-hidden="true" /> Back to incidents
-          </Link>
+          <>
+            <button
+              className="button button--secondary"
+              type="button"
+              disabled={replay.isPending || !latestWorkflow}
+              onClick={() => replay.mutate()}
+            >
+              <FlaskConical size={15} aria-hidden="true" />
+              {replay.isPending ? "Replaying…" : "Replay frozen evidence"}
+            </button>
+            <Link className="button button--secondary" to="/incidents">
+              <ArrowLeft size={15} aria-hidden="true" /> Back to incidents
+            </Link>
+          </>
         }
       />
       <section className="incident-hero" aria-label="Incident identity">
@@ -696,8 +766,13 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
           <PageSection
             id="timeline"
             className="incident-section timeline-section"
-            title="Timeline / Audit"
+            title="Agent Run Timeline"
             description="Evidence, diagnosis, policy, approval, execution, verification, and resolution in event order."
+            actions={
+              <span className={`stream-status is-${streamStatus.toLowerCase()}`} role="status">
+                <Radio size={14} aria-hidden="true" /> {streamStatus}
+              </span>
+            }
           >
             {timeline.isLoading ? (
               <LoadingState variant="table" />
@@ -712,6 +787,67 @@ function IncidentDetail({ incidentId }: { incidentId: string }) {
               />
             )}
           </PageSection>
+          {replay.data ? (
+            <PageSection
+              id="replay"
+              className="incident-section replay-section"
+              title="Frozen Evidence Replay"
+              description="Investigator, grounding, and policy comparison over frozen inputs. No approval or execution path is reachable."
+            >
+              <InlineNotice title="NO SIDE EFFECT" tone="success">
+                Replay did not dispatch remediation, Ansible, Harness, or GitOps writes.
+              </InlineNotice>
+              <div className="replay-comparison">
+                <article>
+                  <span className="section-eyebrow">Original diagnosis</span>
+                  <strong>{replay.data.original_diagnosis?.root_cause ?? "Not recorded"}</strong>
+                  <small>{replay.data.original_proposal.action_type ?? "No action"}</small>
+                </article>
+                <article>
+                  <span className="section-eyebrow">Replay diagnosis</span>
+                  <strong>{replay.data.replay_diagnosis.root_cause}</strong>
+                  <small>{replay.data.replay_proposal.action_type ?? "No action"}</small>
+                </article>
+                <dl>
+                  <IncidentFact
+                    label="Root cause match"
+                    value={replay.data.metrics.root_cause_match ? "MATCH" : "DIFFERENT"}
+                  />
+                  <IncidentFact
+                    label="Action match"
+                    value={replay.data.metrics.action_match ? "MATCH" : "DIFFERENT"}
+                  />
+                  <IncidentFact
+                    label="Grounding"
+                    value={replay.data.metrics.grounding_valid ? "VALID" : "REJECTED"}
+                  />
+                  <IncidentFact label="Policy" value={replay.data.policy.decision} />
+                  <IncidentFact label="Latency" value={`${replay.data.metrics.latency_ms} ms`} />
+                  <IncidentFact
+                    label="Frozen evidence"
+                    value={String(replay.data.frozen_evidence_ids.length)}
+                  />
+                </dl>
+              </div>
+              <div className="replay-inputs">
+                <div>
+                  <span className="section-eyebrow">Frozen Current Evidence IDs</span>
+                  <p className="mono">{replay.data.frozen_evidence_ids.join(" · ") || "None"}</p>
+                </div>
+                <div>
+                  <span className="section-eyebrow">Frozen Historical Incident IDs</span>
+                  <p className="mono">
+                    {replay.data.frozen_historical_incident_ids.join(" · ") || "None"}
+                  </p>
+                </div>
+              </div>
+            </PageSection>
+          ) : null}
+          {replay.error ? (
+            <InlineNotice title="Replay unavailable" tone="danger">
+              {replay.error instanceof Error ? replay.error.message : "Replay failed safely."}
+            </InlineNotice>
+          ) : null}
         </div>
       </div>
       <TechnicalDetailDrawer

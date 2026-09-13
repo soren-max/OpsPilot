@@ -6,10 +6,11 @@ from app.core.errors import ConflictError, NotFoundError
 from app.db.base import utc_now
 from app.domain.approvals import ApprovalActor, ApprovalDecision, ApprovalStatus
 from app.domain.audit.models import ActorType, AuditEventType
+from app.domain.incidents.models import IncidentStatus
 from app.repositories.approval_models import ApprovalRequestRecord
 from app.repositories.approvals import ApprovalRepository
 from app.repositories.incident_models import IncidentAuditEventRecord
-from app.repositories.incidents import AuditEventRepository
+from app.repositories.incidents import AuditEventRepository, IncidentRepository
 from app.repositories.workflows import WorkflowRunRepository
 from app.services.redaction import redact_text
 
@@ -21,6 +22,7 @@ class ApprovalService:
         self.db = db
         self.approvals = ApprovalRepository(db)
         self.workflows = WorkflowRunRepository(db)
+        self.incidents = IncidentRepository(db)
         self.audits = AuditEventRepository(db)
 
     def create_request(
@@ -50,14 +52,10 @@ class ApprovalService:
             return existing
         return item
 
-    def approve(
-        self, approval_id: str, actor: ApprovalActor, reason: str
-    ) -> ApprovalRequestRecord:
+    def approve(self, approval_id: str, actor: ApprovalActor, reason: str) -> ApprovalRequestRecord:
         return self._resolve(approval_id, actor, reason, ApprovalDecision.APPROVE)
 
-    def reject(
-        self, approval_id: str, actor: ApprovalActor, reason: str
-    ) -> ApprovalRequestRecord:
+    def reject(self, approval_id: str, actor: ApprovalActor, reason: str) -> ApprovalRequestRecord:
         return self._resolve(approval_id, actor, reason, ApprovalDecision.REJECT)
 
     def get(self, approval_id: str) -> ApprovalRequestRecord:
@@ -101,10 +99,36 @@ class ApprovalService:
         if item is None:
             raise NotFoundError("Approval request does not exist")
         if item.status is not ApprovalStatus.PENDING:
+            expected_status = (
+                ApprovalStatus.APPROVED
+                if decision is ApprovalDecision.APPROVE
+                else ApprovalStatus.REJECTED
+            )
+            if (
+                item.status is expected_status
+                and item.decision is decision
+                and item.approver_identity == actor.actor_id
+                and item.reason == safe_reason[:1000]
+            ):
+                return item
             raise ConflictError("APPROVAL_ALREADY_RESOLVED", "Approval request is already resolved")
         workflow = self.workflows.get(item.workflow_run_id)
         if workflow is None or workflow.proposed_action_id != item.action_fingerprint:
             raise ConflictError("APPROVAL_ACTION_MISMATCH", "Approval no longer matches the action")
+        incident = self.incidents.get(item.incident_id)
+        if incident is None or incident.status in {
+            IncidentStatus.RESOLVED,
+            IncidentStatus.CLOSED,
+            IncidentStatus.FAILED,
+        }:
+            raise ConflictError(
+                "APPROVAL_STALE", "Incident is no longer eligible for this approval"
+            )
+        if (
+            workflow.status.value != "WAITING"
+            or workflow.state_references.get("approval_id") != item.id
+        ):
+            raise ConflictError("APPROVAL_STALE", "Workflow is no longer waiting for this approval")
         item.status = (
             ApprovalStatus.APPROVED
             if decision is ApprovalDecision.APPROVE

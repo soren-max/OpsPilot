@@ -1,7 +1,7 @@
 # 路线图（Roadmap）
 
-M1–M8.5 仍冻结为 Stable Portfolio v1.0；M9 已作为独立的当前开发里程碑实现
-（确定性演示与 CI E2E 已验证；真实 Kind/Argo 与真实 GitHub 仍为操作者手动 opt-in）。
+M1–M8.5 仍冻结为 Stable Portfolio v1.0；M9–M11 在不改变冻结架构的前提下，
+增加独立 GitOps 变更路径、Agent Application UX、可选 OTLP 和无副作用 Replay。
 
 [English](../roadmap.md) | [简体中文](roadmap.md)
 
@@ -22,13 +22,13 @@ M1–M8.5 仍冻结为 Stable Portfolio v1.0；M9 已作为独立的当前开发
 | M8.5 Deployment Compatibility | Done | 类型化 Profile 与合成遗留环境迁移桥 |
 | Stable Portfolio v1.0: M1–M8.5 | 当前稳定版本 | Architecture freeze 与可追溯评测 |
 | M9 GitOps Change Workflow | Done | 类型化变更、双人工门禁、Git PR、GitOps reconciliation 与独立验证（确定性 E2E 已验证；真实 Lab/真实 GitHub 为操作者 opt-in） |
-| M10 Risk Reviewer / Advanced Eval | Future Work | Advisory risk review and expanded evaluation |
-| M11 Agent Observability / Production Hardening | Future Work | Workflow telemetry and resilience |
+| M10 Agent Application UX | Done | 持久 Timeline/SSE、Approval Preview、UNKNOWN UX |
+| M11 Agent Observability & Replay | Done | 可选 OTLP spans 与冻结输入无副作用 Replay |
 
 M8 已实现受治理的 Harness 参考后端。M8.5 演示如何在不恢复 ServiceSSH 抽象的
 前提下，安全集成传统 SSH 管理的测试环境。
 
 ## Portfolio 入口
 
-标准本地演示仍是稳定的 Portfolio v1.0 入口。M9 的独立证据路径运行
-`make gitops-demo`；下一工程里程碑是 **M10**。
+标准本地演示仍是稳定的 Portfolio v1.0 入口。M9 独立路径运行
+`make gitops-demo`；M10/M11 让 remediation 路径可观测、可回放，但不改变授权边界。

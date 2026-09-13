@@ -30,7 +30,7 @@ from app.domain.incidents.models import IncidentStatus
 from app.execution.service import ExecutionDispatcher, ExecutionPlaneService
 from app.memory.service import KnowledgeQueryBuilder
 from app.repositories.executions import ExecutionRepository
-from app.repositories.incident_models import IncidentAuditEventRecord
+from app.repositories.incident_models import IncidentAuditEventRecord, IncidentRecord
 from app.repositories.incidents import AuditEventRepository
 from app.repositories.workflow_models import WorkflowRunRecord
 from app.schemas_incidents import DiagnosisCreate, EvidenceCreate, HypothesisCreate
@@ -52,6 +52,24 @@ from app.workflows.incident.investigator import (
 @dataclass(frozen=True)
 class IncidentWorkflowContext:
     runtime: IncidentWorkflowRuntime
+
+
+def build_incident_action_request(
+    incident: IncidentRecord, action_type: ActionType, reason: str
+) -> ActionRequest:
+    environment = {
+        "production": TargetEnvironment.PRODUCTION,
+        "prod": TargetEnvironment.PRODUCTION,
+        "test": TargetEnvironment.TEST,
+        "test-mock": TargetEnvironment.TEST,
+    }.get(incident.environment.lower(), TargetEnvironment.DEVELOPMENT)
+    return ActionRequest(
+        action_type=action_type,
+        target=incident.service,
+        environment=environment,
+        parameters=ServiceActionParams(service=incident.service),
+        reason=reason,
+    )
 
 
 class IncidentWorkflowRuntime:
@@ -95,7 +113,9 @@ class IncidentWorkflowRuntime:
             )
         if incident.status in {IncidentStatus.RESOLVED, IncidentStatus.CLOSED}:
             raise ValueError("Resolved or closed incidents cannot start remediation workflows")
-        return incident.version, [item.id for item in incident.evidence]
+        evidence_ids = [item.id for item in incident.evidence]
+        self._freeze_replay_snapshot(evidence_ids=evidence_ids)
+        return incident.version, evidence_ids
 
     def investigation_context(self, retrieved_refs: list[str]) -> InvestigationContext:
         incident = self.incidents._require(self.workflow.incident_id)
@@ -141,6 +161,9 @@ class IncidentWorkflowRuntime:
             for item in self._knowledge_retriever.retrieve(query)
             if item.incident_id != incident.id
         )
+        span = trace.get_current_span()
+        span.set_attribute("memory.top_k", len(retrieved))
+        span.set_attribute("memory.retrieval_mode", "dense+sparse+rrf")
         self._retrieved_knowledge = {item.knowledge_id: item for item in retrieved}
         self.workflow.state_references = {
             **self.workflow.state_references,
@@ -153,6 +176,10 @@ class IncidentWorkflowRuntime:
                 for item in retrieved
             ],
         }
+        self._freeze_replay_snapshot(
+            evidence_ids=[item.id for item in incident.evidence],
+            historical_knowledge=retrieved,
+        )
         self.db.commit()
         return list(self._retrieved_knowledge)
 
@@ -198,7 +225,13 @@ class IncidentWorkflowRuntime:
                     },
                 )
             self.db.commit()
-        return list(dict.fromkeys([*evidence_ids, *collected_ids]))
+        frozen_ids = list(dict.fromkeys([*evidence_ids, *collected_ids]))
+        span = trace.get_current_span()
+        span.set_attribute("evidence.count", len(frozen_ids))
+        span.set_attribute("evidence.ids", frozen_ids[:20])
+        self._freeze_replay_snapshot(evidence_ids=frozen_ids)
+        self.db.commit()
+        return frozen_ids
 
     def investigate(self, retrieved_refs: list[str]) -> InvestigationResult:
         metadata = self.investigator.metadata
@@ -237,6 +270,12 @@ class IncidentWorkflowRuntime:
             "investigation_evidence_ids": list(result.evidence_ids),
             "investigation_knowledge_refs": list(result.knowledge_refs),
         }
+        span = trace.get_current_span()
+        span.set_attribute("model.provider", result.provider or "deterministic")
+        span.set_attribute("model.name", result.model or "deterministic-baseline")
+        span.set_attribute("prompt.version", result.prompt_version or "deterministic")
+        span.set_attribute("evidence.count", len(result.evidence_ids))
+        span.set_attribute("memory.top_k", len(result.knowledge_refs))
         if metadata.mode == "llm":
             self._audit(
                 AuditEventType.LLM_INVESTIGATION_COMPLETED,
@@ -311,7 +350,50 @@ class IncidentWorkflowRuntime:
 
     def assess_risk(self, action_type: ActionType) -> RiskAssessment:
         action = self._action_request(action_type)
-        return self._service().policy.assess(action)
+        assessment = self._service().policy.assess(action)
+        decision = (
+            "HUMAN_APPROVAL_REQUIRED"
+            if assessment.approval_required
+            else "ALLOWED"
+            if assessment.allowed
+            else "DENIED"
+        )
+        risk_factors = [
+            f"environment={action.environment.value}",
+            f"action={action.action_type.value}",
+            f"target={action.target}",
+        ]
+        self.workflow.state_references = {
+            **self.workflow.state_references,
+            "action_type": action.action_type.value,
+            "risk_level": assessment.risk_level.value,
+            "policy_decision": decision,
+            "policy_rule": assessment.policy_rule,
+            "policy_reason": assessment.reason,
+            "risk_factors": risk_factors,
+            "expected_result": "Service state restored and independently verified.",
+        }
+        span = trace.get_current_span()
+        span.set_attribute("proposal.type", action.action_type.value)
+        span.set_attribute("proposal.target", action.target)
+        span.set_attribute("policy.decision", decision)
+        span.set_attribute("policy.rule", assessment.policy_rule)
+        span.set_attribute("risk.level", assessment.risk_level.value)
+        self._audit(
+            AuditEventType.RISK_ASSESSED,
+            "Deterministic action policy evaluated",
+            {
+                "workflow_id": self.workflow.id,
+                "policy_decision": decision,
+                "policy_rule": assessment.policy_rule,
+                "policy_reason": assessment.reason,
+                "risk_level": assessment.risk_level.value,
+                "risk_factors": ",".join(risk_factors),
+                "expected_result": "Service state restored and independently verified.",
+            },
+        )
+        self.db.commit()
+        return assessment
 
     def request_approval(self, action_fingerprint: str) -> str:
         item = ApprovalService(self.db).create_request(
@@ -341,6 +423,7 @@ class IncidentWorkflowRuntime:
             raise WorkflowInfrastructureFailure("Action fingerprint is missing")
         self.workflow.execution_task_id = action_fingerprint
         self.workflow.state_references = {
+            **self.workflow.state_references,
             "workflow_id": self.workflow.id,
             "action_fingerprint": action_fingerprint,
             "execution_task_id": action_fingerprint,
@@ -374,6 +457,7 @@ class IncidentWorkflowRuntime:
         status = "SUCCEEDED" if verification is not None and verification.verified else "FAILED"
         self.workflow.execution_task_id = execution_id
         self.workflow.state_references = {
+            **self.workflow.state_references,
             "workflow_id": self.workflow.id,
             "action_fingerprint": action_fingerprint,
             "execution_task_id": execution_id,
@@ -514,19 +598,57 @@ class IncidentWorkflowRuntime:
 
     def _action_request(self, action_type: ActionType) -> ActionRequest:
         incident = self.incidents._require(self.workflow.incident_id)
-        environment = {
-            "production": TargetEnvironment.PRODUCTION,
-            "prod": TargetEnvironment.PRODUCTION,
-            "test": TargetEnvironment.TEST,
-            "test-mock": TargetEnvironment.TEST,
-        }.get(incident.environment.lower(), TargetEnvironment.DEVELOPMENT)
-        return ActionRequest(
-            action_type=action_type,
-            target=incident.service,
-            environment=environment,
-            parameters=ServiceActionParams(service=incident.service),
-            reason=f"Incident workflow {self.workflow.id}",
+        return build_incident_action_request(
+            incident,
+            action_type,
+            f"Incident workflow {self.workflow.id}",
         )
+
+    def _freeze_replay_snapshot(
+        self,
+        *,
+        evidence_ids: list[str],
+        historical_knowledge: tuple[RetrievedKnowledge, ...] | None = None,
+    ) -> None:
+        """Persist bounded replay inputs in WorkflowRun metadata, never checkpoint internals."""
+
+        incident = self.incidents._require(self.workflow.incident_id)
+        existing = self.workflow.state_references.get("replay_snapshot")
+        existing_history: list[object] = []
+        if isinstance(existing, dict) and isinstance(existing.get("historical_knowledge"), list):
+            existing_history = existing["historical_knowledge"]
+        history: list[object]
+        if historical_knowledge is None:
+            history = existing_history
+        else:
+            history = [
+                {
+                    "knowledge_id": item.knowledge_id,
+                    "incident_id": item.incident_id,
+                    "title": item.title[:200],
+                    "service": item.service,
+                    "environment": item.environment,
+                    "root_cause": item.root_cause[:2000],
+                    "remediation": list(item.remediation[:20]),
+                    "verification": list(item.verification[:20]),
+                    "retrieval_score": item.retrieval_score,
+                    "source_reference": item.source_reference[:500],
+                    "resolved_at": item.resolved_at.isoformat(),
+                }
+                for item in historical_knowledge[:10]
+            ]
+        self.workflow.state_references = {
+            **self.workflow.state_references,
+            "replay_snapshot": {
+                "schema_version": "1",
+                "incident_id": incident.id,
+                "service": incident.service,
+                "environment": incident.environment,
+                "evidence_ids": list(dict.fromkeys(evidence_ids))[:20],
+                "historical_knowledge": history,
+                "captured_at": utc_now().isoformat(),
+            },
+        }
 
     def _audit(self, event_type: AuditEventType, summary: str, metadata: dict[str, object]) -> None:
         self.audits.append(

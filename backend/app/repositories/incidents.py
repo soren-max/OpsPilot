@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Select, select, update
+from sqlalchemy import Select, and_, or_, select, update
 from sqlalchemy.orm import Session, selectinload
 
 from app.domain.incidents.models import IncidentStatus, Severity
@@ -145,6 +145,36 @@ class AuditEventRepository:
                 select(IncidentAuditEventRecord)
                 .where(IncidentAuditEventRecord.incident_id == incident_id)
                 .order_by(IncidentAuditEventRecord.occurred_at, IncidentAuditEventRecord.event_id)
+            )
+        )
+
+    def list_for_incident_after(
+        self, incident_id: str, *, after_event_id: str | None, limit: int
+    ) -> list[IncidentAuditEventRecord]:
+        query = select(IncidentAuditEventRecord).where(
+            IncidentAuditEventRecord.incident_id == incident_id
+        )
+        if after_event_id is not None:
+            cursor = self.db.get(IncidentAuditEventRecord, after_event_id)
+            if cursor is None or cursor.incident_id != incident_id:
+                from app.core.errors import ConflictError
+
+                raise ConflictError("EVENT_CURSOR_NOT_FOUND", "Event resume cursor is not valid")
+            query = query.where(
+                or_(
+                    IncidentAuditEventRecord.occurred_at > cursor.occurred_at,
+                    and_(
+                        IncidentAuditEventRecord.occurred_at == cursor.occurred_at,
+                        IncidentAuditEventRecord.event_id > cursor.event_id,
+                    ),
+                )
+            )
+        return list(
+            self.db.scalars(
+                query.order_by(
+                    IncidentAuditEventRecord.occurred_at,
+                    IncidentAuditEventRecord.event_id,
+                ).limit(limit)
             )
         )
 

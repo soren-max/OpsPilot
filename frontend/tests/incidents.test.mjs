@@ -11,6 +11,8 @@ const status = await source("../src/components/ops/Status.tsx");
 const shell = await source("../src/components/AppShell.tsx");
 const styles = await source("../src/operations-console.css");
 const api = await source("../src/api/incidents.ts");
+const sse = await source("../src/api/sse.ts");
+const client = await source("../src/api/client.ts");
 const app = await source("../src/App.tsx");
 
 test("incident UI exposes the durable lifecycle without a chat surface", () => {
@@ -157,4 +159,30 @@ test("incident API client reads lists, detail, timeline, and execution data", ()
   assert.match(api, /\/timeline/);
   assert.match(api, /\/workflows/);
   assert.match(api, /\/executions/);
+});
+
+test("agent timeline appends durable SSE events and resumes without exposing bearer tokens", () => {
+  assert.match(page, /Agent Run Timeline/);
+  assert.match(page, /setQueryData<AgentEvent\[]>/);
+  assert.match(page, /RECONNECTING/);
+  assert.match(api, /\/events\/stream/);
+  assert.match(sse, /Last-Event-ID/);
+  assert.match(client, /Authorization/);
+  assert.doesNotMatch(sse, /access_token=/);
+});
+
+test("approval preview and replay expose governed structured outcomes", () => {
+  for (const label of [
+    "Why This Action",
+    "Supporting Evidence IDs",
+    "Policy Decision",
+    "Matched Policy Rule",
+    "Risk Factors",
+    "Expected Result",
+  ]) {
+    assert.match(operations, new RegExp(label));
+  }
+  assert.match(page, /Frozen Evidence Replay/);
+  assert.match(page, /NO SIDE EFFECT/);
+  assert.match(api, /investigator_mode: "deterministic"/);
 });

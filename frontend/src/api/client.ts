@@ -1,6 +1,6 @@
 import type { ApiEnvelope } from "../types";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
+export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 export const TOKEN_KEY = "opspilot_token";
 
 type ApiErrorBody = { code?: string; message?: string; request_id?: string };
@@ -18,12 +18,17 @@ export class ApiError extends Error {
   }
 }
 
-function getToken(): string {
+export function getToken(): string {
   try {
     return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY) ?? "";
   } catch {
     return "";
   }
+}
+
+export function authenticatedHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 function clearToken(): void {
@@ -79,8 +84,7 @@ export async function request<T>(
   options: ApiOptions = {},
 ): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
+  Object.assign(headers, authenticatedHeaders());
 
   let response: Response;
   try {

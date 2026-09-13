@@ -4,6 +4,7 @@ from typing import cast
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.types import Command
+from opentelemetry import trace
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -36,6 +37,8 @@ from app.workflows.incident.errors import (
 from app.workflows.incident.graph import GRAPH_NAME, GRAPH_VERSION, build_incident_graph
 from app.workflows.incident.investigator import DeterministicInvestigator, IncidentInvestigator
 from app.workflows.incident.state import IncidentWorkflowState, WorkflowStatus, initial_state
+
+tracer = trace.get_tracer("opspilot.incident.workflow")
 
 
 class WorkflowService:
@@ -121,11 +124,15 @@ class WorkflowService:
             runtime.audit_workflow(
                 AuditEventType.WORKFLOW_STARTED, "Incident workflow started", "RUNNING"
             )
-            result = graph.invoke(
-                initial_state(workflow.incident_id, workflow.id),
-                config={"configurable": {"thread_id": workflow.id}},
-                context=IncidentWorkflowContext(runtime=runtime),
-            )
+            with tracer.start_as_current_span("incident.run") as span:
+                span.set_attribute("incident.id", workflow.incident_id)
+                span.set_attribute("workflow.run_id", workflow.id)
+                span.set_attribute("workflow.stage", "RUN")
+                result = graph.invoke(
+                    initial_state(workflow.incident_id, workflow.id),
+                    config={"configurable": {"thread_id": workflow.id}},
+                    context=IncidentWorkflowContext(runtime=runtime),
+                )
             state = cast(IncidentWorkflowState, result)
             approval_id = workflow.state_references.get("approval_id")
             if isinstance(approval_id, str):
@@ -198,16 +205,21 @@ class WorkflowService:
         )
         graph = build_incident_graph(self.checkpointer)
         try:
-            result = graph.invoke(
-                Command(
-                    resume={
-                        "approval_id": approval.id,
-                        "decision": approval.decision.value,
-                    }
-                ),
-                config={"configurable": {"thread_id": workflow.id}},
-                context=IncidentWorkflowContext(runtime=runtime),
-            )
+            with tracer.start_as_current_span("incident.run") as span:
+                span.set_attribute("incident.id", workflow.incident_id)
+                span.set_attribute("workflow.run_id", workflow.id)
+                span.set_attribute("workflow.stage", "RESUME")
+                span.set_attribute("approval.result", approval.decision.value)
+                result = graph.invoke(
+                    Command(
+                        resume={
+                            "approval_id": approval.id,
+                            "decision": approval.decision.value,
+                        }
+                    ),
+                    config={"configurable": {"thread_id": workflow.id}},
+                    context=IncidentWorkflowContext(runtime=runtime),
+                )
             self._apply_result(workflow, cast(IncidentWorkflowState, result), runtime)
             approval_service.mark_resumed(approval.id)
         except ExecutionPending:

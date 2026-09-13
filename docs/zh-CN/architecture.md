@@ -90,6 +90,16 @@ M2 工作流在检查点状态中存储标识符、状态、决策摘要、提�
 
 事故数据库是领域的事实来源（source of truth）。LangGraph 检查点只记录执行位置与工作流本地引用。`WorkflowRun` 是持久的 OpsPilot 元数据，并使用一个与其工作流 ID 相等的稳定图线程标识符。M2 的内存检查点器（in-memory checkpointer）仅限于开发与测试。`WorkflowService` 直接接受 LangGraph 现有的 `BaseCheckpointSaver`，而不是将它包装在第二个应用专用的检查点端口中。持久化 Postgres 检查点与审批恢复仍推迟到 M4。
 
+## M10/M11 Agent Application 层
+
+Incident Console 将 append-only AuditEvent 投影为稳定 AgentEvent 读模型；JSON 与
+PostgreSQL polling SSE 共用同一投影、排序和持久 cursor。SSE 只是交付层，不是新事实源。
+
+Frozen Evidence Replay 在 WorkflowRun 内部元数据中保存有界 manifest，只调用
+investigator、grounding 比较和 deterministic policy。Approval、ExecutionPlane、Outbox、
+Ansible、Harness 与 GitOps 都不在 Replay 依赖图中。OpenTelemetry 可通过标准
+OTLP/HTTP 变量可选发往 Langfuse 或其他 receiver，默认 local demo 无 SaaS 依赖。
+
 ## 只读调查能力
 
 M3A 在工作流运行时与类型化的 Metrics、Logs、Tickets 和 Health 端口之间增加了依赖注入的 `IncidentCapabilities` 注册表。Prometheus 与 Loki 适配器把领域查询转换为应用自有的 PromQL 与 LogQL 模板。Base URL、bearer 凭据与 Loki tenant 头都属于运维人员配置，绝不会出现在 API 模式、图状态或证据中。

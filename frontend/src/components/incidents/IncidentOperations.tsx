@@ -21,11 +21,11 @@ import {
 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type {
+  AgentEvent,
   ApprovalRequest,
   ExecutionRecord,
   Incident,
   IncidentEvidence,
-  TimelineItem,
   WorkflowRun,
 } from "../../types";
 import { CopyableId } from "../ops/Drawer";
@@ -286,11 +286,53 @@ export function ApprovalDecisionPanel({
         <Fact label="Action" value={action} mono />
         <Fact label="Target" value={incident.service} />
         <Fact label="Environment" value={incident.environment} />
-        <Fact label="Risk" value={risk} />
-        <Fact label="Why approval required" value="Infrastructure change is policy governed" />
+        <Fact label="Risk Level" value={risk} />
         <Fact
-          label="Evidence basis"
-          value={`${diagnosis?.evidence_ids.length ?? 0} current evidence reference(s)`}
+          label="Why This Action"
+          value={workflow?.state_references.decision_summary ?? "Current evidence supports review."}
+        />
+        <Fact
+          label="Evidence basis · Supporting Evidence IDs"
+          value={
+            diagnosis?.evidence_ids.length ? (
+              <span className="evidence-reference-list">
+                {diagnosis.evidence_ids.map((id) => (
+                  <a href={`#evidence-${id}`} className="mono" key={id}>
+                    {id.slice(0, 12)}
+                  </a>
+                ))}
+              </span>
+            ) : (
+              "None recorded"
+            )
+          }
+        />
+        <Fact
+          label="Policy Decision"
+          value={workflow?.state_references.policy_decision ?? "Policy evaluated"}
+        />
+        <Fact
+          label="Matched Policy Rule"
+          value={workflow?.state_references.policy_rule ?? "Not recorded"}
+          mono
+        />
+        <Fact
+          label="Why approval required"
+          value={
+            workflow?.state_references.policy_reason ??
+            "Infrastructure state change is policy governed."
+          }
+        />
+        <Fact
+          label="Risk Factors"
+          value={workflow?.state_references.risk_factors?.join(" · ") ?? "Not recorded"}
+        />
+        <Fact
+          label="Expected Result"
+          value={
+            workflow?.state_references.expected_result ??
+            "Service state restored and independently verified."
+          }
         />
         <Fact label="Requested at" value={formatIncidentDate(approval.requested_at)} />
         <Fact
@@ -533,13 +575,18 @@ export function ExecutionPanel({
 }
 
 const timelinePresentation: Record<string, { label: string; icon: typeof Activity }> = {
-  INCIDENT: { label: "Incident", icon: AlertTriangle },
-  EVIDENCE: { label: "Evidence collected", icon: ListChecks },
-  HYPOTHESIS: { label: "Hypothesis recorded", icon: ShieldQuestion },
-  DIAGNOSIS: { label: "Diagnosis produced", icon: Activity },
-  ACTION: { label: "Action proposed", icon: ServerCog },
-  APPROVAL: { label: "Approval decision", icon: ShieldCheck },
-  VERIFICATION: { label: "Verification completed", icon: CheckCircle2 },
+  ALERT: { label: "Alert received", icon: AlertTriangle },
+  EVIDENCE: { label: "Evidence collection", icon: ListChecks },
+  MEMORY: { label: "Historical memory retrieval", icon: FileClock },
+  DIAGNOSIS: { label: "Diagnosis", icon: Activity },
+  GROUNDING: { label: "Grounding validation", icon: ShieldQuestion },
+  PROPOSAL: { label: "Action proposal", icon: ServerCog },
+  POLICY: { label: "Policy evaluation", icon: ShieldCheck },
+  APPROVAL: { label: "Human approval", icon: ShieldCheck },
+  EXECUTION: { label: "Execution", icon: ServerCog },
+  RECONCILIATION: { label: "Reconciliation", icon: Clock3 },
+  VERIFICATION: { label: "Verification", icon: CheckCircle2 },
+  INCIDENT: { label: "Incident state", icon: AlertTriangle },
   WORKFLOW: { label: "Workflow state", icon: FileClock },
 };
 
@@ -547,34 +594,35 @@ export function IncidentTimeline({
   items,
   onInspect,
 }: {
-  items: TimelineItem[];
-  onInspect: (item: TimelineItem) => void;
+  items: AgentEvent[];
+  onInspect: (item: AgentEvent) => void;
 }) {
   return (
     <ol className="operations-timeline">
       {items.map((item) => {
-        const presentation = timelinePresentation[item.kind] ?? {
-          label: item.kind,
+        const presentation = timelinePresentation[item.stage] ?? {
+          label: item.stage,
           icon: ScrollText,
         };
         const Icon = presentation.icon;
-        const actor = String(item.metadata.actor ?? item.metadata.started_by ?? "OpsPilot system");
+        const actor = String(item.data.actor_id ?? "OpsPilot system");
+        const summary = String(item.data.summary ?? item.event_type);
         return (
-          <li key={item.id}>
+          <li key={item.event_id} className={`is-${item.status.toLowerCase()}`}>
             <span className="operations-timeline__marker">
               <Icon size={15} aria-hidden="true" />
             </span>
             <div className="operations-timeline__content">
               <header>
                 <span>{presentation.label}</span>
-                <time dateTime={item.occurred_at}>{formatIncidentDate(item.occurred_at)}</time>
+                <time dateTime={item.timestamp}>{formatIncidentDate(item.timestamp)}</time>
               </header>
-              <strong>{item.summary}</strong>
+              <strong>{summary}</strong>
               <small>
-                {actor} · {item.event_type}
+                {actor} · {item.event_type} · {item.status}
               </small>
             </div>
-            {Object.keys(item.metadata).length ? (
+            {Object.keys(item.data).length ? (
               <button className="text-button" type="button" onClick={() => onInspect(item)}>
                 Metadata
               </button>

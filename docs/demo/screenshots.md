@@ -48,6 +48,24 @@ Store local captures outside the repository or in a review artifact. Do not comm
 - Demonstrates: outcome separation, indeterminate-state safety, provider identity, and event observability.
 - Suggested filename: `04-execution-verification-dark.png`
 
+### 5. Agent Run Timeline
+
+- Route: same incident, `#timeline`
+- Viewport: 1440 × 1000, Light
+- Frame: live/reconnecting status, ordered stages, event time, durable status, and safe metadata.
+- Demonstrates: AuditEvent-derived presentation, SSE resume, grounding and policy visibility, and
+  that no hidden chain-of-thought is shown.
+- Suggested filename: `05-agent-timeline-light.png`
+
+### 6. Frozen Evidence Replay
+
+- Route: same incident after selecting **Replay Frozen Evidence**.
+- Viewport: 1280 × 900, Dark
+- Frame: `NO SIDE EFFECT`, frozen evidence and historical incident IDs, original/replay diagnosis
+  and proposal, grounding result, policy outcome, and latency.
+- Demonstrates: evaluation over frozen inputs without live capability access or execution.
+- Suggested filename: `06-frozen-replay-dark.png`
+
 ## Responsive review captures
 
 These are review artifacts rather than portfolio images:
@@ -71,4 +89,6 @@ Repeat one canonical frame in both themes. Confirm visible focus, status icons a
 - No raw secret fields in Technical Detail.
 - Execution and Verification remain separately readable.
 - Historical Context visibly says “Not current evidence.”
+- Replay visibly says `NO SIDE EFFECT` and does not expose an execution control.
+- Timeline stream status and UNKNOWN text remain legible without relying on color.
 - Filenames and crop remain stable so reviewers can compare captures manually.

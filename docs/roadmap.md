@@ -17,8 +17,8 @@
 | M8.5 Deployment Compatibility | Done | Typed profiles and a synthetic legacy-environment migration bridge |
 | **Stable Portfolio v1.0: M1–M8.5** | **Current stable release** | Architecture frozen; benchmark and release evidence |
 | M9 GitOps Change Workflow | Done | Typed change intent, two human gates, Git PR, GitOps reconciliation, verification (deterministic E2E verified; live Lab/real GitHub operator opt-in) |
-| M10 Risk Reviewer / Advanced Eval | Future work | Advisory risk review and expanded evaluation |
-| M11 Agent Observability / Production Hardening | Future work | Operational telemetry, deployment and resilience |
+| M10 Agent Application UX | Done | Durable event timeline/SSE, approval preview, UNKNOWN UX |
+| M11 Agent Observability & Replay | Done | Optional OTLP spans and frozen-input no-side-effect replay |
 
 M8 implements the governed Harness reference backend. M8.5 demonstrates bounded integration with
 traditional SSH-managed test environments without restoring the removed ServiceSSH abstraction.
@@ -29,5 +29,6 @@ The canonical local demo remains the stable portfolio entry point. M1–M8.5 are
 demonstration focuses on evidence, durable approval, governed execution, and independent
 verification. Historical Memory and MCP remain optional advanced demonstrations.
 
-Portfolio v1.0 remains the stable M1–M8.5 release. M9 is implemented as the current development
-milestone and preserves that frozen remediation architecture. The next milestone is **M10**.
+Portfolio v1.0 remains the stable M1–M8.5 release. M9–M11 extend the demonstrable application
+surface while preserving the frozen remediation and change architectures. Future work is limited
+to evidence-backed evaluation expansion and optional interoperability adapters.

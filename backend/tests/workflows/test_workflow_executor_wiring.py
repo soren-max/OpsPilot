@@ -145,10 +145,17 @@ def test_execute_retry_does_not_dispatch_same_action_twice(db: Session) -> None:
     assert result.status is WorkflowRunStatus.FAILED
     assert len(executor.executed) == 1
     assert result.execution_task_id == result.proposed_action_id
-    assert result.state_references == {
+    expected_execution_references = {
         "workflow_id": result.id,
         "action_fingerprint": result.proposed_action_id,
         "execution_task_id": result.execution_task_id,
         "execution_status": "STARTED",
     }
+    assert all(
+        result.state_references[key] == value
+        for key, value in expected_execution_references.items()
+    )
+    snapshot = result.state_references["replay_snapshot"]
+    assert isinstance(snapshot, dict)
+    assert snapshot["evidence_ids"]
     assert IncidentService(db)._require(incident_id).status.value == "INVESTIGATING"

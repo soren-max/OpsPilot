@@ -40,6 +40,7 @@ from app.execution.factory import build_execution_plane
 from app.execution.service import ExecutionReconciler
 from app.memory.factory import build_memory_store
 from app.models import Host, Service, ServiceDeployment
+from app.observability import configure_telemetry, shutdown_telemetry
 from app.repositories.workflow_models import WorkflowRunRecord, WorkflowRunStatus
 from app.services.worker import WorkerService
 from app.workflows.checkpoint import get_workflow_checkpointer
@@ -224,49 +225,53 @@ def main() -> None:
     signal.signal(signal.SIGTERM, stop_worker)
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_file)
-    get_workflow_checkpointer()
-    investigator = build_investigator(settings)
-    knowledge_retriever = build_memory_store(settings)
-    while running:
-        with SessionLocal() as db:
-            action_service = build_action_service(db, settings)
-            capabilities = build_incident_capabilities(db, settings, action_service)
-            change_tick(db, settings, capabilities)
-            execution_plane, execution_dispatcher = build_execution_plane(
-                db, settings, action_service
-            )
-            execution_dispatcher.recover_expired_dispatches()
-            if asyncio.run(execution_dispatcher.dispatch_one()):
-                continue
-            tracking = execution_dispatcher.executions.tracking(limit=1)
-            if tracking:
-                execution = asyncio.run(
-                    ExecutionReconciler(execution_dispatcher).reconcile(tracking[0].id)
+    telemetry_provider = configure_telemetry()
+    try:
+        get_workflow_checkpointer()
+        investigator = build_investigator(settings)
+        knowledge_retriever = build_memory_store(settings)
+        while running:
+            with SessionLocal() as db:
+                action_service = build_action_service(db, settings)
+                capabilities = build_incident_capabilities(db, settings, action_service)
+                change_tick(db, settings, capabilities)
+                execution_plane, execution_dispatcher = build_execution_plane(
+                    db, settings, action_service
                 )
-                if execution.status in {
-                    ExecutionStatus.SUCCEEDED,
-                    ExecutionStatus.FAILED,
-                    ExecutionStatus.CANCELLED,
-                }:
-                    workflow = db.get(WorkflowRunRecord, execution.workflow_id)
-                    if workflow is not None and workflow.status is WorkflowRunStatus.WAITING:
-                        workflow.status = WorkflowRunStatus.PENDING
-                        db.commit()
-                continue
-            capabilities = build_incident_capabilities(db, settings, action_service)
-            if WorkflowService(
-                db,
-                investigator=investigator,
-                action_service=action_service,
-                capabilities=capabilities,
-                knowledge_retriever=knowledge_retriever,
-                execution_plane=execution_plane,
-                execution_dispatcher=execution_dispatcher,
-            ).run_next():
-                continue
-            handled = WorkerService(db, action_service, settings).run_once()
-        if not handled:
-            time.sleep(settings.worker_poll_seconds)
+                execution_dispatcher.recover_expired_dispatches()
+                if asyncio.run(execution_dispatcher.dispatch_one()):
+                    continue
+                tracking = execution_dispatcher.executions.tracking(limit=1)
+                if tracking:
+                    execution = asyncio.run(
+                        ExecutionReconciler(execution_dispatcher).reconcile(tracking[0].id)
+                    )
+                    if execution.status in {
+                        ExecutionStatus.SUCCEEDED,
+                        ExecutionStatus.FAILED,
+                        ExecutionStatus.CANCELLED,
+                    }:
+                        workflow = db.get(WorkflowRunRecord, execution.workflow_id)
+                        if workflow is not None and workflow.status is WorkflowRunStatus.WAITING:
+                            workflow.status = WorkflowRunStatus.PENDING
+                            db.commit()
+                    continue
+                capabilities = build_incident_capabilities(db, settings, action_service)
+                if WorkflowService(
+                    db,
+                    investigator=investigator,
+                    action_service=action_service,
+                    capabilities=capabilities,
+                    knowledge_retriever=knowledge_retriever,
+                    execution_plane=execution_plane,
+                    execution_dispatcher=execution_dispatcher,
+                ).run_next():
+                    continue
+                handled = WorkerService(db, action_service, settings).run_once()
+            if not handled:
+                time.sleep(settings.worker_poll_seconds)
+    finally:
+        shutdown_telemetry(telemetry_provider)
 
 
 if __name__ == "__main__":

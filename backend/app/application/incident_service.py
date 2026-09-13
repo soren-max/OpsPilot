@@ -77,6 +77,12 @@ AUDIT_METADATA_ALLOWLIST = frozenset(
         "backend_profile",
         "provider_execution_id",
         "approval_id",
+        "policy_decision",
+        "policy_rule",
+        "policy_reason",
+        "risk_level",
+        "risk_factors",
+        "expected_result",
     }
 )
 

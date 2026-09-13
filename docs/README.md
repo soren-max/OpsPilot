@@ -16,9 +16,10 @@ New readers can follow this path for a concise architecture and interview walkth
 3. [Incident Workflow](design/langgraph-incident-workflow.md) — explicit LangGraph state flow.
 4. [Observability Capabilities](design/observability-capabilities.md) — typed evidence sources.
 5. [LLM Investigator](design/llm-investigator.md) — grounded reasoning without authority.
-6. [Roadmap](roadmap.md) — implemented scope through M9 and next options.
+6. [Roadmap](roadmap.md) — implemented scope through M11 and next options.
 7. [Deployment Compatibility](design/deployment-compatibility.md) — safe legacy SSH migration.
 8. [GitOps Change Workflow](design/gitops-change-workflow.md) — governed desired-state changes.
+9. [Agent Application UX](design/agent-application-ux.md) — durable timeline, SSE, replay, and OTLP.
 
 For a runnable tour, use the [Offline Demo and Recording Guide](demo.md) and the
 [Portfolio Screenshot Guide](demo/screenshots.md).
@@ -34,7 +35,7 @@ For a runnable tour, use the [Offline Demo and Recording Guide](demo.md) and the
 
 ## Roadmap
 
-- [Roadmap](roadmap.md) — milestone plan through M9 and beyond (简体中文: [zh-CN/roadmap.md](zh-CN/roadmap.md))
+- [Roadmap](roadmap.md) — milestone plan through M11 and beyond (简体中文: [zh-CN/roadmap.md](zh-CN/roadmap.md))
 
 ## Development
 
@@ -61,6 +62,7 @@ For a runnable tour, use the [Offline Demo and Recording Guide](demo.md) and the
 - [LangGraph Incident Workflow](design/langgraph-incident-workflow.md) — deterministic workflow orchestration (简体中文: [zh-CN/design/langgraph-incident-workflow.md](zh-CN/design/langgraph-incident-workflow.md))
 - [Governed Execution](design/governed-execution-plane.md) — implemented M8 routing, outbox and reconciliation
 - [Incident Memory and RAG](design/incident-memory-and-rag.md) — English only (projection and hybrid retrieval implemented)
+- [Agent Application UX](design/agent-application-ux.md) — AgentEvent projection, SSE, frozen replay, and optional OTLP
 - [Portfolio Benchmark](evaluation/portfolio-benchmark.md) — generated evidence entry point
 - [Portfolio Demo](demo/portfolio-demo.md) — canonical 3–5 minute walkthrough
 - [Resume Pack](portfolio/resume.md) and [Interview Guide](portfolio/interview-guide.md)

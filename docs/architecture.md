@@ -199,3 +199,18 @@ separate from Incident business facts and `WorkflowRun` metadata. Mutating remed
 an interrupt after policy assessment, creates an auditable `ApprovalRequest`, and resumes the same
 workflow thread after an authenticated decision. The resumed action still enters `ActionService`
 and deterministic policy before the executor.
+
+## M10/M11 agent application layer
+
+The Incident console consumes an `AgentEvent` read projection derived from append-only Incident
+AuditEvents. A normal JSON endpoint and a PostgreSQL-polling SSE endpoint share the same projection,
+ordering, redaction, and durable cursor. SSE is delivery only; it is not an in-memory source of truth.
+
+Frozen Evidence Replay stores a bounded manifest inside WorkflowRun metadata and reuses durable
+Evidence IDs plus a copied historical-retrieval snapshot. Replay invokes investigator, grounding
+comparison, and deterministic policy only. Approval, execution, outbox, Ansible, Harness, and GitOps
+dependencies are absent from the replay service by construction.
+
+OpenTelemetry remains the observability standard. `incident.run` owns the workflow trace hierarchy,
+and optional OTLP/HTTP export can target Langfuse or another collector. No custom tracing backend or
+mandatory SaaS service is introduced. See [Agent Application UX](design/agent-application-ux.md).
