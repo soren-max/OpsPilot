@@ -29,9 +29,10 @@ Keep MCP protocol, Qdrant internals, and Harness internals out of the mainline; 
 
 Run `make execution-demo` in a second terminal. Its execution tests include the deterministic
 remote-accepted/local-response-lost fixture and prove `UNKNOWN -> no blind retry -> reconciliation`
-without a duplicate side effect. In the UI, use the shipped synthetic UNKNOWN record to show the
-distinct warning copy and reconciliation metadata. This is intentionally a separate proof path;
-the canonical local incident demo does not pretend to inject a real Harness network failure.
+without a duplicate side effect. The UI renders the same persisted status with distinct warning
+copy and reconciliation metadata, but the canonical local incident demo does not seed an UNKNOWN
+record or pretend to inject a real Harness network failure. Capture that UI state only in an
+explicitly configured synthetic execution environment.
 
 ## Optional trace export
 
