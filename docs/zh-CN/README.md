@@ -22,7 +22,8 @@
 
 - [架构（Architecture）](architecture.md) — 系统分层总览：LangGraph Incident 工作流、类型化能力端口、Incident Evidence、LLM 调查器与 Action Safety Core（对应英文 [architecture.md](../architecture.md)）。
 - [安全模型（Safety Model）](safety-model.md) — LLM 只是决策助手而非授权主体：只读动作可自动放行，重启等中风险动作必须审批，未知动作、未知目标与非法参数一律 fail-closed。
-- [路线图（Roadmap）](roadmap.md) — M1–M8.5 已实现为稳定 Portfolio v1.0；M9 GitOps 变更工作流已实现（确定性 E2E 已验证），真实 Kind/Argo 与真实 GitHub 为操作者 opt-in；M10 是下一工程里程碑。
+- [路线图（Roadmap）](roadmap.md) — M1–M8.5 为稳定 Portfolio v1.0；M9–M11 已增加 GitOps、
+  Agent Application UX、可选 OTLP 与无副作用 Replay，真实外部集成仍为操作者 opt-in。
 - [开发指南（Development）](development.md) — 本地环境搭建、依赖管理（Python 3.13 / uv / Node 22+）与开发约定。
 - [测试策略（Testing）](testing.md) — 后端/前端回归基线、确定性动作安全测试与评估夹具的使用方式。
 

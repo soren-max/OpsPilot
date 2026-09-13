@@ -68,7 +68,17 @@ def main() -> None:
         ),
         Check(
             "Mypy strict",
-            ("uv", "run", "--project", "backend", "--no-sync", "mypy", "backend/app"),
+            (
+                "uv",
+                "run",
+                "--project",
+                "backend",
+                "--no-sync",
+                "mypy",
+                "--config-file",
+                "backend/pyproject.toml",
+                "backend/app",
+            ),
         ),
         Check("Frontend tests", ("npm", "test"), ROOT / "frontend"),
         Check("ESLint", ("npm", "run", "lint"), ROOT / "frontend"),

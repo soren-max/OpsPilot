@@ -3274,6 +3274,86 @@ body {
   font-size: 11px;
 }
 
+.operations-timeline li.is-unknown .operations-timeline__marker,
+.operations-timeline li.is-waiting .operations-timeline__marker,
+.operations-timeline li.is-reconciled .operations-timeline__marker {
+  color: var(--opspilot-warning);
+  background: var(--opspilot-warning-soft);
+  border-color: var(--opspilot-warning);
+}
+
+.operations-timeline li.is-failed .operations-timeline__marker,
+.operations-timeline li.is-rejected .operations-timeline__marker {
+  color: var(--opspilot-danger);
+  background: var(--opspilot-danger-soft);
+  border-color: var(--opspilot-danger);
+}
+
+.stream-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--opspilot-space-1);
+  color: var(--opspilot-text-secondary);
+  font-family: var(--opspilot-font-mono);
+  font-size: 11px;
+}
+
+.stream-status.is-live {
+  color: var(--opspilot-success);
+}
+
+.stream-status.is-reconnecting {
+  color: var(--opspilot-warning);
+}
+
+.replay-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--opspilot-space-3);
+  margin-top: var(--opspilot-space-4);
+}
+
+.replay-comparison article {
+  display: grid;
+  gap: var(--opspilot-space-2);
+  padding: var(--opspilot-space-3);
+  background: var(--opspilot-surface-subtle);
+  border: 1px solid var(--opspilot-border);
+}
+
+.replay-comparison article small {
+  color: var(--opspilot-text-secondary);
+}
+
+.replay-comparison > dl {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid var(--opspilot-border);
+}
+
+.replay-comparison > dl > div {
+  padding: var(--opspilot-space-2) var(--opspilot-space-3);
+  border-right: 1px solid var(--opspilot-border);
+  border-bottom: 1px solid var(--opspilot-border);
+}
+
+.replay-inputs {
+  display: grid;
+  gap: var(--opspilot-space-3);
+  margin-top: var(--opspilot-space-4);
+  padding: var(--opspilot-space-3);
+  overflow-wrap: anywhere;
+  background: var(--opspilot-surface-subtle);
+  border: 1px solid var(--opspilot-border);
+}
+
+.replay-inputs p {
+  margin: var(--opspilot-space-1) 0 0;
+  color: var(--opspilot-text-secondary);
+}
+
 .operational-signal-strip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -3678,6 +3758,11 @@ body {
 
   .operations-timeline__content header {
     display: grid;
+  }
+
+  .replay-comparison,
+  .replay-comparison > dl {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .operational-signal-strip {

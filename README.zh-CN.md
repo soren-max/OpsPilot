@@ -34,9 +34,13 @@ flowchart LR
   Optional[可选: RAG / MCP / OpenAI] -.-> Investigator
 ```
 
-**当前状态：** 稳定 Portfolio v1.0 仍冻结于 M1–M8.5；M9 GitOps Change Workflow
-已作为独立的当前开发里程碑实现，确定性演示与 CI E2E 已验证；真实 Kind/Argo 与真实
-GitHub 集成仍为操作者手动 opt-in 路径，处于验收审查中。下一工程里程碑是 M10。
+**当前状态：** 稳定 Portfolio v1.0 架构仍冻结于 M1–M8.5；M9 保持为独立的
+GitOps Change Workflow。M10/M11 已增加面向 Incident 的 Agent Timeline、认证后的
+持久 SSE、结构化审批预览、可选 OTLP 导出和无副作用的冻结证据 Replay，未改变
+原有授权与执行边界。真实基础设施集成仍需操作者显式 opt-in。
+
+> 截图说明：请按 [合成数据截图清单](docs/demo/screenshots.md) 捕获 Agent Run Timeline、
+> Approval Card、UNKNOWN/Reconciliation 和 Frozen Evidence Replay。仓库不用大体积截图替代回归测试。
 
 ```text
 REMEDIATE：Action → Policy → HITL → Governed Execution → Verification
@@ -139,6 +143,9 @@ ActionRequest -> ActionPolicyEngine -> approval boundary -> ActionExecutor -> ve
 - 受治理的 Mock、Ansible 和 allowlisted Harness 执行 Profile 及 reconciliation（`M8`）
 - 受治理的 GitOps 变更工作流：语义 diff、独立 Git review、pull-based reconciliation、
   revision correlation 与独立验证（`M9`）
+- 持久 AgentEvent 投影、认证后可恢复 SSE Timeline（`M10`）
+- 结构化审批后果预览与显式 UNKNOWN/Reconciliation UX（`M10`）
+- 可选 OTLP workflow spans 与无副作用 Frozen Evidence Replay（`M11`）
 - 审计 / 评估基础：评估夹具、安全用例、CI 中的 secret 扫描
 
 ## MCP Capability Plane
@@ -150,7 +157,20 @@ remediation proposal 并返回 approval reference，不能直接执行。运行 
 
 **Future Work：**
 
-- 高级评估与智能体可观测性（`M10`/`M11`）
+- 更大规模的 Historical Memory 调查消融实验，以及可选的未来 AG-UI 适配层
+
+## Agent Timeline、可观测性与 Replay
+
+- `/api/v1/incidents/{incident_id}/events` 仅把 append-only AuditEvent 投影为 AgentEvent 读模型，
+  不新建第二套事实源。
+- 同路径 SSE 用持久 event ID 断点续传；因 Bearer 认证不支持原生 EventSource 自定义
+  header，前端用 authenticated fetch stream，不把 token 泄露在 URL。
+- Incident Detail 继续严格隔离 Current Evidence 与 Historical Context，并从结构化产物
+  解释 Diagnosis、Policy、Approval、UNKNOWN、Reconciliation 和 Verification，不展示隐藏推理。
+- Frozen Evidence Replay 只重跑调查、grounding 比较、proposal 和 policy，不进入
+  approval/execution/Ansible/Harness/GitOps 路径。
+- OTLP 导出默认关闭；配置标准 `OTEL_EXPORTER_OTLP_*` 变量后可发送有界元数据到
+  Langfuse 或其他 OTLP receiver，local demo 不依赖 tracing SaaS。
 
 ## 安全模型
 
@@ -271,13 +291,13 @@ M1B 已移除遗留的 SSH 与服务脚本运行时。Ansible 可以按运维自
 | M8.5 Deployment Compatibility | **已实现** |
 | Portfolio v1.0 Evidence & Release Closeout | **当前稳定版本** |
 | M9 GitOps Change Workflow | **已实现** — 确定性演示与 CI E2E 已验证；真实 Lab 与真实 GitHub 为操作者 opt-in |
-| M10 Risk Reviewer / Advanced Eval | Future Work |
-| M11 Agent Observability / Production Hardening | Future Work |
+| M10 Agent Application UX | **已实现** — Timeline、SSE、Approval Preview、UNKNOWN UX |
+| M11 Agent Observability & Replay | **已实现** — 可选 OTLP 与冻结 Replay |
 
 ### Portfolio 入口
 
-标准本地演示仍是稳定的 Portfolio v1.0 入口。M9 新增独立的 `make gitops-demo`
-desired-state 变更证据路径；下一工程里程碑是 M10。
+标准本地演示仍是稳定的 Portfolio v1.0 入口。M9 保持独立 `make gitops-demo`
+路径；M10/M11 让 remediation 路径可观测、可回放，但不更改其授权或执行边界。
 
 ## 这个项目有什么不同
 

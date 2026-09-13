@@ -5,7 +5,9 @@
     "recall_at_10": 0.9722222222222222,
     "mrr": 0.8217592592592593,
     "root_cause_hit_rate": 0.9166666666666666,
-    "latency_ms": 2.16139783332873
+    "latency_ms": 0.31065008352015866,
+    "latency_p50_ms": 0.30280850023700623,
+    "latency_p95_ms": 0.3882650007653865
   },
   {
     "retriever": "sparse",
@@ -13,7 +15,9 @@
     "recall_at_10": 1.0,
     "mrr": 1.0,
     "root_cause_hit_rate": 1.0,
-    "latency_ms": 2.203079666661741
+    "latency_ms": 0.3169850001540908,
+    "latency_p50_ms": 0.30725650049134856,
+    "latency_p95_ms": 0.3805999995165621
   },
   {
     "retriever": "hybrid_rrf",
@@ -21,6 +25,8 @@
     "recall_at_10": 1.0,
     "mrr": 0.9333333333333333,
     "root_cause_hit_rate": 1.0,
-    "latency_ms": 2.2311947500005167
+    "latency_ms": 0.31713649999195087,
+    "latency_p50_ms": 0.31309750011132564,
+    "latency_p95_ms": 0.34124600006180117
   }
 ]

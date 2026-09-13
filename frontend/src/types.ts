@@ -269,6 +269,69 @@ export interface TimelineItem {
   metadata: Record<string, unknown>;
 }
 
+export type AgentStage =
+  | "ALERT"
+  | "EVIDENCE"
+  | "MEMORY"
+  | "DIAGNOSIS"
+  | "GROUNDING"
+  | "PROPOSAL"
+  | "POLICY"
+  | "APPROVAL"
+  | "EXECUTION"
+  | "RECONCILIATION"
+  | "VERIFICATION"
+  | "INCIDENT"
+  | "WORKFLOW";
+
+export interface AgentEvent {
+  event_id: string;
+  incident_id: string;
+  event_type: string;
+  stage: AgentStage;
+  timestamp: string;
+  status: string;
+  data: Record<string, unknown>;
+}
+
+export interface IncidentReplay {
+  incident_id: string;
+  workflow_id: string;
+  snapshot_version: string;
+  no_side_effect: true;
+  investigator_mode: string;
+  provider: string | null;
+  model: string | null;
+  prompt_version: string | null;
+  historical_memory_included: boolean;
+  frozen_evidence_ids: string[];
+  frozen_historical_incident_ids: string[];
+  original_diagnosis: {
+    root_cause: string;
+    confidence: number;
+    evidence_ids: string[];
+  } | null;
+  replay_diagnosis: { root_cause: string; confidence: number; evidence_ids: string[] };
+  original_proposal: { action_type: string | null; target: string };
+  replay_proposal: { action_type: string | null; target: string };
+  policy: {
+    decision: string;
+    risk_level: string | null;
+    policy_rule: string | null;
+    reason: string | null;
+    approval_required: boolean;
+  };
+  metrics: {
+    root_cause_match: boolean;
+    action_match: boolean;
+    grounding_valid: boolean;
+    latency_ms: number;
+    input_tokens: number | null;
+    output_tokens: number | null;
+    cost: number | null;
+  };
+}
+
 export type WorkflowRunStatus =
   "PENDING" | "RUNNING" | "WAITING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
 
@@ -303,6 +366,11 @@ export interface WorkflowRun {
     action_fingerprint?: string;
     action_type?: string;
     risk_level?: string;
+    policy_decision?: string;
+    policy_rule?: string;
+    policy_reason?: string;
+    risk_factors?: string[];
+    expected_result?: string;
   };
   created_at: string;
 }

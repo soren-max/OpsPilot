@@ -8,7 +8,7 @@ import yaml  # type: ignore[import-untyped]
 from app.deployment.models import DeploymentConfiguration
 
 
-class UniqueKeySafeLoader(yaml.SafeLoader):
+class UniqueKeySafeLoader(yaml.SafeLoader):  # type: ignore[misc]
     pass
 
 

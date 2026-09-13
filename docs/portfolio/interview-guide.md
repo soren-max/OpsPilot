@@ -132,7 +132,7 @@ provider reconciliation guarantees, and a staged shadow/canary rollout.
 advise later, but cannot weaken deterministic policy.
 
 **Two minutes:** Cover reproducibility, audit explanations, deny-by-default, rule/version testing, and
-how an advisory M10 reviewer could only raise risk or request evidence.
+how an advisory reviewer could only raise risk or request evidence.
 
 ## 17. What did the benchmark reveal rather than market away?
 
@@ -141,5 +141,30 @@ insufficient-evidence accuracy on M3B cases are limited. Grounding and unsupport
 remain strong, so v1 reports both capability and boundary.
 
 **Two minutes:** Explain why expected fixture output is not used as predicted output, why real LLM is
-`NOT RUN`, why latency is host-specific, and how the limitation informs M10 without entering it now.
+`NOT RUN`, why latency is host-specific, and how the limitation informs future evaluation work.
 
+## 18. Is the Agent Timeline a second event system?
+
+**30 seconds:** No. AgentEvent is a presentation DTO projected from the append-only AuditEvent log
+and bounded workflow references; the SSE endpoint polls that durable source and resumes by event ID.
+
+**Two minutes:** Explain stable ordering, `Last-Event-ID`, authenticated fetch streaming instead of
+JWT query parameters, proxy buffering, and why Redis/Kafka would add no value at this scale.
+
+## 19. Why is replay safe?
+
+**30 seconds:** Replay reads a frozen manifest and directly invokes investigator, comparison, and
+deterministic policy. It has no workflow resume, approval, executor, outbox, Ansible, Harness, or
+GitOps dependency, and its response explicitly states `no_side_effect=true`.
+
+**Two minutes:** Cover the legacy-workflow refusal, evidence-ID completeness check, historical
+snapshot isolation, reusable evaluator, optional configured investigator, and remaining retention
+limits. Replay does not claim byte-for-byte model reproducibility.
+
+## 20. What does Langfuse add?
+
+**30 seconds:** Langfuse is an optional OTLP consumer, not a runtime dependency or authorization
+component. Standard exporter variables route bounded workflow spans there when configured.
+
+**Two minutes:** Walk through `incident.run` and node spans, safe attributes, exporter failure
+isolation, API/worker lifecycle shutdown, and why no prompt/evidence bodies or secrets are exported.

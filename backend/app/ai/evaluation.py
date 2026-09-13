@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.ai.models import InvestigationModelOutput, InvestigationPromptEvidence
 from app.domain.actions.models import ActionType
+from app.workflows.incident.investigator import InvestigationResult
 
 
 class InvestigationEvalCase(BaseModel):
@@ -52,4 +53,34 @@ def evaluate_investigation(
         root_cause_category_match=float(
             case.expected_root_cause_category.lower() in output.root_cause.lower()
         ),
+    )
+
+
+class ReplayComparison(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    root_cause_match: bool
+    action_match: bool
+    grounding_valid: bool
+
+
+def compare_replay_result(
+    *,
+    original_root_cause: str | None,
+    original_action: ActionType | None,
+    available_evidence_ids: frozenset[str],
+    replay: InvestigationResult,
+) -> ReplayComparison:
+    referenced = tuple(replay.evidence_ids)
+    grounding_valid = (
+        len(referenced) == len(set(referenced))
+        and set(referenced) <= available_evidence_ids
+        and (replay.action_type is None or bool(referenced))
+    )
+    return ReplayComparison(
+        root_cause_match=(
+            original_root_cause is not None
+            and original_root_cause.strip().casefold() == replay.root_cause.strip().casefold()
+        ),
+        action_match=original_action == replay.action_type,
+        grounding_valid=grounding_valid,
     )

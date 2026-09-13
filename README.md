@@ -7,9 +7,10 @@ current evidence, a grounded diagnosis and typed action, deterministic policy, d
 governed Ansible/Harness execution, independent verification, and an auditable result. A model may
 propose; it cannot authorize or select the execution path.
 
-**Stable Portfolio Release: v1.0 architecture (M1–M8.5).** The current development milestone adds
-the M9 GitOps Change Workflow, implemented with deterministic offline verification and CI E2E;
-live Kind/Argo and real-GitHub integration remain operator opt-in paths under acceptance review.
+**Stable Portfolio Release: v1.0 architecture (M1–M8.5).** M9 adds the separate GitOps Change
+Workflow. M10/M11 now add an incident-centric Agent Timeline, authenticated durable SSE,
+structured approval preview, optional OTLP export, and no-side-effect frozen-evidence replay.
+Live infrastructure integrations remain explicit operator opt-in paths.
 
 ## Quick Demo
 
@@ -24,6 +25,11 @@ needs no OpenAI key, Harness SaaS, remote MCP server, or company network and use
 PostgreSQL checkpointing, Policy/HITL, fixed Ansible remediation, and current health verification.
 Use the [3–5 minute interview walkthrough](docs/demo/portfolio-demo.md) or the
 [10-minute mentor walkthrough](docs/demo/mentor-demo.md).
+
+> Screenshot guide: capture the Agent Run Timeline, the structured Approval Card, the explicit
+> UNKNOWN/reconciliation state, and Frozen Evidence Replay using the
+> [synthetic-data checklist](docs/demo/screenshots.md). Screenshot binaries are intentionally not
+> committed as a substitute for regression tests.
 
 ## Architecture Freeze
 
@@ -58,8 +64,8 @@ CHANGE:    Structured Change → Policy → HITL → PR → Git Review → GitOp
 
 ## Verifiable Portfolio Evidence
 
-<!-- portfolio-metric backend_tests=394 -->
-<!-- portfolio-metric frontend_tests=42 -->
+<!-- portfolio-metric backend_tests=401 -->
+<!-- portfolio-metric frontend_tests=44 -->
 <!-- portfolio-metric lab_scenarios=4 -->
 <!-- portfolio-metric investigation_cases=6 -->
 <!-- portfolio-metric retrieval_queries=12 -->
@@ -71,7 +77,7 @@ CHANGE:    Structured Change → Policy → HITL → PR → Git Review → GitOp
 
 | Evidence | Result | Trace |
 | --- | --- | --- |
-| Backend / frontend tests | 394 collected / 42 declared | Generated benchmark + quality gate |
+| Backend / frontend tests | 401 collected / 44 declared | Generated benchmark + quality gate |
 | Incident investigation | 6 real deterministic fixtures; LLM `NOT RUN` | [Benchmark entry](docs/evaluation/portfolio-benchmark.md) |
 | Hybrid retrieval | 40 documents / 12 queries; Dense, Sparse, Hybrid RRF | [Retrieval evaluation](docs/evaluation/retrieval-benchmark.md) |
 | Safety containment | 15/15 controls, 0 unexpected execution paths | [Safety matrix](docs/evaluation/safety-matrix.md) |
@@ -102,6 +108,21 @@ flowchart TD
 `UNKNOWN != FAILED`, and `execution SUCCEEDED != incident RESOLVED`. See the
 [trade-offs](docs/portfolio/tradeoffs.md), [interview guide](docs/portfolio/interview-guide.md),
 [resume pack](docs/portfolio/resume.md), and [explicit limitations](docs/evaluation/limitations.md).
+
+## Agent Timeline, Observability, and Replay
+
+- `GET /api/v1/incidents/{incident_id}/events` projects the existing append-only AuditEvent log
+  into a stable AgentEvent read model; it does not create a second source of truth.
+- The matching authenticated SSE stream resumes from durable event IDs. It uses PostgreSQL polling
+  and bounded reconnects, so Redis, Kafka, and an in-memory-only event bus are unnecessary.
+- Incident Detail keeps Current Evidence separate from Historical Context and explains diagnosis,
+  policy, risk, approval, execution, UNKNOWN, reconciliation, and verification from structured
+  artifacts—never hidden model reasoning.
+- Frozen Evidence Replay reruns only investigation, grounding comparison, proposal, and policy over
+  a captured input manifest. It never enters approval, execution, Ansible, Harness, or GitOps.
+- OTLP trace export is optional. Configure standard `OTEL_EXPORTER_OTLP_*` variables to send bounded
+  workflow metadata to Langfuse or another OTLP receiver; the local demo has no tracing SaaS
+  dependency.
 
 M8.5 adds strict deployment profiles, systemd and fixed-script service control, a read-only doctor,
 migration readiness assessment, a safe legacy API/ticket boundary, and a synthetic
@@ -205,11 +226,14 @@ No model output is passed to a shell, SSH client, inventory path, or playbook pa
 - Governed Mock, Ansible, and allowlisted Harness execution profiles with reconciliation (`M8`)
 - Governed GitOps change workflow with semantic diffs, independent Git review, pull-based
   reconciliation, revision correlation, and independent verification (`M9`)
+- Durable AgentEvent projection and authenticated resumable SSE timeline (`M10`)
+- Structured approval consequence preview and explicit UNKNOWN/reconciliation UX (`M10`)
+- Optional OTLP workflow spans and no-side-effect Frozen Evidence Replay (`M11`)
 - Audit / evaluation foundation: evaluation fixtures, safety cases, secret scan in CI
 
 **Future work:**
 
-- Advanced evaluation and agent observability (`M10`/`M11`)
+- Larger investigation-memory ablations and an optional future AG-UI adapter
 
 ## Safety Model
 
@@ -359,13 +383,14 @@ according to operator-owned inventory, but that is not part of the Agent/API con
 | M8.5 Deployment Compatibility | **Implemented** |
 | Portfolio v1.0 evidence and release closeout | **Current stable release** |
 | M9 GitOps Change Workflow | **Implemented** — deterministic demo and CI E2E verified; live Lab & real GitHub are operator opt-in |
-| M10 Risk Reviewer / Advanced Eval | Future work |
-| M11 Agent Observability / Production Hardening | Future work |
+| M10 Agent Application UX | **Implemented** — timeline, SSE, approval preview, UNKNOWN UX |
+| M11 Agent Observability & Replay | **Implemented** — optional OTLP and frozen replay |
 
 ### Portfolio Entry Point
 
-The canonical local demonstration remains the stable v1.0 portfolio entry point. M9 adds the
-separate `make gitops-demo` evidence path for desired-state changes; M10 is next.
+The canonical local demonstration remains the stable v1.0 portfolio entry point. M9 keeps the
+separate `make gitops-demo` path; M10/M11 make the remediation path observable and replayable
+without changing its authorization or execution boundaries.
 
 ## Why this project is different
 

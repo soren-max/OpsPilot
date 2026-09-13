@@ -29,6 +29,7 @@ from app.core.config import get_settings
 from app.core.errors import AppError, ForbiddenError
 from app.core.logging import configure_logging
 from app.db.session import SessionLocal
+from app.observability import configure_telemetry, shutdown_telemetry
 from app.services.audit import write_audit
 from app.workflows.checkpoint import get_workflow_checkpointer
 
@@ -39,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    telemetry_provider = configure_telemetry()
     logger.info(
         "OpsPilot API starting with executor=%s dry_run_only=%s",
         settings.selected_executor,
@@ -52,8 +54,11 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             logger.warning("检测到较弱的初始管理员凭据配置，请在正式部署前修改。")
     finally:
         db.close()
-    yield
-    logger.info("OpsPilot API stopped")
+    try:
+        yield
+    finally:
+        shutdown_telemetry(telemetry_provider)
+        logger.info("OpsPilot API stopped")
 
 
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)

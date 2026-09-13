@@ -3,6 +3,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from sqlalchemy.orm import Session
 
 from app.application.approval_service import ApprovalService
+from app.application.incident_service import IncidentService
 from app.application.workflow_service import WorkflowService
 from app.core.errors import ConflictError
 from app.domain.approvals import ApprovalActor, ApprovalDecision, ApprovalStatus
@@ -82,3 +83,31 @@ def test_duplicate_approval_and_resume_are_safe_across_service_restart(db: Sessi
     assert execution_task_id is not None
     assert second.execution_task_id == execution_task_id
     assert ApprovalService(db).get(approval_id).resumed_at is not None
+
+
+def test_exact_duplicate_approval_is_idempotent(db: Session) -> None:
+    saver = InMemorySaver()
+    _, _, approval_id = _waiting(db, saver)
+    actor = ApprovalActor(actor_id="user-10", display_name="Retrying On-call")
+    approvals = ApprovalService(db)
+
+    first = approvals.approve(approval_id, actor, "Evidence supports restart")
+    duplicate = approvals.approve(approval_id, actor, "Evidence supports restart")
+
+    assert duplicate.id == first.id
+    assert duplicate.resolved_at == first.resolved_at
+
+
+def test_stale_approval_is_rejected_after_incident_terminal_transition(db: Session) -> None:
+    saver = InMemorySaver()
+    _, _, approval_id = _waiting(db, saver)
+    approval = ApprovalService(db).get(approval_id)
+    incident = IncidentService(db)._require(approval.incident_id)
+    IncidentService(db).resolve(incident.id, incident.version, "incident-commander")
+
+    with pytest.raises(ConflictError, match="no longer eligible"):
+        ApprovalService(db).approve(
+            approval_id,
+            ApprovalActor(actor_id="user-11", display_name="Late On-call"),
+            "Late approval retry",
+        )
