@@ -20,7 +20,7 @@ dependencies = [
   "uvicorn>=0.34,<1",
   "langgraph>=1.2,<2",
   "langgraph-checkpoint-postgres>=3.0,<4",
-  "mcp==2.1.1",
+  "mcp==2.2.0",
   "opentelemetry-sdk>=1.28,<2",
   "opentelemetry-exporter-otlp-proto-http>=1.28,<2",
 ]
