@@ -24,6 +24,15 @@ display name, actor type, timestamp and a redacted reason. A unique `(workflow_r
 action_fingerprint)` constraint prevents duplicate requests. Resumption validates the approval,
 workflow ID and action fingerprint; `resumed_at` and `execution_task_id` make replay idempotent.
 
+`action_fingerprint` is a canonical digest of the execution-relevant request content — action type,
+target, environment and parameters — together with the resolved execution backend, profile identity
+and execution-relevant profile configuration. Explanation prose is excluded, so rewording never
+invalidates an approval while retargeting always does, and the digest is independent of JSON key
+ordering. Immediately before dispatch the workflow recomputes the digest and blocks execution with an
+`APPROVAL_STALE` audit event when it differs, so the content a human approved is the content that
+runs. An incident whose environment is not in the alias table fails closed rather than defaulting to
+`development`.
+
 Approval does not authorize an otherwise forbidden action. On resume, `ActionService` reruns the
 deterministic policy with the validated approval fact. The workflow has no executor reference and
 cannot invoke one directly.

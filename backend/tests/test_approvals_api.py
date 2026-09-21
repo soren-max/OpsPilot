@@ -3,16 +3,27 @@ from sqlalchemy.orm import Session
 
 from app.application.approval_service import ApprovalService
 from app.application.workflow_service import WorkflowService
+from app.core.config import get_settings
+from app.execution.factory import build_execution_plane
 from app.models import Permission, RolePermission
 from tests.workflows.test_incident_workflow import create_incident, mock_action_service
 
 
 def _waiting(db: Session, *, shared_checkpoint: bool = False) -> tuple[str, str]:
     incident_id = create_incident(db, "service unavailable")
+    action_service = mock_action_service("mock-service")
+    execution_plane, execution_dispatcher = build_execution_plane(
+        db, get_settings(), action_service
+    )
+    # Propose and dispatch with the same operator execution configuration, as the worker does.
+    # The approval binds that configuration, so a proposal made without it cannot be dispatched
+    # through it later.
     service = WorkflowService(
         db,
         checkpointer=None if shared_checkpoint else InMemorySaver(),
-        action_service=mock_action_service("mock-service"),
+        action_service=action_service,
+        execution_plane=execution_plane,
+        execution_dispatcher=execution_dispatcher,
     )
     workflow = service.start(incident_id, "operator", "approval-api")
     result = service.run(workflow.id)

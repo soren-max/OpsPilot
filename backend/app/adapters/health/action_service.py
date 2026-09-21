@@ -7,7 +7,7 @@ from app.domain.actions.models import (
     ActionRequest,
     ActionType,
     ServiceActionParams,
-    TargetEnvironment,
+    resolve_target_environment,
 )
 
 
@@ -22,12 +22,7 @@ class ActionServiceHealthCapability:
         target = self._targets_by_service.get(query.service)
         if target is None:
             raise CapabilityUnavailable("No enabled health target is configured for service")
-        environment = {
-            "production": TargetEnvironment.PRODUCTION,
-            "prod": TargetEnvironment.PRODUCTION,
-            "test": TargetEnvironment.TEST,
-            "test-mock": TargetEnvironment.TEST,
-        }.get(query.environment.lower(), TargetEnvironment.DEVELOPMENT)
+        environment = resolve_target_environment(query.environment)
         action = ActionRequest(
             action_type=ActionType.GET_SERVICE_STATUS,
             target=target,

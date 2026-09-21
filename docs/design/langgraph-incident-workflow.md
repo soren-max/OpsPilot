@@ -64,3 +64,24 @@ in `WAITING_APPROVAL`; M4 will add identity-bound durable interrupt/resume.
 The boundaries remain distinct: the Incident database is durable business truth, the LangGraph
 checkpoint stores workflow execution/recovery position, and `WorkflowRun` provides queryable
 workflow metadata. None substitutes for another.
+
+## Later correctness and safety hardening
+
+This document describes the M2 milestone. The following behaviour was tightened afterwards and the
+M2 wording above is historical:
+
+- **`no action` does not resolve an incident.** Resolution requires an independently verified
+  remediation (`action_needed AND not policy_blocked AND verification SUCCEEDED`). A run that
+  proposes nothing, lacks evidence, fails policy, or fails verification completes the workflow while
+  the Incident stays `INVESTIGATING`. Workflow completion is not incident resolution.
+- **`action_fingerprint` binds execution content**, not just workflow ID and action type, and is
+  re-verified immediately before dispatch (see [durable HITL](durable-hitl.md)).
+- **Read-only actions bypass the write execution plane**, so a status check cannot fail because the
+  write router has no read-only route.
+- **Reconciled execution resumes at verification**, consuming the durable result without
+  re-approving or re-dispatching.
+- **Frozen replay records the actual Investigator input**, including sanitized evidence content, so
+  later evidence or changed memory cannot alter a replay.
+
+Per-invariant verdicts and their limits are recorded in
+[Correctness and Safety Contracts](../evaluation/correctness-and-safety-contracts.md).

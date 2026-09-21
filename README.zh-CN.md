@@ -192,6 +192,27 @@ LLM 是决策助手，不是授权主体。只读动作可以自动放行；服�
 
 参见 [安全模型](docs/zh-CN/safety-model.md)。
 
+## 正确性与安全契约
+
+以下行为每一条都有回归测试兜底，并且明确写出了能力边界，而不是靠文档掩饰。逐条结论、
+代码路径与边界见
+[Correctness and Safety Contracts](docs/evaluation/correctness-and-safety-contracts.md)。
+
+- **关键指标值真正进入 Investigator 上下文** —— 例如 `service_up = 0` 会被有界、带 provenance
+  地保留；历史上下文无法挤掉当前证据。
+- **证据不足不等于已解决** —— 无证据、无动作、策略拒绝、验证失败都不会把 Incident 标为
+  `RESOLVED`；workflow 可以正常结束而 Incident 仍处于调查中。
+- **审批绑定执行内容** —— 审批绑定动作类型、目标、环境、参数与解析出的执行 profile；请求被
+  改动会在任何外部调用之前阻断派发并写入 `APPROVAL_STALE` 审计事件，副作用为 0。未知环境
+  fail closed。
+- **已知凭据形态在持久化前被清洗** —— 模型上下文、冻结 replay、API 响应、审计、日志与 span
+  属性都只见清洗后的值。这是有界启发式，不是 DLP。
+- **执行恢复不重复审批、不重复派发** —— 已经 reconcile 成功的执行直接从 verification 续跑；
+  只读检查不会进入写执行路由。
+- **结果不确定的外部派发不会被盲目重试** —— 进入 `UNKNOWN`，需要人工对账。
+- **Replay 重放的是原始 Investigator 输入** —— 冻结快照保存证据内容本身，之后新增的证据或
+  变化的历史记忆都不会改变重放输入。
+
 ## Demo
 
 无需 API Key、数据库、Prometheus、Loki、工单系统或网络即可运行完整的确定性演示：

@@ -4,6 +4,7 @@ from app.ai.context import EvidenceContextBuilder
 from app.ai.errors import LLMFailure
 from app.ai.guard import InvestigationGuard
 from app.ai.models import InvestigationPromptInput, StructuredReasoningResult
+from app.ai.prompts import PROMPT_VERSION
 from app.ai.provider import StructuredReasoningProvider
 from app.workflows.incident.investigator import (
     InvestigationContext,
@@ -34,7 +35,7 @@ class LLMIncidentInvestigator:
             mode=self.mode,
             provider=self.provider.provider_name,
             model=self.provider.model_name,
-            prompt_version="1.0",
+            prompt_version=PROMPT_VERSION,
         )
 
     def investigate(self, context: InvestigationContext) -> InvestigationResult:
@@ -59,6 +60,7 @@ class LLMIncidentInvestigator:
             latency_ms=result.latency_ms,
             input_tokens=result.usage.input_tokens,
             output_tokens=result.usage.output_tokens,
+            input_evidence_ids=tuple(item.evidence_id for item in request.evidence),
         )
 
     async def _generate(

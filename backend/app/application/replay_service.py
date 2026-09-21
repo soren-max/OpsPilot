@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from datetime import datetime
+from typing import cast
 
 from opentelemetry import trace
 from sqlalchemy.orm import Session
@@ -11,7 +12,9 @@ from app.application.incident_service import IncidentService
 from app.core.errors import ConflictError, NotFoundError
 from app.domain.actions.models import ActionType
 from app.domain.actions.policy import ActionPolicyEngine
+from app.domain.incidents.evidence import EvidenceType
 from app.domain.incidents.memory import RetrievedKnowledge
+from app.domain.incidents.models import JsonValue
 from app.repositories.incident_models import DiagnosisRecord, IncidentRecord
 from app.repositories.workflows import WorkflowRunRepository
 from app.schemas_replay import (
@@ -55,30 +58,22 @@ class IncidentReplayService:
         if workflow is None or workflow.incident_id != incident_id:
             raise NotFoundError("Workflow does not exist for this incident")
         snapshot = workflow.state_references.get("replay_snapshot")
-        if not isinstance(snapshot, dict) or snapshot.get("schema_version") != "1":
+        if not isinstance(snapshot, dict):
+            raise ConflictError(
+                "REPLAY_SNAPSHOT_UNAVAILABLE",
+                "This workflow predates frozen replay inputs and cannot be replayed safely",
+            )
+        schema_version = snapshot.get("schema_version")
+        if schema_version not in {"1", "2"}:
             raise ConflictError(
                 "REPLAY_SNAPSHOT_UNAVAILABLE",
                 "This workflow predates frozen replay inputs and cannot be replayed safely",
             )
         evidence_ids = self._string_list(snapshot.get("evidence_ids"))
-        evidence_by_id = {item.id: item for item in incident.evidence}
-        missing = sorted(set(evidence_ids) - set(evidence_by_id))
-        if missing:
-            raise ConflictError(
-                "REPLAY_SNAPSHOT_INCOMPLETE", "Frozen evidence is unavailable", missing
-            )
-        evidence = tuple(
-            InvestigationEvidence(
-                evidence_id=item.id,
-                evidence_type=item.evidence_type,
-                source=item.source,
-                observed_at=item.observed_at,
-                summary=item.summary,
-                excerpt=item.excerpt,
-                metadata=item.evidence_metadata,
-            )
-            for evidence_id in evidence_ids
-            for item in (evidence_by_id[evidence_id],)
+        evidence = (
+            self._frozen_evidence(snapshot.get("evidence"), evidence_ids)
+            if schema_version == "2"
+            else self._live_evidence(incident, evidence_ids)
         )
         history = (
             self._history(snapshot.get("historical_knowledge"))
@@ -120,7 +115,7 @@ class IncidentReplayService:
         return IncidentReplayRead(
             incident_id=incident.id,
             workflow_id=workflow.id,
-            snapshot_version="1",
+            snapshot_version=str(schema_version),
             investigator_mode=result.investigator_mode,
             provider=result.provider,
             model=result.model,
@@ -196,6 +191,64 @@ class IncidentReplayService:
         if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
             raise ConflictError("REPLAY_SNAPSHOT_INVALID", "Frozen replay input is invalid")
         return value
+
+    @staticmethod
+    def _frozen_evidence(
+        value: object, evidence_ids: list[str]
+    ) -> tuple[InvestigationEvidence, ...]:
+        """Replay the recorded content verbatim, so later evidence cannot change the input."""
+
+        if not isinstance(value, list):
+            raise ConflictError(
+                "REPLAY_SNAPSHOT_INCOMPLETE", "Frozen evidence content is unavailable"
+            )
+        by_id: dict[str, InvestigationEvidence] = {}
+        for item in value:
+            if not isinstance(item, dict):
+                raise ConflictError("REPLAY_SNAPSHOT_INVALID", "Frozen evidence entry is invalid")
+            evidence_id = str(item["evidence_id"])
+            excerpt = item.get("excerpt")
+            by_id[evidence_id] = InvestigationEvidence(
+                evidence_id=evidence_id,
+                evidence_type=EvidenceType(str(item["evidence_type"])),
+                source=str(item["source"]),
+                observed_at=datetime.fromisoformat(str(item["observed_at"])),
+                summary=str(item["summary"]),
+                excerpt=str(excerpt) if excerpt is not None else None,
+                metadata=cast(dict[str, JsonValue], dict(item.get("metadata") or {})),
+            )
+        missing = sorted(set(evidence_ids) - set(by_id))
+        if missing:
+            raise ConflictError(
+                "REPLAY_SNAPSHOT_INCOMPLETE", "Frozen evidence is unavailable", missing
+            )
+        return tuple(by_id[evidence_id] for evidence_id in evidence_ids)
+
+    @staticmethod
+    def _live_evidence(
+        incident: IncidentRecord, evidence_ids: list[str]
+    ) -> tuple[InvestigationEvidence, ...]:
+        """Legacy schema-1 snapshots recorded identifiers only; recover their content."""
+
+        evidence_by_id = {item.id: item for item in incident.evidence}
+        missing = sorted(set(evidence_ids) - set(evidence_by_id))
+        if missing:
+            raise ConflictError(
+                "REPLAY_SNAPSHOT_INCOMPLETE", "Frozen evidence is unavailable", missing
+            )
+        return tuple(
+            InvestigationEvidence(
+                evidence_id=item.id,
+                evidence_type=item.evidence_type,
+                source=item.source,
+                observed_at=item.observed_at,
+                summary=item.summary,
+                excerpt=item.excerpt,
+                metadata=item.evidence_metadata,
+            )
+            for evidence_id in evidence_ids
+            for item in (evidence_by_id[evidence_id],)
+        )
 
     @staticmethod
     def _history(value: object) -> tuple[RetrievedKnowledge, ...]:

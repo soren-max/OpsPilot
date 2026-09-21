@@ -6,9 +6,9 @@ Overall: **PASS**
 
 | Field | Value |
 | --- | --- |
-| Git commit | `13060506d5fec7c8a14cbc749eb2088ba05b980f` |
+| Git commit | `0a5b9c1b6fc9c6a2555e2a9e5cf8491b149f94f2` |
 | Git dirty | `true` |
-| Timestamp | `2026-09-13T12:41:25.494384+00:00` |
+| Timestamp | `2026-09-21T06:46:44.317167+00:00` |
 | Python | `3.13.15` |
 | Dataset | `incident-memory-v1` |
 | Scenarios | `portfolio-v1+m9-gitops` |
@@ -20,7 +20,7 @@ Status: **PASS**
 
 | Metric | Value |
 | --- | ---: |
-| `backend_tests_collected` | 401 |
+| `backend_tests_collected` | 498 |
 | `frontend_tests_declared` | 44 |
 | `lab_scenarios` | 4 |
 
@@ -37,7 +37,7 @@ Status: **PASS**
 | `action_accuracy` | 0.667 |
 | `grounding_validity_rate` | 1.000 |
 | `unsupported_action_rate` | 0.000 |
-| `insufficient_evidence_accuracy` | 0.667 |
+| `insufficient_evidence_accuracy` | 0.833 |
 | `llm_investigator` | NOT RUN |
 
 Deterministic baseline executed; real LLM evaluation was NOT RUN.
@@ -54,26 +54,26 @@ Status: **PASS**
 | `dense.recall_at_10` | 0.972 |
 | `dense.mrr` | 0.822 |
 | `dense.root_cause_hit_rate` | 0.917 |
-| `dense.latency_p50_ms` | 0.299 |
-| `dense.latency_p95_ms` | 0.487 |
+| `dense.latency_p50_ms` | 0.307 |
+| `dense.latency_p95_ms` | 0.372 |
 | `sparse.recall_at_5` | 1.000 |
 | `sparse.recall_at_10` | 1.000 |
 | `sparse.mrr` | 1.000 |
 | `sparse.root_cause_hit_rate` | 1.000 |
-| `sparse.latency_p50_ms` | 0.304 |
-| `sparse.latency_p95_ms` | 0.348 |
+| `sparse.latency_p50_ms` | 0.323 |
+| `sparse.latency_p95_ms` | 0.352 |
 | `hybrid_rrf.recall_at_5` | 0.917 |
 | `hybrid_rrf.recall_at_10` | 1.000 |
 | `hybrid_rrf.mrr` | 0.933 |
 | `hybrid_rrf.root_cause_hit_rate` | 1.000 |
-| `hybrid_rrf.latency_p50_ms` | 0.324 |
-| `hybrid_rrf.latency_p95_ms` | 0.363 |
+| `hybrid_rrf.latency_p50_ms` | 0.334 |
+| `hybrid_rrf.latency_p95_ms` | 0.361 |
 
 | Scenario | Expected control | Actual | Result |
 | --- | --- | --- | --- |
-| dense | Rank the checked-in M6 query set | R@5=0.861, R@10=0.972, MRR=0.822, RC-hit=0.917, p95=0.487ms | **BENCHMARKED** |
-| sparse | Rank the checked-in M6 query set | R@5=1.000, R@10=1.000, MRR=1.000, RC-hit=1.000, p95=0.348ms | **BENCHMARKED** |
-| hybrid_rrf | Rank the checked-in M6 query set | R@5=0.917, R@10=1.000, MRR=0.933, RC-hit=1.000, p95=0.363ms | **BENCHMARKED** |
+| dense | Rank the checked-in M6 query set | R@5=0.861, R@10=0.972, MRR=0.822, RC-hit=0.917, p95=0.372ms | **BENCHMARKED** |
+| sparse | Rank the checked-in M6 query set | R@5=1.000, R@10=1.000, MRR=1.000, RC-hit=1.000, p95=0.352ms | **BENCHMARKED** |
+| hybrid_rrf | Rank the checked-in M6 query set | R@5=0.917, R@10=1.000, MRR=0.933, RC-hit=1.000, p95=0.361ms | **BENCHMARKED** |
 
 ## Safety
 

@@ -33,6 +33,32 @@ class TargetEnvironment(StrEnum):
     PRODUCTION = "production"
 
 
+# Explicit by design: an unrecognized environment must fail closed rather than quietly
+# becoming DEVELOPMENT, which would under-report the blast radius of a remediation.
+ENVIRONMENT_ALIASES: dict[str, TargetEnvironment] = {
+    "development": TargetEnvironment.DEVELOPMENT,
+    "dev": TargetEnvironment.DEVELOPMENT,
+    "local": TargetEnvironment.DEVELOPMENT,
+    "lab": TargetEnvironment.DEVELOPMENT,
+    "test": TargetEnvironment.TEST,
+    "testing": TargetEnvironment.TEST,
+    "test-mock": TargetEnvironment.TEST,
+    "production": TargetEnvironment.PRODUCTION,
+    "prod": TargetEnvironment.PRODUCTION,
+}
+
+
+class UnknownEnvironment(ValueError):
+    pass
+
+
+def resolve_target_environment(value: str) -> TargetEnvironment:
+    environment = ENVIRONMENT_ALIASES.get(value.strip().lower())
+    if environment is None:
+        raise UnknownEnvironment(f"Unknown target environment: {value!r}")
+    return environment
+
+
 class ActionStatus(StrEnum):
     SUCCEEDED = "succeeded"
     FAILED = "failed"

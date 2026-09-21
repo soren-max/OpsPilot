@@ -55,6 +55,9 @@ class InvestigationResult:
     latency_ms: int | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None
+    # The evidence actually packaged into the investigator input. Frozen replay records this
+    # rather than re-deriving a selection from the incident.
+    input_evidence_ids: tuple[str, ...] = ()
 
 
 class IncidentInvestigator(Protocol):
@@ -76,6 +79,7 @@ class DeterministicInvestigator:
         return InvestigatorMetadata(mode=self.mode)
 
     def investigate(self, context: InvestigationContext) -> InvestigationResult:
+        input_ids = tuple(item.evidence_id for item in context.evidence)
         unavailable = [
             item
             for item in context.evidence
@@ -93,6 +97,7 @@ class DeterministicInvestigator:
                 evidence_ids=tuple(item.evidence_id for item in unavailable),
                 action_type=ActionType.RESTART_SERVICE,
                 knowledge_refs=context.retrieved_knowledge_refs,
+                input_evidence_ids=input_ids,
             )
         read_only = [
             item
@@ -108,13 +113,16 @@ class DeterministicInvestigator:
                 evidence_ids=tuple(item.evidence_id for item in read_only),
                 action_type=ActionType.GET_SERVICE_STATUS,
                 knowledge_refs=context.retrieved_knowledge_refs,
+                input_evidence_ids=input_ids,
             )
         return InvestigationResult(
             statement="No remediation signal is present in the available evidence.",
             root_cause="No actionable service failure identified",
             decision_summary="Available evidence does not justify a mutating action.",
             confidence=0.7,
-            evidence_ids=tuple(item.evidence_id for item in context.evidence),
+            evidence_ids=input_ids,
             action_type=None,
             knowledge_refs=context.retrieved_knowledge_refs,
+            insufficient_evidence=not context.evidence,
+            input_evidence_ids=input_ids,
         )

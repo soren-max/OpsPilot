@@ -15,7 +15,18 @@ OpsPilot v1.0 is a personal, synthetic portfolio system. It does not claim:
 - real Harness SaaS execution unless an explicit opt-in run says otherwise;
 - that an optional OpenAI evaluation ran when the artifact says `NOT RUN`;
 - a real legacy company environment—the SSH compatibility target is synthetic;
-- complete security coverage beyond the enumerated scenario and contract tests.
+- complete security coverage beyond the enumerated scenario and contract tests;
+- complete DLP, content classification, or secret detection beyond the enumerated credential
+  shapes and sensitive key names (redaction is heuristic, not entropy-based, and is not a DLP);
+- production-proven exactly-once external side effects—ambiguous dispatches become `UNKNOWN` and
+  require manual reconciliation when the provider exposes no correlation API or idempotency key;
+- automatic reconciliation for every backend—an execution in `RECONCILIATION_REQUIRED` needs an
+  operator;
+- a full IAM or tenancy model for approval binding—the work binds approved content and verifies that
+  input cannot widen actor, role, profile, or capability, and stops there.
+
+Per-invariant verdicts and their boundaries are recorded in
+[Correctness and Safety Contracts](correctness-and-safety-contracts.md).
 
 OpenAI, real Harness SaaS, and remote MCP are optional. The canonical demo needs none of them.
 
