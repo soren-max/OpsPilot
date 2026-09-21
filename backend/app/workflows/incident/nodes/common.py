@@ -4,6 +4,7 @@ from typing import Any, TypeAlias, TypeVar
 from langgraph.runtime import Runtime
 from opentelemetry import trace
 
+from app.observability import record_safe_exception
 from app.workflows.incident.context import IncidentWorkflowContext, IncidentWorkflowRuntime
 
 T = TypeVar("T")
@@ -45,7 +46,7 @@ def traced_node(
             result = operation()
         except Exception as exc:
             span.set_attribute("workflow.result", "FAILED")
-            span.record_exception(exc, attributes={"exception.escaped": False})
+            record_safe_exception(span, exc)
             raise
         capabilities.node_completed(node, "SUCCEEDED")
         span.set_attribute("workflow.result", "SUCCEEDED")

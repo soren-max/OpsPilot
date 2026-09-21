@@ -18,17 +18,20 @@ from app.evaluation.portfolio import (
     render_markdown,
     retrieval_category,
 )
+from app.execution.errors import BackendUnavailable
 from app.execution.service import ExecutionDispatcher
 from app.repositories.execution_models import ExecutionRecord, OutboxStatus
 from tests.execution.test_outbox_and_reconciliation import seed_execution
 
 
 class KnownFailureBackend:
+    """Declares a pre-submit failure explicitly: the request provably never reached the remote."""
+
     async def prepare(self, request: object, context: object) -> object:
         raise AssertionError("not used")
 
     async def submit(self, request: object, context: object) -> object:
-        raise TimeoutError("provider was unreachable before a submission was accepted")
+        raise BackendUnavailable("provider connection was refused before the request was sent")
 
     async def get_status(self, context: object) -> object:
         raise AssertionError("terminal failure is not reconciled")
@@ -52,6 +55,30 @@ async def test_known_dispatch_failure_is_terminal(db: Session) -> None:
     assert execution.status is ExecutionStatus.FAILED
     assert execution.failure_category == "DISPATCH_FAILED"
     assert outbox.status is OutboxStatus.COMPLETED
+
+
+class AmbiguousTransportBackend(KnownFailureBackend):
+    async def submit(self, request: object, context: object) -> object:
+        raise TimeoutError("no response observed after the request was written")
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_transport_failure_is_unknown_and_never_retried(db: Session) -> None:
+    execution, outbox, profile = seed_execution(db)
+    dispatcher = ExecutionDispatcher(
+        db,
+        profiles=(profile,),
+        backends={BackendType.HARNESS.value: AmbiguousTransportBackend()},  # type: ignore[dict-item]
+    )
+
+    assert await dispatcher.dispatch_one()
+    db.refresh(execution)
+    db.refresh(outbox)
+    # A local timeout cannot prove the remote side effect did not happen.
+    assert execution.status is ExecutionStatus.UNKNOWN
+    assert execution.failure_category == "AMBIGUOUS_TRANSPORT_FAILURE"
+    assert outbox.status is OutboxStatus.INDETERMINATE
+    assert execution.attempt == 1
 
 
 class SuccessfulBackend(KnownFailureBackend):

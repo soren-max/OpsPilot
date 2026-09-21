@@ -41,7 +41,6 @@ from app.execution.service import ExecutionReconciler
 from app.memory.factory import build_memory_store
 from app.models import Host, Service, ServiceDeployment
 from app.observability import configure_telemetry, shutdown_telemetry
-from app.repositories.workflow_models import WorkflowRunRecord, WorkflowRunStatus
 from app.services.worker import WorkerService
 from app.workflows.checkpoint import get_workflow_checkpointer
 from app.workflows.incident.investigator import DeterministicInvestigator, IncidentInvestigator
@@ -251,10 +250,17 @@ def main() -> None:
                         ExecutionStatus.FAILED,
                         ExecutionStatus.CANCELLED,
                     }:
-                        workflow = db.get(WorkflowRunRecord, execution.workflow_id)
-                        if workflow is not None and workflow.status is WorkflowRunStatus.WAITING:
-                            workflow.status = WorkflowRunStatus.PENDING
-                            db.commit()
+                        # Consume the terminal execution result and continue at verification.
+                        # Never re-enter the approval boundary for an already-dispatched action.
+                        WorkflowService(
+                            db,
+                            investigator=investigator,
+                            action_service=action_service,
+                            capabilities=capabilities,
+                            knowledge_retriever=knowledge_retriever,
+                            execution_plane=execution_plane,
+                            execution_dispatcher=execution_dispatcher,
+                        ).resume_execution(execution.workflow_id)
                     continue
                 capabilities = build_incident_capabilities(db, settings, action_service)
                 if WorkflowService(

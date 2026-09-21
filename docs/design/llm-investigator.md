@@ -13,9 +13,14 @@ Capabilities -> durable Evidence -> EvidenceContextBuilder -> LLMIncidentInvesti
 baseline; `LLMIncidentInvestigator` depends on `StructuredReasoningProvider`. Production mode is an
 explicit operator choice. Provider failure never silently switches modes.
 
-The v1 prompt sends summaries, bounded excerpts, safe metadata, and evidence IDs only. Selection is
-deterministic, prioritizes health/alerts/metrics, preserves source diversity, and enforces count and
-character budgets. Evidence is explicitly marked untrusted: log, ticket, and operator text cannot
+The v1 prompt sends summaries, bounded excerpts, allowlisted metadata, and evidence IDs only.
+Selection is deterministic, prioritizes health/alerts/metrics, preserves source diversity, and
+enforces count and character budgets. Allowlisted metadata keeps scalars and bounded scalar lists,
+so a metric's `selected_values` (for example `service_up = 0`) reaches the prompt as a typed value
+rather than being dropped as a list; nested structures are excluded. Current evidence is budgeted
+before historical context, so history cannot displace it, and every truncation is recorded on the
+packaged item as a flag instead of being applied silently. No summarizer runs, so the `summarized`
+flag is always false. Evidence is explicitly marked untrusted: log, ticket, and operator text cannot
 issue instructions. The prompt and raw provider response are not persisted.
 
 The strict schema forbids extra fields and exposes no command, query language, executor, credential,

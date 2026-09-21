@@ -65,10 +65,25 @@ class HttpxHarnessClient:
                 )
                 response.raise_for_status()
                 return response.json()
+        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+            # The connection was never established: the pipeline cannot have been triggered.
+            raise BackendUnavailable("Harness dispatch failed before confirmation") from exc
         except httpx.TimeoutException as exc:
             raise IndeterminateDispatch(
                 "Harness dispatch timed out; remote acceptance is unknown"
             ) from exc
+        except httpx.TransportError as exc:
+            # A write or read failure after submission may leave the pipeline running.
+            raise IndeterminateDispatch(
+                "Harness dispatch transport failed after submission; remote acceptance is unknown"
+            ) from exc
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code >= 500:
+                # The server received the request; we cannot tell whether the run started.
+                raise IndeterminateDispatch(
+                    "Harness returned an ambiguous server error; remote acceptance is unknown"
+                ) from exc
+            raise BackendUnavailable("Harness rejected the dispatch before confirmation") from exc
         except httpx.HTTPError as exc:
             raise BackendUnavailable("Harness dispatch failed before confirmation") from exc
         except ValueError as exc:

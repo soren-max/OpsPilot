@@ -8,7 +8,7 @@ from app.domain.actions.models import (
     ActionRequest,
     ActionType,
     ServiceActionParams,
-    TargetEnvironment,
+    resolve_target_environment,
 )
 
 
@@ -72,11 +72,7 @@ class WorkflowGovernedActionProposer:
         owned = {item.id for item in incident.evidence}
         if not set(request.evidence_ids).issubset(owned):
             raise ValueError("Evidence references must belong to the incident")
-        environment = (
-            TargetEnvironment.PRODUCTION
-            if incident.environment.lower() in {"production", "prod"}
-            else TargetEnvironment.TEST
-        )
+        environment = resolve_target_environment(incident.environment)
         action = ActionRequest(
             action_type=ActionType.RESTART_SERVICE,
             target=request.target,

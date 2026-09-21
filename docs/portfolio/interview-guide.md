@@ -159,7 +159,12 @@ GitOps dependency, and its response explicitly states `no_side_effect=true`.
 
 **Two minutes:** Cover the legacy-workflow refusal, evidence-ID completeness check, historical
 snapshot isolation, reusable evaluator, optional configured investigator, and remaining retention
-limits. Replay does not claim byte-for-byte model reproducibility.
+limits. Replay does not claim byte-for-byte model reproducibility. Since the current snapshot
+schema, the freeze stores the *actual* Investigator input — the selected evidence identifiers and
+their sanitized content, the historical snapshot, the prompt version, the context-builder
+configuration, and the model metadata — instead of re-deriving a similar-looking slice. That is
+what makes "original input == replay input" checkable; see
+`tests/test_replay_input_fidelity.py`.
 
 ## 20. What does Langfuse add?
 
@@ -168,3 +173,47 @@ component. Standard exporter variables route bounded workflow spans there when c
 
 **Two minutes:** Walk through `incident.run` and node spans, safe attributes, exporter failure
 isolation, API/worker lifecycle shutdown, and why no prompt/evidence bodies or secrets are exported.
+
+## 21. How is a human approval bound to what actually executes?
+
+**30 seconds:** The approval fingerprint is a canonical digest over the execution-relevant request
+content — action type, target, environment, parameters — plus the resolved execution backend,
+profile identity, and execution-relevant profile configuration. Dispatch recomputes it and blocks
+with zero side effects on mismatch.
+
+**Two minutes:** Contrast this with binding a workflow id and action type, which would let a
+retargeted or re-parameterised request reuse an old approval. Cover canonical serialization
+(key-order independent), why explanation prose is excluded so rewording never invalidates an
+approval while retargeting always does, the fail-closed environment alias table, and the boundary:
+this binds approved content and verifies input cannot widen actor or capability; it is not IAM.
+
+## 22. Do the metric values that motivated an investigation actually reach the model?
+
+**30 seconds:** Yes. The context builder keeps allowlisted scalars and bounded scalar lists, so a
+Prometheus `selected_values: [0]` reaches the prompt instead of degrading to `series_count: 1`.
+
+**Two minutes:** Explain the earlier lossiness (a "list/dict is unsafe" filter dropped every series
+value), then the contract: bounded, typed, deterministic, provenance-preserving packaging; current
+evidence budgeted before historical context; per-item truncation recorded as a flag rather than
+applied silently; no summarizer, so `summarized` is always false. See
+`tests/ai/test_investigator_context_fidelity.py`.
+
+## 23. Where are secrets removed from the data path?
+
+**30 seconds:** One sanitizer runs before Evidence persistence, so model context, replay snapshots,
+API responses, audit events, JSON logs, and span exception attributes all see the sanitized value.
+
+**Two minutes:** Cover the enumerated credential shapes, why detection is keyed on patterns and key
+names rather than entropy alone (UUIDs, hashes, and trace IDs must survive), why `record_exception`
+is replaced with a redacted span record, and the honest boundary: this is a bounded heuristic and
+not a DLP product.
+
+## 24. Why does a completed workflow not resolve the incident?
+
+**30 seconds:** Resolution requires an independently verified remediation. Proposing no action,
+lacking evidence, failing policy, or failing verification all leave the incident active while the
+workflow run still terminates cleanly.
+
+**Two minutes:** Walk through the finalize rule, why "the model suggested no action" is not evidence
+of recovery, why the existing `INVESTIGATING` status is reused instead of adding a new state, and
+how the deterministic investigator now reports `insufficient_evidence` when there is no evidence.

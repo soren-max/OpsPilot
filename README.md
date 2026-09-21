@@ -64,7 +64,7 @@ CHANGE:    Structured Change → Policy → HITL → PR → Git Review → GitOp
 
 ## Verifiable Portfolio Evidence
 
-<!-- portfolio-metric backend_tests=401 -->
+<!-- portfolio-metric backend_tests=498 -->
 <!-- portfolio-metric frontend_tests=44 -->
 <!-- portfolio-metric lab_scenarios=4 -->
 <!-- portfolio-metric investigation_cases=6 -->
@@ -77,7 +77,7 @@ CHANGE:    Structured Change → Policy → HITL → PR → Git Review → GitOp
 
 | Evidence | Result | Trace |
 | --- | --- | --- |
-| Backend / frontend tests | 401 collected / 44 declared | Generated benchmark + quality gate |
+| Backend / frontend tests | 498 collected / 44 declared | Generated benchmark + quality gate |
 | Incident investigation | 6 real deterministic fixtures; LLM `NOT RUN` | [Benchmark entry](docs/evaluation/portfolio-benchmark.md) |
 | Hybrid retrieval | 40 documents / 12 queries; Dense, Sparse, Hybrid RRF | [Retrieval evaluation](docs/evaluation/retrieval-benchmark.md) |
 | Safety containment | 15/15 controls, 0 unexpected execution paths | [Safety matrix](docs/evaluation/safety-matrix.md) |
@@ -108,6 +108,28 @@ flowchart TD
 `UNKNOWN != FAILED`, and `execution SUCCEEDED != incident RESOLVED`. See the
 [trade-offs](docs/portfolio/tradeoffs.md), [interview guide](docs/portfolio/interview-guide.md),
 [resume pack](docs/portfolio/resume.md), and [explicit limitations](docs/evaluation/limitations.md).
+
+## Correctness and Safety Contracts
+
+The behaviours below are each enforced by a regression test, with their boundaries written down
+rather than implied. Full per-invariant verdicts, code paths, and limits are in
+[Correctness and Safety Contracts](docs/evaluation/correctness-and-safety-contracts.md).
+
+- Selected metric values (for example `service_up = 0`) reach the Investigator context, bounded and
+  with truncation recorded; historical context cannot displace current evidence.
+- Insufficient evidence, no proposed action, failed policy, or failed verification never resolves an
+  incident. A workflow may complete while the incident stays active.
+- A human approval binds the execution-relevant request content and the resolved execution profile;
+  a changed request blocks dispatch with an `APPROVAL_STALE` audit event and zero side effects.
+  Unknown environments fail closed.
+- Known credential shapes are sanitized before Evidence persistence, so model context, frozen
+  replay, API responses, audit events, logs, and span attributes cannot leak them. This is a bounded
+  heuristic, not a DLP product.
+- A reconciled successful execution resumes at verification without re-approving or re-dispatching;
+  a read-only check never enters the write execution router.
+- An ambiguous external dispatch becomes `UNKNOWN` and is never blindly retried.
+- Frozen replay reconstructs the original Investigator input, including evidence content, so later
+  evidence or changed memory cannot alter what is replayed.
 
 ## Agent Timeline, Observability, and Replay
 

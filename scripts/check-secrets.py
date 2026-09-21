@@ -11,6 +11,8 @@ PATTERNS = {
     "AWS access key": re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     "GitHub token": re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}\b"),
     "OpenAI-style token": re.compile(r"\bsk-[A-Za-z0-9_-]{24,}\b"),
+    "Slack token": re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),
+    "Slack webhook": re.compile(r"https://hooks\.slack\.com/services/\S+"),
 }
 ALLOWED_SUFFIXES = {
     ".py",

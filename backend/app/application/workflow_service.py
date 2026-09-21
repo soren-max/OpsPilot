@@ -15,9 +15,11 @@ from app.capabilities import IncidentCapabilities
 from app.core.errors import ConflictError, NotFoundError
 from app.db.base import utc_now
 from app.domain.audit.models import AuditEventType
+from app.domain.execution import ExecutionStatus
 from app.domain.incidents.memory import KnowledgeRetriever
 from app.domain.incidents.models import IncidentStatus
 from app.execution.service import ExecutionDispatcher, ExecutionPlaneService
+from app.repositories.executions import ExecutionRepository
 from app.repositories.workflow_models import (
     WorkflowEvaluationRecord,
     WorkflowRunRecord,
@@ -245,6 +247,85 @@ class WorkflowService:
         self.db.commit()
         self.run(workflow.id)
         return True
+
+    def resume_execution(self, workflow_id: str) -> WorkflowRunRecord:
+        """Continue a workflow whose external execution reached a terminal state.
+
+        The durable execution result is consumed and the graph continues at verification. It
+        must never re-propose the action, request the same approval again, or dispatch twice.
+        """
+
+        workflow = self._require(workflow_id)
+        if workflow.status in {
+            WorkflowRunStatus.SUCCEEDED,
+            WorkflowRunStatus.FAILED,
+            WorkflowRunStatus.CANCELLED,
+        }:
+            return workflow
+        execution_id = workflow.execution_task_id
+        if (
+            execution_id is None
+            or self.execution_plane is None
+            or self.execution_dispatcher is None
+        ):
+            return workflow
+        record = ExecutionRepository(self.db).get(execution_id)
+        if record is None:
+            raise WorkflowInfrastructureFailure("Durable execution record is missing")
+        if record.status is ExecutionStatus.SUCCEEDED:
+            verification_status = record.verification_status or "FAILED"
+        elif record.status in {ExecutionStatus.FAILED, ExecutionStatus.CANCELLED}:
+            verification_status = "FAILED"
+        else:
+            # Still in flight: stay WAITING rather than guessing a terminal outcome.
+            return workflow
+
+        workflow.status = WorkflowRunStatus.RUNNING
+        runtime = self._runtime(workflow)
+        graph = build_incident_graph(self.checkpointer)
+        try:
+            with tracer.start_as_current_span("incident.run") as span:
+                span.set_attribute("incident.id", workflow.incident_id)
+                span.set_attribute("workflow.run_id", workflow.id)
+                span.set_attribute("workflow.stage", "RESUME_EXECUTION")
+                span.set_attribute("execution.status", record.status.value)
+                # Enter the graph after the execute node so verification consumes the durable
+                # result instead of re-running proposal, approval, and dispatch.
+                graph.update_state(
+                    {"configurable": {"thread_id": workflow.id}},
+                    {
+                        "execution_task_id": record.id,
+                        "verification_status": verification_status,
+                        "current_node": "execute",
+                    },
+                    as_node="execute",
+                )
+                result = graph.invoke(
+                    None,
+                    config={"configurable": {"thread_id": workflow.id}},
+                    context=IncidentWorkflowContext(runtime=runtime),
+                )
+            self._apply_result(workflow, cast(IncidentWorkflowState, result), runtime)
+        except Exception as exc:
+            self.db.rollback()
+            workflow = self._require(workflow.id)
+            workflow.status = WorkflowRunStatus.FAILED
+            workflow.finished_at = utc_now()
+            workflow.last_error = self._safe_error(exc)
+        self.db.commit()
+        return workflow
+
+    def _runtime(self, workflow: WorkflowRunRecord) -> IncidentWorkflowRuntime:
+        return IncidentWorkflowRuntime(
+            self.db,
+            workflow,
+            self.investigator,
+            self.action_service,
+            self.capabilities,
+            self.knowledge_retriever,
+            execution_plane=self.execution_plane,
+            execution_dispatcher=self.execution_dispatcher,
+        )
 
     def cancel(self, workflow_id: str) -> WorkflowRunRecord:
         workflow = self._require(workflow_id)

@@ -10,7 +10,7 @@ from app.application import ActionExecutionOutcome, ActionService
 from app.core.config import Settings, get_settings
 from app.core.enums import ApprovalStatus, OperationAction, TargetStatus, TaskStatus
 from app.db.base import utc_now
-from app.domain.actions.models import ActionRequest, ActionStatus
+from app.domain.actions.models import ActionRequest, ActionStatus, RiskLevel
 from app.models import (
     Environment,
     OperationLock,
@@ -34,6 +34,7 @@ class TargetRun:
     outcome: ActionExecutionOutcome
     attempts: int
     timed_out: bool = False
+    retry_suppressed: bool = False
 
 
 class WorkerService:
@@ -142,8 +143,16 @@ class WorkerService:
                 break
 
     def _execute_one(self, action: ActionRequest, *, approval_granted: bool) -> TargetRun:
+        assessment = self.action_service.policy.assess(action, approval_granted=approval_granted)
+        # A reported write failure does not prove the remote side effect did not happen, so only
+        # a read-only check may be retried after a failure.
+        attempts_allowed = (
+            self.settings.executor_retry + 1
+            if assessment.risk_level is RiskLevel.READ_ONLY
+            else 1
+        )
         outcome: ActionExecutionOutcome | None = None
-        for attempt in range(1, self.settings.executor_retry + 2):
+        for attempt in range(1, attempts_allowed + 1):
             try:
                 outcome = asyncio.run(
                     asyncio.wait_for(
@@ -155,18 +164,18 @@ class WorkerService:
                 )
             except TimeoutError:
                 return TargetRun(
-                    outcome=ActionExecutionOutcome(
-                        assessment=self.action_service.policy.assess(
-                            action, approval_granted=approval_granted
-                        )
-                    ),
+                    outcome=ActionExecutionOutcome(assessment=assessment),
                     attempts=attempt,
                     timed_out=True,
                 )
             if outcome.result is None or outcome.result.status is ActionStatus.SUCCEEDED:
                 return TargetRun(outcome=outcome, attempts=attempt)
         assert outcome is not None
-        return TargetRun(outcome=outcome, attempts=self.settings.executor_retry + 1)
+        return TargetRun(
+            outcome=outcome,
+            attempts=attempts_allowed,
+            retry_suppressed=attempts_allowed == 1 and self.settings.executor_retry > 0,
+        )
 
     def _apply_target_run(self, task: object, target: object, run: TargetRun) -> None:
         target.attempt_count = run.attempts  # type: ignore[attr-defined]
@@ -205,6 +214,17 @@ class WorkerService:
             )
         )
         self._upsert_snapshot(task, target)
+        if run.retry_suppressed and not succeeded:
+            # Be explicit rather than pretending the system can rediscover the outcome itself.
+            target.error_message = "WRITE_OUTCOME_UNKNOWN_MANUAL_RECONCILIATION_REQUIRED"  # type: ignore[attr-defined]
+            write_audit(
+                self.db,
+                "WRITE_RETRY_SUPPRESSED",
+                "worker",
+                "Write retry withheld because the remote side effect cannot be proven absent",
+                task.id,  # type: ignore[attr-defined]
+                {"target_id": target.id, "action": task.action.value},  # type: ignore[attr-defined]
+            )
         if run.attempts > 1:
             write_audit(
                 self.db,

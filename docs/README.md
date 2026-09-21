@@ -31,6 +31,7 @@ For a runnable tour, use the [Offline Demo and Recording Guide](demo.md) and the
 ## Safety
 
 - [Safety Model](safety-model.md) — deterministic policy, approval, and fail-closed behavior (简体中文: [zh-CN/safety-model.md](zh-CN/safety-model.md))
+- [Correctness and Safety Contracts](evaluation/correctness-and-safety-contracts.md) — per-invariant verdicts, regression tests, and explicit limits
 - [Security Policy](../SECURITY.md) — how to report security issues
 
 ## Roadmap
