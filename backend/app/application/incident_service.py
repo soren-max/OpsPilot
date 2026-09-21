@@ -38,7 +38,13 @@ from app.schemas_incidents import (
     TimelineItem,
     TimelineKind,
 )
-from app.services.redaction import redact_account, redact_text
+from app.services.redaction import (
+    redact_account,
+    redact_text,
+    redaction_summary,
+    sanitize_metadata,
+    sanitize_text,
+)
 
 AUDIT_METADATA_ALLOWLIST = frozenset(
     {
@@ -83,6 +89,15 @@ AUDIT_METADATA_ALLOWLIST = frozenset(
         "risk_level",
         "risk_factors",
         "expected_result",
+        "redaction_type",
+        "redaction_count",
+        "count",
+        "stale_reason",
+        "approved_digest",
+        "current_digest",
+        "blocked_reason",
+        "execution_status",
+        "proposal_version",
     }
 )
 
@@ -157,6 +172,8 @@ class IncidentService:
         correlation_id: str | None = None,
     ) -> EvidenceRecord:
         incident = self._require_mutable(incident_id)
+        redactions = self._redaction_summary(body)
+        body = self._sanitized_evidence(body)
         fingerprint = self._evidence_fingerprint(body)
         existing = self.evidence.find_by_fingerprint(incident_id, fingerprint)
         if existing is not None:
@@ -192,6 +209,20 @@ class IncidentService:
                 },
                 occurred_at=now,
             )
+            if redactions:
+                self._audit(
+                    incident.id,
+                    AuditEventType.SENSITIVE_DATA_REDACTED,
+                    actor,
+                    "Known credential shapes were removed before Evidence persistence",
+                    correlation_id,
+                    {
+                        "evidence_id": item.id,
+                        "redaction_type": ",".join(sorted(redactions)),
+                        "count": sum(redactions.values()),
+                    },
+                    occurred_at=now,
+                )
             self.db.commit()
         except Exception:
             self.db.rollback()
@@ -552,6 +583,30 @@ class IncidentService:
         unknown = sorted(set(evidence_ids) - known)
         if unknown:
             raise ValidationError("Evidence references must belong to the incident", unknown)
+
+    @staticmethod
+    def _sanitized_evidence(body: EvidenceCreate) -> EvidenceCreate:
+        """Single boundary: known secrets never reach the model, replay, API, audit or logs."""
+
+        return EvidenceCreate(
+            evidence_type=body.evidence_type,
+            source=body.source,
+            source_reference=sanitize_text(body.source_reference, limit=1000)
+            or body.source_reference,
+            summary=sanitize_text(body.summary, limit=1000) or body.summary,
+            excerpt=sanitize_text(body.excerpt, limit=8000) if body.excerpt else None,
+            observed_at=body.observed_at,
+            collector=body.collector,
+            metadata=sanitize_metadata(body.metadata),
+        )
+
+    @staticmethod
+    def _redaction_summary(body: EvidenceCreate) -> dict[str, int]:
+        summary: dict[str, int] = {}
+        for value in (body.summary, body.excerpt, body.source_reference):
+            for kind, count in redaction_summary(value).items():
+                summary[kind] = summary.get(kind, 0) + count
+        return summary
 
     @staticmethod
     def _evidence_fingerprint(body: EvidenceCreate) -> str:

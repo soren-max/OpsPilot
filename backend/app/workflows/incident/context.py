@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import time
+from collections.abc import Coroutine
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from typing import Any, TypeVar
 
 from opentelemetry import trace
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.ai.context import EvidenceContextBuilder
 from app.ai.errors import LLMFailure
 from app.application.action_service import ActionService
 from app.application.approval_service import ApprovalService
@@ -21,16 +23,27 @@ from app.domain.actions.models import (
     ActionType,
     RiskAssessment,
     ServiceActionParams,
-    TargetEnvironment,
+    resolve_target_environment,
 )
 from app.domain.audit.models import ActorType, AuditEventType
-from app.domain.execution import ExecutionStatus
+from app.domain.execution import ExecutionProfile, ExecutionStatus
 from app.domain.incidents.memory import KnowledgeRetriever, RetrievedKnowledge
 from app.domain.incidents.models import IncidentStatus
+from app.execution.binding import (
+    DISPATCH_ACTION_SERVICE,
+    DISPATCH_EXECUTION_PLANE,
+    PROPOSAL_VERSION,
+    binding_digest,
+    execution_binding,
+)
 from app.execution.service import ExecutionDispatcher, ExecutionPlaneService
 from app.memory.service import KnowledgeQueryBuilder
 from app.repositories.executions import ExecutionRepository
-from app.repositories.incident_models import IncidentAuditEventRecord, IncidentRecord
+from app.repositories.incident_models import (
+    EvidenceRecord,
+    IncidentAuditEventRecord,
+    IncidentRecord,
+)
 from app.repositories.incidents import AuditEventRepository
 from app.repositories.workflow_models import WorkflowRunRecord
 from app.schemas_incidents import DiagnosisCreate, EvidenceCreate, HypothesisCreate
@@ -54,19 +67,22 @@ class IncidentWorkflowContext:
     runtime: IncidentWorkflowRuntime
 
 
+T = TypeVar("T")
+
+# Replay snapshots persist the real investigator input. Bump the version when the frozen
+# field set changes so an older snapshot is rejected rather than silently mis-replayed.
+SNAPSHOT_SCHEMA_VERSION = "2"
+MAX_SNAPSHOT_EXCERPT_CHARS = 2000
+MAX_SNAPSHOT_EVIDENCE = 50
+
+
 def build_incident_action_request(
     incident: IncidentRecord, action_type: ActionType, reason: str
 ) -> ActionRequest:
-    environment = {
-        "production": TargetEnvironment.PRODUCTION,
-        "prod": TargetEnvironment.PRODUCTION,
-        "test": TargetEnvironment.TEST,
-        "test-mock": TargetEnvironment.TEST,
-    }.get(incident.environment.lower(), TargetEnvironment.DEVELOPMENT)
     return ActionRequest(
         action_type=action_type,
         target=incident.service,
-        environment=environment,
+        environment=resolve_target_environment(incident.environment),
         parameters=ServiceActionParams(service=incident.service),
         reason=reason,
     )
@@ -114,7 +130,7 @@ class IncidentWorkflowRuntime:
         if incident.status in {IncidentStatus.RESOLVED, IncidentStatus.CLOSED}:
             raise ValueError("Resolved or closed incidents cannot start remediation workflows")
         evidence_ids = [item.id for item in incident.evidence]
-        self._freeze_replay_snapshot(evidence_ids=evidence_ids)
+        self._freeze_replay_snapshot(evidence=self._evidence_items(evidence_ids))
         return incident.version, evidence_ids
 
     def investigation_context(self, retrieved_refs: list[str]) -> InvestigationContext:
@@ -124,16 +140,7 @@ class IncidentWorkflowRuntime:
             service=incident.service,
             environment=incident.environment,
             evidence=tuple(
-                InvestigationEvidence(
-                    evidence_id=item.id,
-                    evidence_type=item.evidence_type,
-                    source=item.source,
-                    observed_at=item.observed_at,
-                    summary=item.summary,
-                    excerpt=item.excerpt,
-                    metadata=item.evidence_metadata,
-                )
-                for item in incident.evidence
+                self._to_investigation_evidence(item) for item in incident.evidence
             ),
             retrieved_knowledge_refs=tuple(retrieved_refs),
             historical_knowledge=tuple(
@@ -177,7 +184,7 @@ class IncidentWorkflowRuntime:
             ],
         }
         self._freeze_replay_snapshot(
-            evidence_ids=[item.id for item in incident.evidence],
+            evidence=self._evidence_items([item.id for item in incident.evidence]),
             historical_knowledge=retrieved,
         )
         self.db.commit()
@@ -229,7 +236,7 @@ class IncidentWorkflowRuntime:
         span = trace.get_current_span()
         span.set_attribute("evidence.count", len(frozen_ids))
         span.set_attribute("evidence.ids", frozen_ids[:20])
-        self._freeze_replay_snapshot(evidence_ids=frozen_ids)
+        self._freeze_replay_snapshot(evidence=self._evidence_items(frozen_ids))
         self.db.commit()
         return frozen_ids
 
@@ -242,8 +249,9 @@ class IncidentWorkflowRuntime:
                 self._investigator_audit_metadata(metadata),
             )
             self.db.commit()
+        context = self.investigation_context(retrieved_refs)
         try:
-            result = self.investigator.investigate(self.investigation_context(retrieved_refs))
+            result = self.investigator.investigate(context)
         except LLMFailure as exc:
             self._audit(
                 AuditEventType.LLM_INVESTIGATION_FAILED,
@@ -268,8 +276,20 @@ class IncidentWorkflowRuntime:
             "uncertainty": result.uncertainty,
             "insufficient_evidence": result.insufficient_evidence,
             "investigation_evidence_ids": list(result.evidence_ids),
+            "investigation_input_evidence_ids": list(result.input_evidence_ids),
             "investigation_knowledge_refs": list(result.knowledge_refs),
         }
+        # Freeze the evidence that actually entered the investigator, not a re-derived slice.
+        self._freeze_replay_snapshot(
+            evidence=self._select_input_evidence(context.evidence, result.input_evidence_ids),
+            historical_knowledge=context.historical_knowledge,
+            prompt_version=result.prompt_version,
+            model_metadata={
+                "investigator_mode": result.investigator_mode,
+                "provider": result.provider,
+                "model": result.model,
+            },
+        )
         span = trace.get_current_span()
         span.set_attribute("model.provider", result.provider or "deterministic")
         span.set_attribute("model.name", result.model or "deterministic-baseline")
@@ -338,12 +358,22 @@ class IncidentWorkflowRuntime:
     def propose_action(self, action_type: ActionType) -> str:
         if self.workflow.proposed_action_id:
             return self.workflow.proposed_action_id
-        fingerprint = hashlib.sha256(f"{self.workflow.id}:{action_type.value}".encode()).hexdigest()
+        action = self._action_request(action_type)
+        binding = self._execution_binding(action)
+        fingerprint = binding_digest(binding)
         self.workflow.proposed_action_id = fingerprint
+        self.workflow.state_references = {
+            **self.workflow.state_references,
+            "action_binding": binding,
+        }
         self._audit(
             AuditEventType.ACTION_PROPOSED,
-            "Workflow proposed a structured action",
-            {"workflow_id": self.workflow.id, "action_fingerprint": fingerprint},
+            "Workflow proposed a structured action bound to its execution content",
+            {
+                "workflow_id": self.workflow.id,
+                "action_fingerprint": fingerprint,
+                "proposal_version": PROPOSAL_VERSION,
+            },
         )
         self.db.commit()
         return fingerprint
@@ -408,8 +438,86 @@ class IncidentWorkflowRuntime:
         return item.id
 
     def execute(self, action_type: ActionType) -> tuple[str, str]:
-        if self._execution_plane is not None and self._execution_dispatcher is not None:
-            return self._execute_via_plane(action_type)
+        action = self._action_request(action_type)
+        self._require_approved_binding(action)
+        if self._uses_execution_plane(action):
+            return self._execute_via_plane(action)
+        return self._execute_via_action_service(action)
+
+    def _uses_execution_plane(self, action: ActionRequest) -> bool:
+        """Read-only checks are evidence collection, not write side effects.
+
+        They must never enter the write execution router, which by design has no route for a
+        read-only action.
+        """
+
+        if self._execution_plane is None or self._execution_dispatcher is None:
+            return False
+        return self._service().policy.assess(action).approval_required
+
+    def _execution_binding(self, action: ActionRequest) -> dict[str, object]:
+        """Resolve the same execution path that dispatch will take, so the digest is stable."""
+
+        plane = self._execution_plane
+        if plane is not None:
+            assessment = self._service().policy.assess(action)
+            if assessment.approval_required:
+                route = plane.router.route(action, assessment)
+                profile = next(
+                    (item for item in plane.router.profiles if item.name == route.profile_name),
+                    None,
+                )
+                return execution_binding(
+                    action,
+                    dispatch=DISPATCH_EXECUTION_PLANE,
+                    backend_type=route.backend_type.value,
+                    profile_name=route.profile_name,
+                    profile_config=self._profile_config(profile),
+                )
+        return execution_binding(action, dispatch=DISPATCH_ACTION_SERVICE)
+
+    @staticmethod
+    def _profile_config(profile: ExecutionProfile | None) -> dict[str, object]:
+        if profile is None:
+            return {}
+        # Sorted collections only: frozenset iteration order is not stable across processes.
+        return {
+            "name": profile.name,
+            "backend_type": profile.backend_type.value,
+            "environment": profile.environment.value,
+            "allowed_action_types": sorted(
+                item.value for item in profile.allowed_action_types
+            ),
+            "target_mapping": dict(sorted(profile.target_mapping.items())),
+            "immutable_refs": dict(sorted(profile.immutable_refs.items())),
+            "rollback_profile": profile.rollback_profile,
+        }
+
+    def _require_approved_binding(self, action: ActionRequest) -> None:
+        """HUMAN APPROVED CONTENT == DISPATCHED CONTENT, or no side effect happens at all."""
+
+        approved = self.workflow.proposed_action_id
+        if approved is None:
+            return
+        current = binding_digest(self._execution_binding(action))
+        if approved == current:
+            return
+        self._audit(
+            AuditEventType.APPROVAL_STALE,
+            "Dispatch blocked: approved execution content no longer matches the request",
+            {
+                "workflow_id": self.workflow.id,
+                "approved_digest": approved,
+                "current_digest": current,
+                "stale_reason": "EXECUTION_BINDING_MISMATCH",
+                "execution_status": "BLOCKED",
+                "result_status": "BLOCKED",
+            },
+        )
+        self.db.commit()
+        raise ExecutionFailure("Approved execution content no longer matches the dispatch request")
+
+    def _execute_via_action_service(self, action: ActionRequest) -> tuple[str, str]:
         if self.workflow.execution_task_id:
             status = self.workflow.state_references.get("verification_status")
             if status in {"SUCCEEDED", "FAILED"}:
@@ -417,7 +525,6 @@ class IncidentWorkflowRuntime:
             raise WorkflowInfrastructureFailure(
                 "Action execution state is indeterminate; manual reconciliation is required"
             )
-        action = self._action_request(action_type)
         action_fingerprint = self.workflow.proposed_action_id
         if action_fingerprint is None:
             raise WorkflowInfrastructureFailure("Action fingerprint is missing")
@@ -435,15 +542,7 @@ class IncidentWorkflowRuntime:
                 self.workflow.id, action_fingerprint
             )
             operation = self._service().execute(action, approval_granted=approval_granted)
-            try:
-                asyncio.get_running_loop()
-            except RuntimeError:
-                outcome = asyncio.run(operation)
-            else:
-                # Synchronous LangGraph nodes normally run in a worker thread. This fallback
-                # also preserves correctness for embedded ASGI runtimes that invoke them inline.
-                with ThreadPoolExecutor(max_workers=1) as pool:
-                    outcome = pool.submit(asyncio.run, operation).result()
+            outcome = self._run_async(operation)
         except (ConnectionError, TimeoutError) as exc:
             raise WorkflowInfrastructureFailure(
                 "Action capability is temporarily unavailable"
@@ -467,7 +566,18 @@ class IncidentWorkflowRuntime:
         self.db.commit()
         return execution_id, status
 
-    def _execute_via_plane(self, action_type: ActionType) -> tuple[str, str]:
+    @staticmethod
+    def _run_async(operation: Coroutine[Any, Any, T]) -> T:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(operation)
+        # Synchronous LangGraph nodes normally run in a worker thread. This fallback also
+        # preserves correctness for embedded ASGI runtimes that invoke them inline.
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            return pool.submit(asyncio.run, operation).result()
+
+    def _execute_via_plane(self, action: ActionRequest) -> tuple[str, str]:
         execution_plane = self._execution_plane
         execution_dispatcher = self._execution_dispatcher
         if execution_plane is None or execution_dispatcher is None:
@@ -484,7 +594,6 @@ class IncidentWorkflowRuntime:
             if record.status is ExecutionStatus.RECONCILIATION_REQUIRED:
                 raise WorkflowInfrastructureFailure("Execution requires operator reconciliation")
             raise ExecutionPending("External execution is awaiting reconciliation")
-        action = self._action_request(action_type)
         fingerprint = self.workflow.proposed_action_id
         if fingerprint is None:
             raise WorkflowInfrastructureFailure("Action fingerprint is missing")
@@ -508,14 +617,7 @@ class IncidentWorkflowRuntime:
             "execution_status": record.status.value,
         }
         self.db.commit()
-        operation = execution_dispatcher.dispatch_one()
-        try:
-            asyncio.get_running_loop()
-        except RuntimeError:
-            asyncio.run(operation)
-        else:
-            with ThreadPoolExecutor(max_workers=1) as pool:
-                pool.submit(asyncio.run, operation).result()
+        self._run_async(execution_dispatcher.dispatch_one())
         record = ExecutionRepository(self.db).get(record.id)
         if record is None:
             raise WorkflowInfrastructureFailure("Durable execution record is missing")
@@ -607,16 +709,28 @@ class IncidentWorkflowRuntime:
     def _freeze_replay_snapshot(
         self,
         *,
-        evidence_ids: list[str],
+        evidence: tuple[InvestigationEvidence, ...],
         historical_knowledge: tuple[RetrievedKnowledge, ...] | None = None,
+        prompt_version: str | None = None,
+        model_metadata: dict[str, object] | None = None,
     ) -> None:
-        """Persist bounded replay inputs in WorkflowRun metadata, never checkpoint internals."""
+        """Persist the frozen investigator input in WorkflowRun metadata, never checkpoints.
+
+        Replay must re-run the investigation over exactly what the original run saw: the selected
+        evidence and its sanitized content, the historical snapshot, and the prompt and
+        context-builder identity. It must never re-derive a similar-looking selection.
+        """
 
         incident = self.incidents._require(self.workflow.incident_id)
         existing = self.workflow.state_references.get("replay_snapshot")
         existing_history: list[object] = []
-        if isinstance(existing, dict) and isinstance(existing.get("historical_knowledge"), list):
-            existing_history = existing["historical_knowledge"]
+        existing_prompt: object = None
+        existing_model: object = None
+        if isinstance(existing, dict):
+            if isinstance(existing.get("historical_knowledge"), list):
+                existing_history = existing["historical_knowledge"]
+            existing_prompt = existing.get("prompt_version")
+            existing_model = existing.get("model_metadata")
         history: list[object]
         if historical_knowledge is None:
             history = existing_history
@@ -637,18 +751,75 @@ class IncidentWorkflowRuntime:
                 }
                 for item in historical_knowledge[:10]
             ]
+        selected: list[InvestigationEvidence] = []
+        seen: set[str] = set()
+        for item in evidence:
+            if item.evidence_id in seen:
+                continue
+            seen.add(item.evidence_id)
+            selected.append(item)
+            if len(selected) == MAX_SNAPSHOT_EVIDENCE:
+                break
         self.workflow.state_references = {
             **self.workflow.state_references,
             "replay_snapshot": {
-                "schema_version": "1",
+                "schema_version": SNAPSHOT_SCHEMA_VERSION,
                 "incident_id": incident.id,
                 "service": incident.service,
                 "environment": incident.environment,
-                "evidence_ids": list(dict.fromkeys(evidence_ids))[:20],
+                "evidence_ids": [item.evidence_id for item in selected],
+                "evidence": [self._snapshot_evidence(item) for item in selected],
                 "historical_knowledge": history,
+                "prompt_version": (
+                    prompt_version if prompt_version is not None else existing_prompt
+                ),
+                "model_metadata": (
+                    model_metadata if model_metadata is not None else existing_model
+                ),
+                "context_builder": EvidenceContextBuilder.default_config(),
                 "captured_at": utc_now().isoformat(),
             },
         }
+
+    @staticmethod
+    def _snapshot_evidence(item: InvestigationEvidence) -> dict[str, object]:
+        return {
+            "evidence_id": item.evidence_id,
+            "evidence_type": item.evidence_type.value,
+            "source": item.source,
+            "observed_at": item.observed_at.isoformat(),
+            "summary": item.summary[:1000],
+            "excerpt": (item.excerpt or "")[:MAX_SNAPSHOT_EXCERPT_CHARS] or None,
+            "metadata": item.metadata,
+        }
+
+    @staticmethod
+    def _to_investigation_evidence(item: EvidenceRecord) -> InvestigationEvidence:
+        return InvestigationEvidence(
+            evidence_id=item.id,
+            evidence_type=item.evidence_type,
+            source=item.source,
+            observed_at=item.observed_at,
+            summary=item.summary,
+            excerpt=item.excerpt,
+            metadata=item.evidence_metadata,
+        )
+
+    def _evidence_items(self, evidence_ids: list[str]) -> tuple[InvestigationEvidence, ...]:
+        incident = self.incidents._require(self.workflow.incident_id)
+        by_id = {item.id: item for item in incident.evidence}
+        return tuple(
+            self._to_investigation_evidence(by_id[evidence_id])
+            for evidence_id in evidence_ids
+            if evidence_id in by_id
+        )
+
+    @staticmethod
+    def _select_input_evidence(
+        pool: tuple[InvestigationEvidence, ...], evidence_ids: tuple[str, ...]
+    ) -> tuple[InvestigationEvidence, ...]:
+        by_id = {item.evidence_id: item for item in pool}
+        return tuple(by_id[evidence_id] for evidence_id in evidence_ids if evidence_id in by_id)
 
     def _audit(self, event_type: AuditEventType, summary: str, metadata: dict[str, object]) -> None:
         self.audits.append(

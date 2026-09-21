@@ -217,6 +217,22 @@ class ExecutionDispatcher:
                 )
                 self.db.commit()
                 return True
+            except (TimeoutError, ConnectionError) as exc:
+                # A local timeout or reset after submission cannot prove the remote side effect
+                # did not happen, so it must be reconciled rather than retried.
+                unknown_total.add(1, metric_attributes)
+                execution.status = ExecutionStatus.UNKNOWN
+                execution.failure_category = "AMBIGUOUS_TRANSPORT_FAILURE"
+                execution.safe_failure_message = str(exc)[:500]
+                message.status = OutboxStatus.INDETERMINATE
+                message.completed_at = utc_now()
+                self._audit(
+                    execution,
+                    AuditEventType.EXECUTION_UNKNOWN,
+                    "Dispatch transport failed after submission; manual reconciliation required",
+                )
+                self.db.commit()
+                return True
             except Exception as exc:
                 dispatch_failures.add(1, metric_attributes)
                 execution.status = ExecutionStatus.FAILED

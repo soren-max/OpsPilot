@@ -3,11 +3,16 @@ class ExecutionPlaneError(RuntimeError):
 
 
 class IndeterminateDispatch(ExecutionPlaneError):
-    """The external system may have accepted the side effect; dispatch must not retry."""
+    """The request may have reached the remote system; dispatch must never retry.
+
+    Raised when the failure happened after the request was written to the connection but no
+    usable acceptance handle was observed: a read timeout, a reset while reading the response,
+    a malformed acceptance response, or a worker crash between intent and confirmation.
+    """
 
 
 class BackendUnavailable(ExecutionPlaneError):
-    pass
+    """The request provably did not reach the remote system, so a bounded retry is safe."""
 
 
 class MalformedBackendResponse(ExecutionPlaneError):

@@ -115,21 +115,23 @@ def test_conditional_routes() -> None:
     assert route_after_verify(state) == "failure"
 
 
-def test_no_action_workflow_resolves_incident_and_persists_trace(db: Session) -> None:
+def test_no_action_workflow_completes_without_resolving_incident(db: Session) -> None:
     incident_id = create_incident(db)
     service = WorkflowService(db)
     workflow = service.start(incident_id, "operator", "no-action-1")
 
     result = service.run(workflow.id)
 
+    # The run finished cleanly, but proposing no action is not evidence of recovery.
     assert result.status is WorkflowRunStatus.SUCCEEDED
     assert result.current_node == "finalize"
-    assert IncidentService(db)._require(incident_id).status is IncidentStatus.RESOLVED
+    assert IncidentService(db)._require(incident_id).status is IncidentStatus.INVESTIGATING
     event_types = {item.event_type for item in service.runs.list_audit_events(result.id)}
     assert AuditEventType.WORKFLOW_STARTED in event_types
     assert AuditEventType.WORKFLOW_NODE_STARTED in event_types
     assert AuditEventType.WORKFLOW_NODE_COMPLETED in event_types
     assert AuditEventType.WORKFLOW_COMPLETED in event_types
+    assert AuditEventType.INCIDENT_RESOLVED not in event_types
 
 
 def test_mutating_workflow_stops_at_approval_boundary(db: Session) -> None:

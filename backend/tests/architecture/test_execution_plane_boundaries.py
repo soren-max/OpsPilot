@@ -1,5 +1,8 @@
 from pathlib import Path
 
+from sqlalchemy import create_engine, event
+from sqlalchemy.engine import Engine
+
 
 def test_harness_dependency_stays_in_execution_adapter() -> None:
     root = Path(__file__).parents[2] / "app"
@@ -25,8 +28,22 @@ def test_external_contract_cannot_name_backend_or_pipeline() -> None:
     assert fields.isdisjoint({"backend", "profile", "pipeline", "pipeline_id", "provider_url"})
 
 
-def test_outbox_claim_uses_postgres_skip_locked() -> None:
+def test_execution_persistence_keeps_database_specific_behavior_scoped() -> None:
     path = Path(__file__).parents[2] / "app" / "repositories" / "executions.py"
     source = path.read_text(encoding="utf-8")
     assert "with_for_update(skip_locked=True)" in source
     assert "OutboxStatus.PENDING" in source
+
+    from app.db.session import enable_sqlite_foreign_keys, engine
+
+    assert not event.contains(Engine, "connect", enable_sqlite_foreign_keys)
+    assert event.contains(engine, "connect", enable_sqlite_foreign_keys) is (
+        engine.dialect.name == "sqlite"
+    )
+
+    independent_engine = create_engine("sqlite:///:memory:")
+    try:
+        with independent_engine.connect() as connection:
+            assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 0
+    finally:
+        independent_engine.dispose()

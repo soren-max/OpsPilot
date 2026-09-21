@@ -19,6 +19,8 @@ class InvestigationPromptEvidence(StrictAIModel):
     summary: str = Field(min_length=1, max_length=500)
     excerpt: str | None = Field(default=None, max_length=1000)
     metadata: dict[str, JsonValue] = Field(default_factory=dict)
+    truncated: bool = False
+    summarized: bool = False
 
 
 class InvestigationPromptKnowledge(StrictAIModel):

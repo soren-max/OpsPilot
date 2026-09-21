@@ -34,6 +34,19 @@ the outbox becomes `INDETERMINATE`; there is no blind retry. Reconciliation atta
 execution by the OpsPilot correlation ID where possible, otherwise the state becomes
 `RECONCILIATION_REQUIRED` for operator intervention.
 
+Dispatch classification is explicit rather than inferred from the exception type alone. A failure
+that provably happened before submission — a refused connection, a connect timeout, or a rejection
+status — is `BackendUnavailable` and may be retried under bounded policy. A failure whose outcome is
+ambiguous is `IndeterminateDispatch` and becomes `UNKNOWN`: read/write errors, resets, timeouts, a
+server error that may have started the run, or a 200 response without a usable execution handle.
+When a provider exposes no remote handle, no correlation API, and no idempotency key, OpsPilot
+cannot rediscover the outcome and says so instead of guessing; a manual reconciliation is required.
+
+Read-only evidence checks are not write side effects. They never route through the write execution
+plane, so a status check cannot fail merely because the write router has no route for a read-only
+action. The same applies to their retry policy: only a read-only check may be retried after a
+reported failure, because a failed write does not prove the remote side effect did not happen.
+
 ## State and verification
 
 Canonical state is `PLANNED`, `APPROVED`, `QUEUED`, `DISPATCHING`, `SUBMITTED`, `RUNNING`,
